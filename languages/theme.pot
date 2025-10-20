@@ -1,0 +1,139 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"Project-Id-Version: Ingot\n"
+"POT-Creation-Date: 2018-08-26 21:30+0300\n"
+"PO-Revision-Date: 2018-08-26 21:30+0300\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.0.1\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
+"X-Poedit-WPHeader: style.css\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.js\n"
+
+#: 404.php:5
+msgid "404 Error"
+msgstr ""
+
+#: archive.php:19 author.php:19 category.php:19 index.php:19 search.php:15
+#: tag.php:19
+msgid "Prev"
+msgstr ""
+
+#: archive.php:20 author.php:20 category.php:20 index.php:20 search.php:16
+#: tag.php:20
+msgid "Next"
+msgstr ""
+
+#. translators: %s: post title
+#: comments.php:21
+#, php-format
+msgctxt "comments title"
+msgid "One thought on &ldquo;%s&rdquo;"
+msgstr ""
+
+#: comments.php:26
+#, php-format
+msgctxt "comments title"
+msgid "%1$s thought on &ldquo;%2$s&rdquo;"
+msgid_plural "%1$s thoughts on &ldquo;%2$s&rdquo;"
+msgstr[0] ""
+msgstr[1] ""
+
+#: comments.php:42 comments.php:70
+msgid "Comment navigation"
+msgstr ""
+
+#: comments.php:45 comments.php:73
+msgid "Older Comments"
+msgstr ""
+
+#: comments.php:49 comments.php:77
+msgid "Newer Comments"
+msgstr ""
+
+#: comments.php:89
+msgid "Comments are closed."
+msgstr ""
+
+#: core/setup.php:72
+msgid "Sidebar"
+msgstr ""
+
+#: core/setup.php:74
+msgid "Add widgets here."
+msgstr ""
+
+#: core/setup.php:79
+msgid "Header Widgets"
+msgstr ""
+
+#: core/setup.php:81
+msgid "Widgets in the header after logo and title"
+msgstr ""
+
+#: core/setup.php:86
+msgid "Footer Widgets"
+msgstr ""
+
+#: core/setup.php:88
+msgid "Widgets in the footer, before copyright"
+msgstr ""
+
+#: search.php:6
+msgid "Search Results"
+msgstr ""
+
+#: search.php:20
+msgid "Nothing found with this request, try another or"
+msgstr ""
+
+#: search.php:22
+msgid "back to main page"
+msgstr ""
+
+#: template-parts/post_card.php:31 template-parts/post_single.php:31
+msgid "Author: "
+msgstr ""
+
+#: template-parts/post_card.php:39 template-parts/post_single.php:39
+msgid "Date: "
+msgstr ""
+
+#: template-parts/post_card.php:53
+msgid "Read More ..."
+msgstr ""
+
+#: template-parts/post_single.php:46
+msgid "Category: "
+msgstr ""
+
+#. Theme Name of the plugin/theme
+msgid "Ingot"
+msgstr ""
+
+#. Theme URI of the plugin/theme
+msgid "https://git.it-forge.tech/users/leninkerrigan/repos/ingot/browse"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid "Bones for WordPress Theme"
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "IT Forge Team"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://it-forge.tech/"
+msgstr ""

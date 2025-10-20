@@ -1,0 +1,107 @@
+main-sidebar {
+  display: none;
+  position: fixed;
+  left: 0.75rem;
+  top: 8rem;
+  z-index: 40;
+}
+
+@media (min-width: 1024px) {
+  main-sidebar {
+    display: block;
+  }
+}
+
+main-sidebar .sidebar_toc-container {
+  position: relative;
+  width: 14rem;
+  background-color: rgba(32, 34, 39, 0.95);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  padding: 1rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: width 0.3s;
+}
+
+main-sidebar .sidebar_toc-container--collapsed {
+  width: 4rem;
+}
+
+main-sidebar .sidebar_toc-toggle_button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  color: rgba(245, 247, 250, 0.6);
+  transition: all 0.2s;
+}
+
+main-sidebar .sidebar_toc-toggle_button:hover {
+  color: var(--color-accent);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+main-sidebar .sidebar_toc-toggle_icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  transition: transform 0.3s;
+}
+
+main-sidebar .sidebar_toc-container--collapsed .sidebar_toc-toggle_icon {
+  transform: rotate(180deg);
+}
+
+main-sidebar .sidebar_toc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 2.5rem;
+}
+
+main-sidebar .sidebar_toc-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  color: rgba(245, 247, 250, 0.7);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+main-sidebar .sidebar_toc-link:hover {
+  color: var(--color-primary);
+  background-color: rgba(155, 140, 255, 0.1);
+  border-color: var(--color-primary);
+}
+
+main-sidebar .sidebar_toc-link--active {
+  color: var(--color-accent);
+  background-color: rgba(255, 232, 155, 0.1);
+  border-color: var(--color-accent);
+}
+
+main-sidebar .sidebar_toc-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+main-sidebar .sidebar_toc-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+main-sidebar .sidebar_toc-container--collapsed .sidebar_toc-label {
+  opacity: 0;
+  pointer-events: none;
+}

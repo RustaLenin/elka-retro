@@ -1,0 +1,227 @@
+/*
+Theme Name: Elka Retro
+Theme URI: https://git.it-forge.tech/users/leninkerrigan/repos/ingot/browse
+Author: Ilya Aiden (Lenin-Kerrigan)
+Author URI: https://git.it-forge.tech/users/leninkerrigan/
+Description: Custom WordPress Theme for elka-retro.ru
+Version: 0.1
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Tags: blog, rtl-language-support, translation-ready
+Text Domain: theme
+
+This theme, like WordPress, is licensed under the GPL.
+Use it to make something cool, have fun, and share what you've learned with others.
+*/
+
+/* 
+Global CSS
+*/
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@600;700&display=swap");
+@import "./components/components.css";
+
+/* CSS Variables */
+:root {
+  --color-background: #0b0616;
+  --color-foreground: #f5f7fa;
+  --color-card: #17181d;
+  --color-secondary: #202227;
+  --color-muted-foreground: #8a8f99;
+  --color-accent: #ffe89b;
+  --color-primary: #9b8cff;
+  --color-border: #2a2d31;
+  --color-chart-3: #22c55e;
+  --color-chart-4: #38bdf8;
+  
+  --font-sans: "Inter", sans-serif;
+  --font-heading: "Sora", sans-serif;
+}
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Base Styles */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  color: var(--color-foreground);
+  line-height: 1.2;
+}
+
+h1 { 
+  font-weight: 700; 
+  letter-spacing: -0.02em; 
+}
+
+h2 { 
+  font-weight: 700; 
+  letter-spacing: -0.015em; 
+}
+
+h3 { 
+  font-weight: 600; 
+  letter-spacing: -0.01em; 
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* Background Accents */
+.bg_accents {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(800px 500px at 10% -10%, rgba(56,189,248,0.10), transparent 60%),
+    radial-gradient(900px 600px at 100% 0%, rgba(255,232,155,0.08), transparent 60%);
+}
+
+/* Main Layout */
+.site_main {
+  position: relative;
+  z-index: 0;
+  padding-left: 0;
+}
+
+@media (min-width: 1024px) {
+  .site_main {
+    padding-left: 5rem;
+  }
+}
+
+/* Section Container */
+.section_container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  scroll-margin-top: 7rem;
+}
+
+@media (min-width: 640px) {
+  .section_container {
+    padding: 2.5rem 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section_container {
+    padding: 2.5rem 2rem;
+  }
+}
+
+.product_section {
+  scroll-margin-top: 7rem;
+}
+
+.product_section + .product_section {
+  margin-top: 4rem;
+}
+
+/* Utility Classes */
+.container {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 2rem;
+  }
+}
+
+/** 
+Default Styles For Wp Editor Content 
+**/
+
+.entry-content img {
+    margin: 0 0 1.5em 0;
+}
+.alignleft, img.alignleft {
+    margin-right: 1.5em;
+    display: inline;
+    float: left;
+}
+.alignright, img.alignright {
+    margin-left: 1.5em;
+    display: inline;
+    float: right;
+}
+.aligncenter, img.aligncenter {
+    margin-right: auto;
+    margin-left: auto;
+    display: block;
+    clear: both;
+}
+.alignnone, img.alignnone {
+    /* not sure about this one */
+}
+.wp-caption {
+    margin-bottom: 1.5em;
+    text-align: center;
+    padding-top: 5px;
+}
+.wp-caption img {
+    border: 0 none;
+    padding: 0;
+    margin: 0;
+}
+.wp-caption p.wp-caption-text {
+    line-height: 1.5;
+    font-size: 10px;
+    margin: 0;
+}
+.wp-smiley {
+    margin: 0 !important;
+    max-height: 1em;
+}
+blockquote.left {
+    margin-right: 20px;
+    text-align: right;
+    margin-left: 0;
+    width: 33%;
+    float: left;
+}
+blockquote.right {
+    margin-left: 20px;
+    text-align: left;
+    margin-right: 0;
+    width: 33%;
+    float: right;
+}

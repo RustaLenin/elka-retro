@@ -1,0 +1,61 @@
+import { site_header_template } from './site-header-template.js';
+
+class SiteHeader extends HTMLElement {
+  constructor() {
+    super();
+    this.state = {
+      cartCount: 2,
+      menuOpen: false
+    };
+  }
+  
+  connectedCallback() {
+    // Get cart count from attribute
+    const cartCountAttr = this.getAttribute('cart-count');
+    if (cartCountAttr) {
+      this.state.cartCount = parseInt(cartCountAttr, 10);
+    }
+    
+    this.render();
+    this.attachEventListeners();
+    
+    // Listen for cart updates
+    window.addEventListener('cart-updated', (e) => {
+      this.state.cartCount = e.detail.count;
+      this.render();
+      this.attachEventListeners();
+    });
+  }
+  
+  render() {
+    this.innerHTML = site_header_template(this.state);
+  }
+  
+  attachEventListeners() {
+    // Mobile menu toggle
+    const menuButton = this.querySelector('.MobileMenuToggle');
+    if (menuButton) {
+      menuButton.addEventListener('click', () => this.toggleMenu());
+    }
+    
+    // Close mobile menu
+    const closeButtons = this.querySelectorAll('.CloseMobileMenu');
+    closeButtons.forEach(button => {
+      button.addEventListener('click', () => this.closeMenu());
+    });
+  }
+  
+  toggleMenu() {
+    this.state.menuOpen = !this.state.menuOpen;
+    this.render();
+    this.attachEventListeners();
+  }
+  
+  closeMenu() {
+    this.state.menuOpen = false;
+    this.render();
+    this.attachEventListeners();
+  }
+}
+
+customElements.define('site-header', SiteHeader);
