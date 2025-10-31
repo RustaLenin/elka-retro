@@ -1,0 +1,270 @@
+/* Toy Type Single Component Styles */
+
+toy-type-single {
+  display: block;
+  width: 80%;
+  max-width: 1200px;
+  margin: 4rem auto 2rem auto;
+}
+
+toy-type-single .toy-type-single_content {
+  position: relative;
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 1rem;
+  padding: 2rem;
+  min-height: 200px;
+}
+
+/* Loader и состояния ошибки */
+toy-type-single .toy-type-single_content block-loader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+toy-type-single .toy-type-single_error,
+toy-type-single .toy-type-single_empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border-radius: 1rem;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+toy-type-single .toy-type-single_error {
+  color: #ef4444;
+}
+
+/* Хлебные крошки */
+toy-type-single category-breadcrumbs {
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+/* Заголовок */
+toy-type-single .toy-type-single_header {
+  margin-bottom: 2rem;
+}
+
+toy-type-single .toy-type-single_title {
+  font-family: var(--font-heading, inherit);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Основной контент - двухколоночный layout */
+toy-type-single .toy-type-single_main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+toy-type-single .toy-type-single_main-left {
+  display: flex;
+  flex-direction: column;
+}
+
+toy-type-single .toy-type-single_main-right {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Изображение - ограничено 50% ширины, слева */
+toy-type-single .toy-type-single_image {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--color-secondary, rgba(155, 140, 255, 0.1));
+}
+
+toy-type-single .toy-type-single_image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  border-radius: 0.75rem;
+}
+
+/* TODO: В будущем здесь будет галерея картинок вместо одного изображения */
+
+/* Описание */
+toy-type-single .toy-type-single_body {
+  margin-bottom: 0;
+}
+
+toy-type-single .toy-type-single_section-title {
+  font-family: var(--font-heading, inherit);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  margin: 0 0 1rem 0;
+  line-height: 1.3;
+}
+
+toy-type-single .toy-type-single_description {
+  margin-bottom: 2rem;
+}
+
+toy-type-single .toy-type-single_description-content {
+  font-family: var(--font-sans, inherit);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-foreground, rgba(245, 247, 250, 0.9));
+}
+
+toy-type-single .toy-type-single_description-content p {
+  margin-bottom: 1rem;
+}
+
+toy-type-single .toy-type-single_description-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Technical Information */
+toy-type-single .toy-type-single_technical {
+  background: var(--color-secondary, rgba(32, 34, 39, 0.6));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-top: 2rem;
+}
+
+toy-type-single .toy-type-single_technical .toy-type-single_section-title {
+  margin-bottom: 1.5rem;
+}
+
+toy-type-single .toy-type-single_properties {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+toy-type-single .toy-type-single_properties tbody tr {
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+toy-type-single .toy-type-single_properties tbody tr:last-child {
+  border-bottom: none;
+}
+
+toy-type-single .toy-type-single_properties .property-label {
+  font-family: var(--font-sans, inherit);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  padding: 1rem 1.5rem 1rem 0;
+  text-align: left;
+  vertical-align: top;
+  width: 40%;
+}
+
+toy-type-single .toy-type-single_properties .property-value {
+  font-family: var(--font-sans, inherit);
+  font-size: 0.9375rem;
+  color: var(--color-foreground, rgba(245, 247, 250, 0.9));
+  padding: 1rem 0;
+  text-align: right;
+  vertical-align: top;
+  width: 60%;
+}
+
+/* Ссылки на таксономии - кликабельные */
+toy-type-single .toy-type-single_properties .taxonomy-link {
+  color: var(--color-primary, rgba(155, 140, 255, 1));
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+toy-type-single .toy-type-single_properties .taxonomy-link:hover {
+  color: var(--color-accent, rgba(255, 232, 155, 1));
+  text-decoration: underline;
+}
+
+toy-type-single .toy-type-single_properties .taxonomy-empty {
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.5));
+  font-style: italic;
+}
+
+/* Секция с экземплярами */
+toy-type-single .toy-type-single_instances {
+  margin-top: 2rem;
+}
+
+toy-type-single .toy-instance-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Responsive для контейнера экземпляров */
+@media (min-width: 1024px) {
+  toy-type-single .toy-instance-cards-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1023px) and (min-width: 768px) {
+  toy-type-single .toy-instance-cards-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  toy-type-single .toy-instance-cards-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  toy-type-single {
+    width: 95%;
+    margin: 2rem auto 1rem auto;
+  }
+  
+  toy-type-single .toy-type-single_content {
+    padding: 1.5rem;
+  }
+  
+  toy-type-single .toy-type-single_title {
+    font-size: 2rem;
+  }
+  
+  toy-type-single .toy-type-single_header {
+    margin-bottom: 1.5rem;
+  }
+  
+  toy-type-single .toy-type-single_main {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  toy-type-single .toy-type-single_image {
+    margin-bottom: 1.5rem;
+  }
+  
+  toy-type-single .toy-type-single_technical {
+    padding: 1.25rem;
+    margin-top: 1.5rem;
+  }
+  
+  toy-type-single .toy-type-single_properties .property-label {
+    width: 45%;
+    padding-right: 1rem;
+  }
+  
+  toy-type-single .toy-type-single_section-title {
+    font-size: 1.25rem;
+  }
+}

@@ -1,0 +1,54 @@
+.ui-tooltip {
+  background: var(--color-secondary);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  padding: 8px 10px;
+  z-index: 100000;
+  transition: opacity .12s ease;
+}
+
+.ui-tooltip__content {
+  font-size: 13px;
+  line-height: 1.3;
+  max-width: 320px;
+}
+
+.ui-tooltip__arrow {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: var(--color-secondary);
+  border-left: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
+  transform: rotate(45deg);
+}
+
+/* Arrow positioning will be adjusted by JS via placement; default top */
+.ui-tooltip__arrow[data-placement="top"],
+.ui-tooltip__arrow:not([data-placement]) {
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.ui-tooltip__arrow[data-placement="bottom"] {
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.ui-tooltip__arrow[data-placement="left"] {
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.ui-tooltip__arrow[data-placement="right"] {
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+

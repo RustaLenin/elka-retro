@@ -1,0 +1,45 @@
+ui-button, .ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color .2s ease, color .2s ease, transform .05s ease, opacity .2s ease;
+}
+
+ui-button[aria-disabled="true"], .ui-button[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+ui-button .content, .ui-button .content { display: inline-flex; align-items: center; gap: 8px; }
+ui-button .label, .ui-button .label { white-space: nowrap; }
+
+/* Kinds */
+ui-button.primary, .ui-button.primary {
+  background: var(--color-primary);
+  color: #0b0616;
+}
+ui-button.primary:hover:not([aria-disabled="true"]) { filter: brightness(1.05); }
+
+ui-button.secondary, .ui-button.secondary {
+  background: var(--color-secondary);
+  color: var(--color-foreground);
+}
+ui-button.secondary:hover:not([aria-disabled="true"]) { filter: brightness(1.08); }
+
+ui-button.warning, .ui-button.warning {
+  background: #ef4444;
+  color: #fff;
+}
+ui-button.warning:hover:not([aria-disabled="true"]) { filter: brightness(1.05); }
+
+ui-button.pressed { transform: translateY(1px); }
+
+

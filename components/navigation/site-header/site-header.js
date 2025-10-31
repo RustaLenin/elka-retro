@@ -1,6 +1,7 @@
 import { site_header_template } from './site-header-template.js';
+import { BaseElement } from '../../base-element.js';
 
-class SiteHeader extends HTMLElement {
+class SiteHeader extends BaseElement {
   constructor() {
     super();
     this.state = {
@@ -10,6 +11,7 @@ class SiteHeader extends HTMLElement {
   }
   
   connectedCallback() {
+    super.connectedCallback();
     // Get cart count from attribute
     const cartCountAttr = this.getAttribute('cart-count');
     if (cartCountAttr) {

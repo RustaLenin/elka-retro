@@ -11,30 +11,21 @@ get_header(); ?>
   
 	<!-- Main Content -->
 	<main id="main" class="site_main">
+
+    <!-- Latest News -->
+    <div id="news" class="section_container">
+        <?php get_template_part('template-parts/latest-posts'); ?>
+    </div>
     
     <!-- Hero Section -->
     <div id="hero" class="section_container">
       <!-- <hero-section></hero-section> -->
     </div>
     
-    <!-- Catalog Cards -->
-    <div id="catalog" class="section_container">
-      <!-- <catalog-cards></catalog-cards> -->
-    </div>
-    
-    <!-- Latest News -->
-    <div id="news" class="section_container">
-      <!-- <latest-news></latest-news> -->
-    </div>
-    
-    <!-- Product Grids -->
+    <!-- Latest Toy Types (New Arrivals) -->
     <div class="section_container">
       <div id="new-arrivals" class="product_section">
-        <!-- <product-grid type="new-arrivals"></product-grid> -->
-      </div>
-      
-      <div id="popular" class="product_section">
-        <!-- <product-grid type="popular"></product-grid> -->
+        <?php get_template_part('template-parts/latest-toy-types'); ?>
       </div>
     </div>
     

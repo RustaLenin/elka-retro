@@ -1,0 +1,50 @@
+ui-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  transition: color 0.2s, fill 0.2s;
+  --icon-color: var(--color-foreground);
+  --icon-accent-color: var(--color-accent);
+  color: var(--icon-color);
+  fill: var(--icon-color);
+  line-height: 1;
+}
+
+ui-icon svg {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  color: var(--icon-color);
+  fill: var(--icon-color);
+  vertical-align: middle;
+  transition: fill 0.4s, stroke 0.4s;
+}
+
+/* Для контурных иконок (stroke-based) - не заливаем */
+ui-icon svg[stroke] {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* Sizes */
+ui-icon[size="tiny"],   ui-icon[size="tiny"]   svg { width: 16px; height: 16px; }
+ui-icon[size="small"],  ui-icon[size="small"]  svg { width: 20px; height: 20px; }
+ui-icon[size="medium"], ui-icon[size="medium"] svg { width: 24px; height: 24px; }
+ui-icon[size="large"],  ui-icon[size="large"]  svg { width: 32px; height: 32px; }
+ui-icon[size="xl"],     ui-icon[size="xl"]     svg { width: 36px; height: 36px; }
+ui-icon[size="xxl"],    ui-icon[size="xxl"]    svg { width: 40px; height: 40px; }
+ui-icon[size="xxxl"],   ui-icon[size="xxxl"]   svg { width: 50px; height: 50px; }
+
+/* Spin */
+ui-icon svg[data-spin="true"] { animation: icon-spin 1s linear infinite; }
+@keyframes icon-spin { to { transform: rotate(360deg); } }
+
+/* Hover accent */
+ui-icon:hover,
+ui-icon:focus,
+ui-icon:hover svg,
+ui-icon:focus svg {
+  color: var(--icon-accent-color);
+  fill: var(--icon-accent-color);
+}
+
+

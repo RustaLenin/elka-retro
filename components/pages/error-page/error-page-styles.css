@@ -1,0 +1,167 @@
+/* Error Page Component Styles */
+
+error-page {
+  display: block;
+  width: 80%;
+  max-width: 800px;
+  margin: 4rem auto 2rem auto;
+}
+
+error-page .error-page_content {
+  position: relative;
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 1rem;
+  padding: 3rem;
+  min-height: 200px;
+  text-align: center;
+}
+
+/* Иллюстрация */
+error-page .error-page_illustration {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+error-page .error-page_illustration ui-icon {
+  color: var(--color-accent, rgba(255, 232, 155, 1));
+  opacity: 0.8;
+}
+
+/* Заголовок */
+error-page .error-page_header {
+  margin-bottom: 2.5rem;
+}
+
+error-page .error-page_code {
+  font-family: var(--font-heading, inherit);
+  font-size: 6rem;
+  font-weight: 700;
+  color: var(--color-primary, rgba(155, 140, 255, 1));
+  margin: 0 0 1rem 0;
+  line-height: 1;
+}
+
+error-page .error-page_title {
+  font-family: var(--font-heading, inherit);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  margin: 0 0 1rem 0;
+  line-height: 1.2;
+}
+
+error-page .error-page_message {
+  font-family: var(--font-sans, inherit);
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.8));
+  margin: 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Предложения */
+error-page .error-page_suggestions {
+  margin-bottom: 2.5rem;
+  text-align: left;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+error-page .error-page_suggestions-title {
+  font-family: var(--font-heading, inherit);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  margin: 0 0 1rem 0;
+  text-align: center;
+}
+
+error-page .error-page_suggestions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+error-page .error-page_suggestions-list li {
+  padding: 0.75rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: var(--color-foreground, rgba(245, 247, 250, 0.9));
+  line-height: 1.6;
+}
+
+error-page .error-page_suggestions-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--color-accent, rgba(255, 232, 155, 1));
+  font-size: 1.25rem;
+}
+
+error-page .error-page_suggestions-list li a {
+  color: var(--color-primary, rgba(155, 140, 255, 1));
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+error-page .error-page_suggestions-list li a:hover {
+  color: var(--color-accent, rgba(255, 232, 155, 1));
+}
+
+/* Действия */
+error-page .error-page_actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+error-page .error-page_home-link,
+error-page .error-page_blog-link {
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  error-page {
+    width: 95%;
+    margin: 2rem auto 1rem auto;
+  }
+  
+  error-page .error-page_content {
+    padding: 2rem 1.5rem;
+  }
+  
+  error-page .error-page_code {
+    font-size: 4rem;
+  }
+  
+  error-page .error-page_title {
+    font-size: 1.75rem;
+  }
+  
+  error-page .error-page_message {
+    font-size: 1rem;
+  }
+  
+  error-page .error-page_suggestions {
+    max-width: 100%;
+  }
+  
+  error-page .error-page_header {
+    margin-bottom: 2rem;
+  }
+  
+  error-page .error-page_suggestions {
+    margin-bottom: 2rem;
+  }
+}
+

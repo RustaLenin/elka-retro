@@ -1,0 +1,71 @@
+.UINotificationArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  right: 0;
+  max-width: 25vw;
+  max-height: 75vh;
+  z-index: 99999;
+}
+
+ui-notification {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--color-card);
+  color: var(--color-foreground);
+  border-radius: 8px;
+  margin-right: 7.5vw;
+  margin-top: 24px;
+  transition:
+    opacity 0.55s cubic-bezier(.32,1.47,.48,.93),
+    transform 0.55s cubic-bezier(.32,1.47,.48,.93);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  border: 2px solid var(--color-border);
+}
+
+ui-notification:first-of-type { margin-top: 7.5vh; }
+ui-notification ui-icon { margin-right: 12px; }
+ui-notification .notify_message { font-size: 15px; }
+
+/* Info */
+ui-notification[type="info"] { border-color: var(--color-chart-4); }
+ui-notification[type="info"] ui-icon,
+ui-notification[type="info"] ui-icon svg { fill: var(--color-chart-4); color: var(--color-chart-4); }
+
+/* Success */
+ui-notification[type="success"] { border-color: var(--color-chart-3); }
+ui-notification[type="success"] ui-icon,
+ui-notification[type="success"] ui-icon svg { fill: var(--color-chart-3); color: var(--color-chart-3); }
+
+/* Warning */
+ui-notification[type="warning"] { border-color: var(--color-accent); }
+ui-notification[type="warning"] ui-icon,
+ui-notification[type="warning"] ui-icon svg { fill: var(--color-accent); color: var(--color-accent); }
+
+/* Error */
+ui-notification[type="error"] { border-color: #ef4444; }
+ui-notification[type="error"] ui-icon,
+ui-notification[type="error"] ui-icon svg { fill: #ef4444; color: #ef4444; }
+
+/* Animation */
+ui-notification.notify_start {
+  opacity: 0;
+  transform: translateY(-130px) scale(0.8);
+}
+ui-notification.notify_rest {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+ui-notification.notify_end {
+  opacity: 0;
+  transform: translateX(250px) scale(0.9);
+  transition:
+    opacity 0.5s cubic-bezier(.67,-0.01,.87,.93),
+    transform 0.5s cubic-bezier(.67,-0.01,.87,.93);
+}
+
+

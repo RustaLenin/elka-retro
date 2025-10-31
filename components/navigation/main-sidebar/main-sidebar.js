@@ -1,6 +1,7 @@
 import { main_sidebar_template } from './main-sidebar-template.js';
+import { BaseElement } from '../../base-element.js';
 
-class MainSidebar extends HTMLElement {
+class MainSidebar extends BaseElement {
   constructor() {
     super();
     this.state = {
@@ -11,6 +12,7 @@ class MainSidebar extends HTMLElement {
   }
   
   connectedCallback() {
+    super.connectedCallback();
     this.render();
     this.attachEventListeners();
     this.setupIntersectionObserver();

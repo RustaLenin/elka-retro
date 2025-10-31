@@ -1,5 +1,18 @@
 // Global App State and Utilities
 window.app = {
+  // Toolkit utilities
+  toolkit: {
+    // Ensure a stylesheet is added to <head> only once
+    loadCSSOnce(cssHref) {
+      const href = String(cssHref);
+      if (!document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+      }
+    }
+  },
   // Cart Management
   cart: {
     items: [],
@@ -52,6 +65,14 @@ window.app = {
   
   // UI Utilities
   ui: {
+    showHint: function(target, options = {}) {
+      if (window.UIHintManager && target) {
+        window.UIHintManager.show(target, options);
+      }
+    },
+    hideHint: function() {
+      if (window.UIHintManager) window.UIHintManager.hide();
+    },
     toggleMobileMenu: function() {
       const header = document.querySelector('site-header');
       if (header) {
@@ -64,6 +85,83 @@ window.app = {
       if (sidebar) {
         sidebar.toggle();
       }
+    },
+    
+    showModal: function(options = {}) {
+      // Динамически импортируем функцию показа модалки
+      return import('../components/ui-kit/modal/modal.js').then(module => {
+        return module.showModal(options);
+      }).catch(err => {
+        console.error('[app.ui] Failed to load modal:', err);
+      });
+    }
+  },
+  
+  // Global State Management
+  state: {
+    // Текущие данные страницы (обновляются компонентами при загрузке)
+    currentPageData: {
+      toyType: null,      // Данные типа игрушки
+      toyInstance: null,   // Данные экземпляра игрушки
+      page: null,         // Данные страницы WordPress
+      post: null          // Данные поста WordPress
+    },
+    
+    // Утилита для получения значения по пути в объекте (например, "toyInstance.images")
+    get(path) {
+      if (!path) return null;
+      const keys = path.split('.');
+      let value = this.currentPageData;
+      for (const key of keys) {
+        if (value === null || value === undefined) return null;
+        value = value[key];
+      }
+      return value;
+    },
+    
+    // Утилита для установки значения по пути с dispatch события
+    set(path, value) {
+      if (!path) return false;
+      const keys = path.split('.');
+      const lastKey = keys.pop();
+      let target = this.currentPageData;
+      for (const key of keys) {
+        if (!target[key] || typeof target[key] !== 'object') {
+          target[key] = {};
+        }
+        target = target[key];
+      }
+      target[lastKey] = value;
+      
+      // Dispatch события об изменении стейта
+      const event = new CustomEvent('app-state-changed', {
+        detail: {
+          path: path,
+          value: value,
+          fullPath: path
+        }
+      });
+      window.dispatchEvent(event);
+      
+      return true;
+    },
+    
+    // Прямая установка объекта (для массового обновления)
+    setData(data) {
+      if (!data || typeof data !== 'object') return false;
+      Object.assign(this.currentPageData, data);
+      
+      // Dispatch события об изменении стейта
+      const event = new CustomEvent('app-state-changed', {
+        detail: {
+          path: null, // null означает обновление всего объекта
+          value: data,
+          fullPath: null
+        }
+      });
+      window.dispatchEvent(event);
+      
+      return true;
     }
   }
 };

@@ -1,0 +1,9 @@
+nav-link {
+  display: inline-block;
+}
+
+nav-link a {
+  text-decoration: none;
+  display: inherit;
+}
+

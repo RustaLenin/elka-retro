@@ -1,0 +1,188 @@
+/* Image Gallery Component Styles */
+
+ui-image-gallery {
+  display: block;
+  width: 100%;
+}
+
+ui-image-gallery .image-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* Основное изображение */
+ui-image-gallery .image-gallery_main {
+  position: relative;
+  width: 100%;
+}
+
+ui-image-gallery .image-gallery_main-image-wrapper {
+  position: relative;
+  width: 100%;
+  background: var(--color-secondary, rgba(32, 34, 39, 0.5));
+  border-radius: 0.75rem;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+ui-image-gallery .image-gallery_main-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Навигационные кнопки */
+ui-image-gallery .image-gallery_nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  transition: background-color 0.2s, transform 0.2s;
+  z-index: 10;
+}
+
+ui-image-gallery .image-gallery_nav:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: translateY(-50%) scale(1.1);
+}
+
+ui-image-gallery .image-gallery_nav:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+ui-image-gallery .image-gallery_prev {
+  left: 1rem;
+}
+
+ui-image-gallery .image-gallery_next {
+  right: 1rem;
+}
+
+/* Подпись к изображению */
+ui-image-gallery .image-gallery_caption {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.7));
+  text-align: center;
+  font-style: italic;
+}
+
+/* Галерея миниатюр */
+ui-image-gallery .image-gallery_thumbnails {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+ui-image-gallery .image-gallery_thumbnails::-webkit-scrollbar {
+  height: 6px;
+}
+
+ui-image-gallery .image-gallery_thumbnails::-webkit-scrollbar-track {
+  background: var(--color-secondary, rgba(32, 34, 39, 0.3));
+  border-radius: 3px;
+}
+
+ui-image-gallery .image-gallery_thumbnails::-webkit-scrollbar-thumb {
+  background: var(--color-border, rgba(255, 255, 255, 0.3));
+  border-radius: 3px;
+}
+
+ui-image-gallery .image-gallery_thumbnails::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border, rgba(255, 255, 255, 0.5));
+}
+
+ui-image-gallery .image-gallery_thumbnail {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--color-secondary, rgba(32, 34, 39, 0.5));
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, opacity 0.2s;
+  position: relative;
+}
+
+ui-image-gallery .image-gallery_thumbnail:hover {
+  transform: scale(1.05);
+  border-color: var(--color-primary, rgba(155, 140, 255, 0.5));
+  opacity: 0.9;
+}
+
+ui-image-gallery .image-gallery_thumbnail--active {
+  border-color: var(--color-primary, rgba(155, 140, 255, 1));
+  box-shadow: 0 0 0 2px var(--color-primary, rgba(155, 140, 255, 0.3));
+}
+
+ui-image-gallery .image-gallery_thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Состояния загрузки и пустоты */
+ui-image-gallery .image-gallery--loading,
+ui-image-gallery .image-gallery--empty {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+ui-image-gallery .image-gallery_empty-message {
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  ui-image-gallery .image-gallery_main-image-wrapper {
+    aspect-ratio: 4 / 3;
+  }
+  
+  ui-image-gallery .image-gallery_nav {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  ui-image-gallery .image-gallery_prev {
+    left: 0.5rem;
+  }
+  
+  ui-image-gallery .image-gallery_next {
+    right: 0.5rem;
+  }
+  
+  ui-image-gallery .image-gallery_thumbnail {
+    width: 60px;
+    height: 60px;
+  }
+  
+  ui-image-gallery .image-gallery_thumbnails {
+    gap: 0.5rem;
+  }
+}
+

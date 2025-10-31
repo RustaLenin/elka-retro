@@ -105,10 +105,15 @@ site-header .site_header-nav_link--gold:hover {
   border-color: var(--color-accent);
 }
 
+site-header .site_header-nav_link ui-icon,
 site-header .site_header-nav_icon {
   width: 1.5rem;
   height: 1.5rem;
   opacity: 0.7;
+}
+
+site-header .site_header-nav_link:hover ui-icon {
+  opacity: 1;
 }
 
 /* Actions */
@@ -294,6 +299,16 @@ site-header .site_header-mobile_link {
 site-header .site_header-mobile_link:hover {
   background-color: rgba(255, 255, 255, 0.05);
   color: var(--color-accent);
+}
+
+site-header .site_header-mobile_link ui-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  opacity: 0.8;
+}
+
+site-header .site_header-mobile_link:hover ui-icon {
+  opacity: 1;
 }
 
 site-header .site_header-mobile_footer {
