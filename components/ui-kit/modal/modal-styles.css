@@ -1,33 +1,24 @@
 .UIModalArea {
   position: fixed;
   inset: 0;
-  z-index: 100000;
+  /* Убираем z-index - он не нужен, так как pointer-events: none */
   pointer-events: none;
 }
 
-ui-modal {
-  display: none;
-  pointer-events: auto;
-}
-
-ui-modal.modal--visible {
-  display: flex;
-}
-
-ui-modal .modal_overlay {
+/* Глобальные базовые стили для всех модальных окон */
+/* Классы modal_overlay, modal_container и т.д. используются в любых компонентах, наследующихся от UIModal */
+.modal_overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   opacity: 0;
   transition: opacity 0.3s ease;
+  z-index: 100000; /* Высокий z-index для overlay */
+  pointer-events: auto;
 }
 
-ui-modal.modal--visible .modal_overlay {
-  opacity: 1;
-}
-
-ui-modal .modal_container {
+.modal_container {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -41,38 +32,76 @@ ui-modal .modal_container {
   flex-direction: column;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
-  z-index: 1;
+  z-index: 100001; /* Высокий z-index для контейнера (выше overlay) */
+  pointer-events: auto;
   overflow: hidden;
+  isolation: isolate; /* Создаем новый stacking context для контейнера */
 }
 
-ui-modal.modal--visible .modal_container {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-}
-
-/* Sizes */
-ui-modal.modal--small .modal_container {
-  width: 400px;
-}
-
-ui-modal.modal--medium .modal_container {
-  width: 600px;
-}
-
-ui-modal.modal--large .modal_container {
-  width: 800px;
-}
-
-ui-modal .modal_header {
+.modal_header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1.5rem;
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
-ui-modal .modal_title {
+.modal_body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  position: relative;
+  min-height: 100px;
+  z-index: 1;
+}
+
+.modal_footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Стили для базового ui-modal компонента */
+ui-modal {
+  display: none;
+  pointer-events: none; /* Не блокируем клики когда модалка скрыта */
+  position: relative;
+  isolation: isolate; /* Создаем новый stacking context */
+}
+
+ui-modal.modal--visible {
+  display: flex;
+  pointer-events: auto; /* Разрешаем клики только когда модалка видима */
+}
+
+/* Когда модалка скрыта, overlay и container не должны блокировать клики */
+ui-modal:not(.modal--visible) .modal_overlay,
+ui-modal:not(.modal--visible) .modal_container {
+  pointer-events: none;
+}
+
+ui-modal.modal--visible .modal_overlay {
+  opacity: 1;
+  pointer-events: auto; /* Overlay блокирует клики только когда видим */
+}
+
+ui-modal.modal--visible .modal_container {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto; /* Container принимает клики только когда видим */
+}
+
+/* Стили для заголовка, кнопки закрытия и других элементов модального окна */
+.modal_title {
   font-family: var(--font-heading);
   font-size: 1.5rem;
   font-weight: 600;
@@ -80,7 +109,7 @@ ui-modal .modal_title {
   margin: 0;
 }
 
-ui-modal .modal_close {
+.modal_close {
   width: 2rem;
   height: 2rem;
   display: flex;
@@ -96,30 +125,22 @@ ui-modal .modal_close {
   transition: background-color 0.2s, color 0.2s;
 }
 
-ui-modal .modal_close:hover {
+.modal_close:hover {
   background: var(--color-secondary);
   color: var(--color-foreground);
 }
 
-ui-modal .modal_body {
-  padding: 1.5rem;
-  overflow-y: auto;
-  flex: 1;
-  position: relative;
-  min-height: 100px;
-}
-
-ui-modal .modal_body block-loader {
+.modal_body block-loader {
   position: absolute;
   inset: 0;
   z-index: 10;
 }
 
-ui-modal .modal_body:has(block-loader) {
+.modal_body:has(block-loader) {
   pointer-events: none;
 }
 
-ui-modal .modal_body:not(:has(block-loader)) {
+.modal_body:not(:has(block-loader)) {
   animation: fadeIn 0.3s ease;
 }
 
@@ -128,13 +149,36 @@ ui-modal .modal_body:not(:has(block-loader)) {
   to { opacity: 1; }
 }
 
-ui-modal .modal_footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border-top: 1px solid var(--color-border);
-  flex-shrink: 0;
+/* Sizes - применяем через классы модального окна */
+ui-modal.modal--small .modal_container,
+.modal--small .modal_container {
+  width: 400px;
+}
+
+ui-modal.modal--medium .modal_container,
+.modal--medium .modal_container {
+  width: 600px;
+}
+
+ui-modal.modal--large .modal_container,
+.modal--large .modal_container {
+  width: 800px;
+}
+
+/* Стили для видимости модального окна (применяются ко всем наследникам) */
+[class*="modal"]:not(.modal--visible) .modal_overlay,
+[class*="modal"]:not(.modal--visible) .modal_container {
+  pointer-events: none; /* Не блокируем клики когда модалка скрыта */
+}
+
+[class*="modal"].modal--visible .modal_overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+[class*="modal"].modal--visible .modal_container {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
 }
 

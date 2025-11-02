@@ -2,6 +2,12 @@ import { BaseElement } from '../../base-element.js';
 import { UIModal } from '../../ui-kit/modal/modal.js';
 import { toy_instance_modal_template } from './toy-instance-modal-template.js';
 
+// Загружаем стили при импорте модуля (top-level)
+// Это гарантирует, что стили всегда доступны, даже если компонент еще не подключен к DOM
+if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./toy-instance-modal-styles.css', import.meta.url));
+}
+
 /**
  * Toy Instance Modal Component
  * Модальное окно с детальной информацией об экземпляре игрушки
@@ -25,7 +31,8 @@ export class ToyInstanceModal extends UIModal {
   }
 
   connectedCallback() {
-    window.app.toolkit.loadCSSOnce(new URL('./toy-instance-modal-styles.css', import.meta.url));
+    // Стили уже загружены при импорте модуля
+    // window.app.toolkit.loadCSSOnce(new URL('./toy-instance-modal-styles.css', import.meta.url));
     super.connectedCallback();
     if (this.state.instanceId) {
       this.loadInstanceData();
@@ -126,15 +133,20 @@ export class ToyInstanceModal extends UIModal {
       this.setBodyContent(bodyContent.outerHTML);
     }
     
-    // Добавляем footer в modal_container (после body)
+    // Добавляем footer в modal_container (после modal_body)
     if (footerContent) {
       const container = this.querySelector('.modal_container');
       if (container) {
         // Удаляем старый footer если есть
         const oldFooter = container.querySelector('.toy-instance-modal_footer');
         if (oldFooter) oldFooter.remove();
-        // Добавляем новый footer
-        container.appendChild(footerContent.cloneNode(true));
+        // Добавляем новый footer после modal_body
+        const body = container.querySelector('.modal_body');
+        if (body && body.nextSibling) {
+          container.insertBefore(footerContent.cloneNode(true), body.nextSibling);
+        } else {
+          container.appendChild(footerContent.cloneNode(true));
+        }
       }
     }
   }

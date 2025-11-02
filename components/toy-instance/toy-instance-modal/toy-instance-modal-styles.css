@@ -1,14 +1,61 @@
 /* Toy Instance Modal Component Styles */
 
 toy-instance-modal {
-  display: block;
+  display: none;
+  pointer-events: none; /* Не блокируем клики когда модалка скрыта */
+  position: relative;
+  isolation: isolate; /* Создаем новый stacking context */
+}
+
+toy-instance-modal.modal--visible {
+  display: flex;
+  pointer-events: auto; /* Разрешаем клики только когда модалка видима */
+}
+
+/* Когда модалка скрыта, overlay и container не должны блокировать клики */
+toy-instance-modal:not(.modal--visible) .modal_overlay,
+toy-instance-modal:not(.modal--visible) .modal_container {
+  pointer-events: none;
+}
+
+/* Применяем видимость к overlay и container через классы */
+toy-instance-modal.modal--visible .modal_overlay {
+  opacity: 1;
+}
+
+toy-instance-modal.modal--visible .modal_container {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Размеры модального окна */
+toy-instance-modal.modal--small .modal_container {
+  width: 400px;
+}
+
+toy-instance-modal.modal--medium .modal_container {
+  width: 600px;
+}
+
+toy-instance-modal.modal--large .modal_container {
+  width: 800px;
 }
 
 /* Контент модального окна */
+toy-instance-modal .modal_body {
+  display: flex;
+  flex-direction: column;
+  padding: 0; /* Убираем padding из базового стиля, будем контролировать внутри */
+  min-height: 400px;
+  max-height: calc(80vh - 120px); /* Учитываем header и footer */
+  overflow-y: auto;
+}
+
 toy-instance-modal .toy-instance-modal_content {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  padding: 1.5rem;
 }
 
 /* Placeholder для галереи */
@@ -118,20 +165,28 @@ toy-instance-modal .toy-instance-modal_table .taxonomy-empty {
 }
 
 /* Footer с ценой и кнопкой */
-toy-instance-modal .toy-instance-modal_footer {
+/* Footer находится внутри modal_container, после modal_body */
+toy-instance-modal .modal_container .toy-instance-modal_footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1.5rem;
-  padding: 1.5rem 0 0 0;
+  padding: 1.5rem 1.5rem 1.5rem 1.5rem;
   border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-  margin-top: auto;
+  flex-shrink: 0;
+  margin-top: 0;
 }
 
 toy-instance-modal .toy-instance-modal_price {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-accent, rgba(255, 232, 155, 1));
+  margin-right: auto; /* Цена слева */
+}
+
+/* Кнопка должна быть справа */
+toy-instance-modal .modal_container .toy-instance-modal_footer .toy-instance-modal_buy-btn {
+  margin-left: auto; /* Кнопка справа с автоматическим отступом */
 }
 
 toy-instance-modal .toy-instance-modal_buy-btn {
@@ -157,29 +212,53 @@ toy-instance-modal .toy-instance-modal_buy-btn:active {
   transform: translateY(0);
 }
 
-/* Интеграция с базовой модалкой - переопределяем размер body */
-toy-instance-modal .modal_body {
-  display: flex;
-  flex-direction: column;
-  min-height: 400px;
-  max-height: calc(80vh - 120px); /* Учитываем footer */
-  overflow-y: auto;
+/* Улучшаем стили для таблицы характеристик */
+toy-instance-modal .toy-instance-modal_table {
+  margin: 0;
 }
 
-/* Footer внутри modal_container */
-toy-instance-modal .modal_container .toy-instance-modal_footer {
-  flex-shrink: 0;
+/* Галерея изображений */
+toy-instance-modal .toy-instance-modal_content ui-image-gallery {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+/* Улучшаем общий вид модального контейнера */
+toy-instance-modal .modal_container {
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+/* Улучшаем вид body */
+toy-instance-modal .modal_body {
+  background: transparent;
+}
+
+/* Заголовок внутри модалки (если есть) */
+toy-instance-modal .modal_header {
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+  toy-instance-modal .modal_body {
+    max-height: calc(80vh - 100px);
+  }
+  
+  toy-instance-modal .toy-instance-modal_content {
+    padding: 1rem;
+    gap: 1.5rem;
+  }
+  
   toy-instance-modal .toy-instance-modal_title {
     font-size: 1.5rem;
   }
   
-  toy-instance-modal .toy-instance-modal_footer {
+  toy-instance-modal .modal_container .toy-instance-modal_footer {
     flex-direction: column;
     align-items: stretch;
+    padding: 1rem 1.5rem;
   }
   
   toy-instance-modal .toy-instance-modal_buy-btn {

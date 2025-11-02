@@ -67,22 +67,34 @@ component-name/
 Мы используем подход без Shadow DOM, а стили каждого компонента подключаются в `<head>` по требованию, один раз на страницу.
 
 - Для этого есть хелпер `window.app.toolkit.loadCSSOnce(href)` (см. `app/app.js`).
+- **ПРАВИЛО**: Стили загружаются при импорте модуля (top-level), а НЕ в `connectedCallback`.
+- Это гарантирует, что стили всегда доступны, даже если компонент создается динамически до подключения к DOM.
 - UI‑Kit компоненты подключаются на всех страницах в `components/components.js`.
 - Специфичные для страниц компоненты подключаются условно на уровне PHP (шаблоны/`functions.php`).
 
 Пример внутри компонента:
 ```js
 // component-name.js
-const cssUrl = new URL('./component-name-style.css', import.meta.url);
-window.app.toolkit.loadCSSOnce(cssUrl);
+import { BaseElement } from '../base-element.js';
 
-class UIComponentName extends HTMLElement {
+// ✅ ПРАВИЛЬНО: Загружаем стили при импорте модуля (top-level)
+if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./component-name-style.css', import.meta.url));
+}
+
+class UIComponentName extends BaseElement {
   connectedCallback() {
+    // ❌ НЕПРАВИЛЬНО: window.app.toolkit.loadCSSOnce(...) здесь
+    super.connectedCallback();
     // ... render
   }
 }
 customElements.define('ui-component-name', UIComponentName);
 ```
+
+**Почему это важно:**
+- Если компонент создается динамически через `document.createElement()` и сразу используется, стили могут не успеть загрузиться к моменту рендера.
+- При импорте модуля top-level код выполняется сразу, гарантируя наличие стилей до первого использования.
 
 Подключение компонентов из PHP:
 - На стороне PHP формируется список нужных компонентов через фильтр `elkaretro_required_components`.

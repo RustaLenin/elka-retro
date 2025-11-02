@@ -1,5 +1,11 @@
 import { BaseElement } from '../../base-element.js';
 
+// Загружаем стили при импорте модуля (top-level)
+// Это гарантирует, что базовые стили всегда доступны для всех наследников
+if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
+}
+
 function ensureArea() {
   if (!document.querySelector('.UIModalArea')) {
     const area = document.createElement('div');
@@ -25,7 +31,8 @@ export class UIModal extends BaseElement {
   }
 
   connectedCallback() {
-    window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
+    // Стили уже загружены при импорте модуля
+    // window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
     ensureArea();
     super.connectedCallback();
     this.render();
@@ -166,7 +173,8 @@ customElements.define('ui-modal', UIModal);
 // Helper function to create and show modal
 export function showModal(options = {}) {
   ensureArea();
-  window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
+  // Стили уже загружены при импорте модуля
+  // window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
   
   const {
     title = '',

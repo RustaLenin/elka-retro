@@ -20,15 +20,41 @@ function getTaxonomyUrl(taxonomySlug, termSlug) {
 }
 
 // Форматировать значения таксономий
+// В Pods REST API таксономии могут приходить как:
+// - Массив объектов терминов (data.authenticity, data.condition)
+// - Число (ID термина в data.meta.authenticitys, data.meta.conditions)
+// - false (если не развернуты)
 function formatTaxonomyValue(terms, taxonomySlug, taxonomyData) {
-  if (!terms || !Array.isArray(terms) || terms.length === 0) return null;
+  // Если false или пусто - возвращаем null
+  if (!terms || terms === false) return null;
+  
+  // Если это число (ID термина), преобразуем в массив
+  if (typeof terms === 'number') {
+    terms = [terms];
+  }
+  
+  // Если это не массив, пытаемся преобразовать
+  if (!Array.isArray(terms)) {
+    // Если это объект термина, оборачиваем в массив
+    if (typeof terms === 'object' && terms !== null) {
+      terms = [terms];
+    } else {
+      return null; // Неизвестный формат
+    }
+  }
+  
+  if (terms.length === 0) return null;
   
   const taxonomyMap = taxonomyData?.taxonomyMap || {};
   const termArray = taxonomyMap[taxonomySlug] || [];
   
   return terms.map(term => {
     if (typeof term === 'number') {
-      const termObj = termArray.find(t => t.id === term || t.term_id === term);
+      // ID термина - ищем в taxonomyMap или embedded
+      const termObj = termArray.find(t => {
+        const tId = parseInt(t.id || t.term_id || 0, 10);
+        return tId === term;
+      });
       
       if (termObj) {
         return {
@@ -39,11 +65,14 @@ function formatTaxonomyValue(terms, taxonomySlug, taxonomyData) {
         };
       }
       
-      // Fallback поиск
+      // Fallback поиск в embedded
       const embeddedTerms = taxonomyData?.['wp:term'] || [];
       for (const arr of embeddedTerms) {
         if (Array.isArray(arr)) {
-          const found = arr.find(t => (t.id === term || t.term_id === term) && t.taxonomy === taxonomySlug);
+          const found = arr.find(t => {
+            const tId = parseInt(t.id || t.term_id || 0, 10);
+            return tId === term && t.taxonomy === taxonomySlug;
+          });
           if (found) {
             return {
               id: term,
@@ -55,18 +84,28 @@ function formatTaxonomyValue(terms, taxonomySlug, taxonomyData) {
         }
       }
       
+      // Если не нашли, возвращаем минимальный объект
       return {
         id: term,
         name: `Term ${term}`,
         slug: '',
         url: `/?${taxonomySlug}=${term}`
       };
-    } else {
+    } else if (typeof term === 'object' && term !== null) {
+      // Уже объект термина (из Pods развернутых данных)
       return {
-        id: term.id || term.term_id,
-        name: term.name,
-        slug: term.slug,
-        url: term.link || getTaxonomyUrl(taxonomySlug, term.slug)
+        id: term.id || term.term_id || '',
+        name: term.name || '',
+        slug: term.slug || '',
+        url: term.link || getTaxonomyUrl(taxonomySlug, term.slug || '')
+      };
+    } else {
+      // Неизвестный формат
+      return {
+        id: '',
+        name: String(term),
+        slug: '',
+        url: '#'
       };
     }
   });
@@ -85,9 +124,25 @@ export function toy_instance_modal_template(data) {
   if (!data) return '<p>Данные не загружены</p>';
   
   // Получаем основные данные
-  const title = data.title?.rendered || data.title || '';
-  const content = data.content?.rendered || data.content || '';
-  const cost = data.meta?.cost ? parseFloat(data.meta.cost) : null;
+  // В Pods REST API для toy_instance: title может быть post_title или title.rendered
+  const title = data.title?.rendered || data.post_title || data.title || '';
+  // content может быть post_content (строка) или content.rendered (объект с rendered)
+  let content = '';
+  if (data.post_content && typeof data.post_content === 'string') {
+    content = data.post_content; // Прямая строка из Pods API
+  } else if (data.content?.rendered && typeof data.content.rendered === 'string') {
+    content = data.content.rendered; // Стандартный WP REST API формат
+  } else if (typeof data.content === 'string') {
+    content = data.content; // Строка напрямую
+  } else if (data.content && typeof data.content === 'object') {
+    // Если content это объект, пытаемся извлечь rendered или raw
+    content = data.content.rendered || data.content.raw || '';
+  }
+  // Гарантируем, что content это строка, а не объект
+  if (typeof content !== 'string') {
+    content = String(content || ''); // Преобразуем в строку, если это не строка
+  }
+  const cost = data.cost ? parseFloat(data.cost) : (data.meta?.cost ? parseFloat(data.meta.cost) : null);
   
   // Получаем таксономии для обработки
   const taxonomyData = data._embedded || {};
@@ -304,7 +359,7 @@ export function toy_instance_modal_template(data) {
         <div class="toy-instance-modal_price">${formattedPrice}</div>
       ` : ''}
       <button class="toy-instance-modal_buy-btn" type="button" data-instance-id="${data.id || ''}">
-        Купить
+        Добавить в корзину
       </button>
     </div>
   `;
