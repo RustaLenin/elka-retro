@@ -255,6 +255,71 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
             </div>
             
             <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
+                <h2>Publishing Tools</h2>
+                
+                <div class="card" style="padding: 20px; margin-top: 15px;">
+                    <h3>Mass Publishing</h3>
+                    <p>
+                        Проверяет записи в статусе <strong>draft</strong> и переводит их в <strong>published</strong> или промежуточные статусы,
+                        если выполнены требования для публикации из дата-модели.
+                    </p>
+                    <p style="margin-top: 10px;">
+                        <strong>Важно:</strong> За один запуск обрабатывается до 100 записей. 
+                        Для обработки всех записей запускайте скрипт несколько раз.
+                    </p>
+                    
+                    <?php
+                    // Подсчитываем количество draft записей
+                    $toy_types_draft = wp_count_posts('toy_type')->draft;
+                    $toy_instances_draft = wp_count_posts('toy_instance')->draft;
+                    ?>
+                    
+                    <div style="margin-top: 20px;">
+                        <h4>Типы игрушек (toy_type)</h4>
+                        <p>
+                            <strong>Draft записей:</strong> <?php echo esc_html($toy_types_draft); ?>
+                        </p>
+                        <p style="margin-top: 10px;">
+                            <?php
+                            $publish_types_url = wp_nonce_url(
+                                add_query_arg('elkaretro_action', 'publish_toy_types', admin_url('themes.php?page=elkaretro-settings')),
+                                'elkaretro_action_publish_toy_types'
+                            );
+                            ?>
+                            <a href="<?php echo esc_url($publish_types_url); ?>" 
+                               class="button button-primary" 
+                               onclick="return confirm('Запустить публикацию типов игрушек? Будет обработано до 100 записей в статусе draft.');">
+                                Опубликовать типы игрушек
+                            </a>
+                        </p>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+                        <h4>Экземпляры игрушек (toy_instance)</h4>
+                        <p>
+                            <strong>Draft записей:</strong> <?php echo esc_html($toy_instances_draft); ?>
+                        </p>
+                        <p style="margin-top: 10px;">
+                            <strong>Рекомендуется:</strong> Сначала публикуйте экземпляры, затем типы игрушек.
+                        </p>
+                        <p style="margin-top: 10px;">
+                            <?php
+                            $publish_instances_url = wp_nonce_url(
+                                add_query_arg('elkaretro_action', 'publish_toy_instances', admin_url('themes.php?page=elkaretro-settings')),
+                                'elkaretro_action_publish_toy_instances'
+                            );
+                            ?>
+                            <a href="<?php echo esc_url($publish_instances_url); ?>" 
+                               class="button button-primary" 
+                               onclick="return confirm('Запустить публикацию экземпляров игрушек? Будет обработано до 100 записей в статусе draft.');">
+                                Опубликовать экземпляры игрушек
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
                 <h2>Theme Tools</h2>
                 
                 <div class="card" style="padding: 20px; margin-top: 15px;">
@@ -404,7 +469,21 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
         
         if (isset($_GET['elkaretro_notice']) && current_user_can('manage_options')) {
             $notice = sanitize_text_field(urldecode($_GET['elkaretro_notice']));
-            $class = (strpos($notice, 'successfully') !== false) ? 'notice-success' : 'notice-error';
+            $notice_type = isset($_GET['elkaretro_notice_type']) ? sanitize_text_field($_GET['elkaretro_notice_type']) : '';
+            
+            // Определяем класс уведомления
+            if ($notice_type === 'success') {
+                $class = 'notice-success';
+            } elseif ($notice_type === 'error') {
+                $class = 'notice-error';
+            } elseif ($notice_type === 'warning') {
+                $class = 'notice-warning';
+            } else {
+                // Fallback: определяем по содержимому сообщения
+                $class = (strpos($notice, 'successfully') !== false || strpos($notice, 'Processed') !== false || strpos($notice, 'published') !== false) 
+                    ? 'notice-success' 
+                    : 'notice-error';
+            }
             ?>
             <div class="notice <?php echo esc_attr($class); ?> is-dismissible">
                 <p><?php echo esc_html($notice); ?></p>

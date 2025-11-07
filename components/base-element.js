@@ -8,6 +8,11 @@ export class BaseElement extends HTMLElement {
 
   constructor() {
     super();
+    // По умолчанию автоматический рендер включен
+    // Компонент может установить static autoRender = false для ручного управления рендером
+    if (this.constructor.autoRender === undefined) {
+      this.constructor.autoRender = true;
+    }
     this.state = this.buildDefaultState();
   }
 
@@ -52,9 +57,18 @@ export class BaseElement extends HTMLElement {
     for (const key in schema) {
       const def = schema[key];
       if (def.attribute?.name === name && def.attribute.observed) {
+        const prev = this.state[key];
         this.state[key] = this.parseByType(def, value);
-        this.onStateChanged(key);
-        if (typeof this.render === 'function') this.render();
+        
+        // Вызываем onStateChanged
+        if (prev !== this.state[key]) {
+          this.onStateChanged(key);
+          
+          // Автоматический рендер, если включен
+          if (this.constructor.autoRender && typeof this.render === 'function') {
+            this.render();
+          }
+        }
         return;
       }
     }
@@ -62,11 +76,20 @@ export class BaseElement extends HTMLElement {
 
   setState(partial) {
     const schema = this.constructor.stateSchema || {};
-    let needRender = false;
+    const changedKeys = [];
     for (const key in partial) {
       const next = partial[key];
+      const prev = this.state[key];
+      
+      // Обновляем состояние
       this.state[key] = next;
-      needRender = true;
+      
+      // Отслеживаем измененные ключи
+      if (prev !== next) {
+        changedKeys.push(key);
+      }
+      
+      // Обновляем атрибуты, если нужно
       const def = schema[key];
       if (def && def.attribute?.reflect) {
         const attrName = def.attribute.name;
@@ -75,9 +98,17 @@ export class BaseElement extends HTMLElement {
         else this.setAttribute(attrName, attrVal);
       }
     }
-    if (needRender && typeof this.render === 'function') {
-      this.onStateChanged(null);
-      this.render();
+    
+    // Вызываем onStateChanged для каждого измененного ключа
+    if (changedKeys.length > 0 && typeof this.onStateChanged === 'function') {
+      changedKeys.forEach(key => {
+        this.onStateChanged(key);
+      });
+      
+      // Автоматический рендер, если включен
+      if (this.constructor.autoRender && typeof this.render === 'function') {
+        this.render();
+      }
     }
   }
 

@@ -1,0 +1,873 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2024-01-01",
+  "taxonomies": {
+    "the_amalgam": {
+      "display_name": "Амальгамы",
+      "slug": "the_amalgam",
+      "type": "taxonomy",
+      "public_description": "Амальгамы игрушек",
+      "arch_description": "Кастомная таксономия для группировки игрушек по амальгамам",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "authenticity": {
+      "display_name": "Аутентичность",
+      "slug": "authenticity",
+      "type": "taxonomy",
+      "public_description": "Уровень аутентичности игрушки",
+      "arch_description": "Кастомная таксономия для определения подлинности игрушки",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": false,
+      "hierarchical": false
+    },
+    "occurrence": {
+      "display_name": "Встречаемость",
+      "slug": "occurrence",
+      "type": "taxonomy",
+      "public_description": "Частота встречаемости игрушки",
+      "arch_description": "Кастомная таксономия для обозначения редкости игрушки",
+      "show_on_card": true,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": false,
+      "hierarchical": false
+    },
+    "year_of_production": {
+      "display_name": "Года производства",
+      "slug": "year_of_production",
+      "type": "taxonomy",
+      "public_description": "Год или период производства игрушки",
+      "arch_description": "Кастомная таксономия для указания года производства",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "category-of-toys": {
+      "display_name": "Категории игрушек",
+      "slug": "category-of-toys",
+      "type": "taxonomy",
+      "public_description": "Категория игрушки (например, звезда, шарик и т.д.)",
+      "arch_description": "Кастомная таксономия для категоризации игрушек. Иерархическая структура",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": true
+    },
+    "lot_configurations": {
+      "display_name": "Комплектации лотов",
+      "slug": "lot_configurations",
+      "type": "taxonomy",
+      "public_description": "Комплектация лота (одиночная, набор и т.д.)",
+      "arch_description": "Кастомная таксономия для обозначения комплектации лота",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": false,
+      "hierarchical": false
+    },
+    "material": {
+      "display_name": "Материалы",
+      "slug": "material",
+      "type": "taxonomy",
+      "public_description": "Материал из которого изготовлена игрушка",
+      "arch_description": "Кастомная таксономия для указания материала игрушки",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "manufacturer": {
+      "display_name": "Производители",
+      "slug": "manufacturer",
+      "type": "taxonomy",
+      "public_description": "Производитель игрушки",
+      "arch_description": "Кастомная таксономия для указания производителя",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "size": {
+      "display_name": "Размеры",
+      "slug": "size",
+      "type": "taxonomy",
+      "public_description": "Один из четырёх размеров игрушки: Гигант / Крупная мелочь / Стандарт / Малютка",
+      "arch_description": "Кастомная таксономия для указания размера игрушки",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "property": {
+      "display_name": "Собственности",
+      "slug": "property",
+      "type": "taxonomy",
+      "public_description": "",
+      "arch_description": "Внутренняя таксономия для обозначения, кто является собственником игрушки, используется для бухшалтерских рассчётов",
+      "show_on_card": false,
+      "show_in_description": false,
+      "show_in_cart_list": false,
+      "show_in_filters": false,
+      "required": false,
+      "multi_choose": false,
+      "hierarchical": false
+    },
+    "condition": {
+      "display_name": "Состояния",
+      "slug": "condition",
+      "type": "taxonomy",
+      "public_description": "Общее состояние игрушки",
+      "arch_description": "Кастомная таксономия для описания состояния игрушки",
+      "show_on_card": true,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": false,
+      "hierarchical": false
+    },
+    "tube_condition": {
+      "display_name": "Состояния трубочек",
+      "slug": "tube_condition",
+      "type": "taxonomy",
+      "public_description": "Состояние трубочки игрушки",
+      "arch_description": "Кастомная таксономия для описания состояния трубочки",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": false,
+      "hierarchical": false
+    },
+    "mounting_type": {
+      "display_name": "Типы крепления",
+      "slug": "mounting_type",
+      "type": "taxonomy",
+      "public_description": "Тип крепления игрушки",
+      "arch_description": "Кастомная таксономия для указания типа крепления",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "paint_type": {
+      "display_name": "Типы окрасов",
+      "slug": "paint_type",
+      "type": "taxonomy",
+      "public_description": "Тип окраса игрушки",
+      "arch_description": "Кастомная таксономия для описания типа окраса",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "glass_thickness": {
+      "display_name": "Толщины стекла",
+      "slug": "glass_thickness",
+      "type": "taxonomy",
+      "public_description": "Толщина стекла игрушки",
+      "arch_description": "Кастомная таксономия для указания толщины стекла",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "color_type": {
+      "display_name": "Характеры окраса",
+      "slug": "color_type",
+      "type": "taxonomy",
+      "public_description": "Характер окраса игрушки",
+      "arch_description": "Кастомная таксономия для описания характера окраса",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    },
+    "back_color": {
+      "display_name": "Цвета фона",
+      "slug": "back_color",
+      "type": "taxonomy",
+      "public_description": "Цвет фона игрушки",
+      "arch_description": "Кастомная таксономия для указания цвета фона",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": true,
+      "hierarchical": false
+    }
+  },
+  "post_types": {
+    "toy_type": {
+      "display_name": "Типы игрушек",
+      "slug": "toy_type",
+      "type": "post_type",
+      "public_description": "Тип елочной игрушки",
+      "arch_description": "Кастомный тип поста для типов игрушек. Содержит общую информацию о типе игрушки",
+      "fields": {
+        "instances": {
+          "display_name": "Экземпляры",
+          "slug": "instances",
+          "field_type": "relationship",
+          "related_post_type": "toy_instance",
+          "public_description": "Связанные экземпляры этого типа игрушки",
+          "arch_description": "Pods поле типа relationship, связывает toy_type с toy_instance через поле connection_type_of_toy",
+          "show_on_card": false,
+          "show_in_description": false,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "instances"
+        },
+        "toy_type_index": {
+          "display_name": "Индекс типа игрушки",
+          "slug": "toy_type_index",
+          "field_type": "text",
+          "public_description": "Индекс типа игрушки",
+          "arch_description": "Pods текстовое поле для хранения индекса типа игрушки",
+          "show_on_card": false,
+          "show_in_description": false,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "toy_type_index"
+        },
+        "toy_type_photos": {
+          "display_name": "Фотографии типа игрушки",
+          "slug": "toy_type_photos",
+          "field_type": "file",
+          "public_description": "Фотографии этого типа игрушки",
+          "arch_description": "Pods поле типа file (multi) для хранения фотографий типа игрушки",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "toy_type_photos"
+        },
+        "occurrence_field": {
+          "display_name": "Встречаемость",
+          "slug": "occurrence_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "occurrence",
+          "public_description": "Частота встречаемости этого типа игрушки",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией occurrence",
+          "show_on_card": true,
+          "show_in_description": false,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "occurrence_field"
+        },
+        "year_of_production_field": {
+          "display_name": "Годы производства",
+          "slug": "year_of_production_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "year_of_production",
+          "public_description": "Года производства этого типа игрушки",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией year_of_production",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "year_of_production_field"
+        },
+        "materials_field": {
+          "display_name": "Материал",
+          "slug": "materials_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "material",
+          "public_description": "Материал изготовления этого типа игрушки",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией material",
+          "show_on_card": false,
+          "show_in_description": false,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "material_field"
+        },
+        "manufacturer_field": {
+          "display_name": "Производители",
+          "slug": "manufacturer_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "manufacturer",
+          "public_description": "Производители этого типа игрушки",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией manufacturer",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "manufacturer_field"
+        },
+        "size_field": {
+          "display_name": "Размеры",
+          "slug": "size_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "size",
+          "public_description": "Один из четырёх размеров игрушки: Гигант / Крупная мелочь / Стандарт / Малютка",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией size",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "size_field"
+        },
+        "glass_thickness_field": {
+          "display_name": "Толщина стекла",
+          "slug": "glass_thickness_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "glass_thickness",
+          "public_description": "Толщина стекла этого типа игрушки",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией glass_thickness",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "glass_thickness_field"
+        },
+        "mounting_type_field": {
+          "display_name": "Тип крепления",
+          "slug": "mounting_type_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "mounting_type",
+          "public_description": "Тип крепления этого типа игрушки",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией mounting_type",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "mounting_type_field"
+        },
+        "admin_comment": {
+          "display_name": "Комментарий для администратора",
+          "slug": "admin_comment",
+          "field_type": "textarea",
+          "public_description": "Внутренний комментарий для администраторов, не отображается на сайте",
+          "arch_description": "Pods поле типа textarea для хранения комментариев администратора. Используется скриптами публикации для автоматических уведомлений о недостающих данных",
+          "show_on_card": false,
+          "show_in_description": false,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "admin_comment"
+        }
+      },
+      "publishing_requirements": {
+        "required_for_publish": [
+          {
+            "field": "post_title",
+            "type": "wp_core",
+            "description": "Название типа игрушки (WP post_title)"
+          },
+          {
+            "field": "instances",
+            "type": "pods_field",
+            "description": "Должен быть хотя бы один связанный экземпляр",
+            "check_type": "has_related",
+            "related_post_type": "toy_instance"
+          },
+          {
+            "field": "toy_type_index",
+            "type": "pods_field",
+            "description": "Индекс типа игрушки"
+          },
+          {
+            "field": "_thumbnail_id",
+            "type": "wp_core",
+            "description": "Миниатюра (WP featured image) для карточки"
+          },
+          {
+            "field": "category-of-toys",
+            "type": "taxonomy",
+            "description": "Должна быть назначена хотя бы одна категория игрушек",
+            "check_type": "has_terms"
+          }
+        ],
+        "intermediate_statuses": {
+          "specification": {
+            "display_name": "На спецификации",
+            "description": "Запись имеет фотографии, но отсутствует описание или другие важные данные",
+            "conditions": {
+              "has_photos": true,
+              "missing_fields": ["post_content", "toy_type_index", "category-of-toys"],
+              "priority": 1
+            }
+          },
+          "decoration": {
+            "display_name": "На оформлении",
+            "description": "Запись имеет данные, но отсутствуют фотографии или описание не готово к публикации",
+            "conditions": {
+              "has_data": true,
+              "missing_fields": ["_thumbnail_id", "toy_type_photos"],
+              "or_missing": ["post_content"],
+              "priority": 2
+            }
+          }
+        }
+      }
+    },
+    "toy_instance": {
+      "display_name": "Экземпляры игрушек",
+      "slug": "toy_instance",
+      "type": "post_type",
+      "public_description": "Конкретный экземпляр елочной игрушки",
+      "arch_description": "Кастомный тип поста для экземпляров игрушек. Содержит информацию о конкретном экземпляре игрушки",
+      "fields": {
+        "photos_of_the_toy_instance": {
+          "display_name": "Фотографии экземпляра игрушки",
+          "slug": "photos_of_the_toy_instance",
+          "field_type": "file",
+          "public_description": "Фотографии этого экземпляра игрушки",
+          "arch_description": "Pods поле типа file (multi) для хранения фотографий экземпляра игрушки",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "photos_of_the_toy_instance"
+        },
+        "toy_instance_index": {
+          "display_name": "Индекс экземпляра игрушки",
+          "slug": "toy_instance_index",
+          "field_type": "text",
+          "public_description": "Уникальный индекс экземпляра игрушки",
+          "arch_description": "Pods текстовое поле для хранения индекса экземпляра игрушки",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": true,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "toy_instance_index"
+        },
+        "cost": {
+          "display_name": "Цена",
+          "slug": "cost",
+          "field_type": "currency",
+          "public_description": "Цена экземпляра игрушки",
+          "arch_description": "Pods поле типа currency для хранения цены экземпляра",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": true,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "cost",
+          "currency": "RUB",
+          "decimal_places": 2
+        },
+        "connection_type_of_toy": {
+          "display_name": "Связь: Тип игрушки",
+          "slug": "connection_type_of_toy",
+          "field_type": "relationship",
+          "related_post_type": "toy_type",
+          "public_description": "Тип игрушки, к которому относится этот экземпляр",
+          "arch_description": "Pods поле типа relationship, связывает toy_instance с toy_type. Обратная связь от поля instances в toy_type",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": true,
+          "multi_choose": false,
+          "meta_field": "connection_type_of_toy"
+        },
+        "authenticity_field": {
+          "display_name": "Аутентичность",
+          "slug": "authenticity_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "authenticity",
+          "public_description": "Уровень аутентичности этого экземпляра",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией authenticity",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "authenticity_field"
+        },
+        "lot_configuration_field": {
+          "display_name": "Комплектация лотов",
+          "slug": "lot_configuration_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "lot_configurations",
+          "public_description": "Комплектация лота этого экземпляра",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией lot_configurations",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "lot_configuration_field"
+        },
+        "property_field": {
+          "display_name": "Собственность",
+          "slug": "property_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "property",
+          "public_description": "Тип собственности этого экземпляра",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией property",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "property_field"
+        },
+        "condition_field": {
+          "display_name": "Состояние",
+          "slug": "condition_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "condition",
+          "public_description": "Общее состояние этого экземпляра",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией condition",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "condition_field"
+        },
+        "tube_condition_field": {
+          "display_name": "Состояние трубочек",
+          "slug": "tube_condition_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "tube_condition",
+          "public_description": "Состояние трубочки для крепления этого экземпляра",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией tube_condition",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "tube_condition_field"
+        },
+        "paint_type_field": {
+          "display_name": "Тип окраса",
+          "slug": "paint_type_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "paint_type",
+          "public_description": "Тип окраса этого экземпляра",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией paint_type",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "paint_type_field"
+        },
+        "color_type_field": {
+          "display_name": "Характер окраса",
+          "slug": "color_type_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "color_type",
+          "public_description": "Характер окраса этого экземпляра",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией color_type",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "color_type_field"
+        },
+        "back_color_field": {
+          "display_name": "Цвет фона",
+          "slug": "back_color_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "back_color",
+          "public_description": "Цвет фона этого экземпляра",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией back_color",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "back_color_field"
+        },
+        "admin_comment": {
+          "display_name": "Комментарий для администратора",
+          "slug": "admin_comment",
+          "field_type": "textarea",
+          "public_description": "Внутренний комментарий для администраторов, не отображается на сайте",
+          "arch_description": "Pods поле типа textarea для хранения комментариев администратора. Используется скриптами публикации для автоматических уведомлений о недостающих данных",
+          "show_on_card": false,
+          "show_in_description": false,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "admin_comment"
+        }
+      },
+      "publishing_requirements": {
+        "required_for_publish": [
+          {
+            "field": "post_title",
+            "type": "wp_core",
+            "description": "Название экземпляра (WP post_title)"
+          },
+          {
+            "field": "post_excerpt",
+            "type": "wp_core",
+            "description": "Описание экземпляра (WP post_excerpt или post_content)"
+          },
+          {
+            "field": "_thumbnail_id",
+            "type": "wp_core",
+            "description": "Миниатюра (WP featured image) для карточки"
+          },
+          {
+            "field": "toy_instance_index",
+            "type": "pods_field",
+            "description": "Индекс экземпляра игрушки"
+          },
+          {
+            "field": "cost",
+            "type": "pods_field",
+            "description": "Цена экземпляра",
+            "check_type": "numeric_gt_zero"
+          }
+        ],
+        "intermediate_statuses": {
+          "specification": {
+            "display_name": "На спецификации",
+            "description": "Запись имеет фотографии, но отсутствует описание или другие важные данные",
+            "conditions": {
+              "has_photos": true,
+              "missing_fields": ["post_excerpt", "post_content", "toy_instance_index", "cost"],
+              "priority": 1
+            }
+          },
+          "decoration": {
+            "display_name": "На оформлении",
+            "description": "Запись имеет данные, но отсутствуют фотографии или описание не готово к публикации",
+            "conditions": {
+              "has_data": true,
+              "missing_fields": ["_thumbnail_id", "photos_of_the_toy_instance"],
+              "or_missing": ["post_excerpt", "post_content"],
+              "priority": 2
+            }
+          }
+        }
+      }
+    }
+  },
+  "custom_post_statuses": {
+    "specification": {
+      "display_name": "На спецификации",
+      "label": "На спецификации",
+      "label_count": {
+        "singular": "На спецификации (%s)",
+        "plural": "На спецификации (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": true,
+      "post_types": ["toy_type", "toy_instance"],
+      "description": "Запись имеет фотографии, но требует заполнения описания и других данных"
+    },
+    "decoration": {
+      "display_name": "На оформлении",
+      "label": "На оформлении",
+      "label_count": {
+        "singular": "На оформлении (%s)",
+        "plural": "На оформлении (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": true,
+      "post_types": ["toy_type", "toy_instance"],
+      "description": "Запись имеет данные, но требует фотографий или доработки описания"
+    },
+    "reserved": {
+      "display_name": "Зарезервировано",
+      "label": "Зарезервировано",
+      "label_count": {
+        "singular": "Зарезервировано (%s)",
+        "plural": "Зарезервировано (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": false,
+      "post_types": ["toy_instance"],
+      "description": "Экземпляр зарезервирован после оформления заказа"
+    },
+    "sold": {
+      "display_name": "Продано",
+      "label": "Продано",
+      "label_count": {
+        "singular": "Продано (%s)",
+        "plural": "Продано (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": false,
+      "post_types": ["toy_instance"],
+      "description": "Экземпляр продан после закрытия заказа"
+    }
+  },
+  "field_mappings": {
+    "taxonomy_to_field": {
+      "the_amalgam": null,
+      "authenticity": {
+        "toy_type": null,
+        "toy_instance": "authenticity_field"
+      },
+      "occurrence": {
+        "toy_type": "occurrence_field",
+        "toy_instance": null
+      },
+      "year_of_production": {
+        "toy_type": "year_of_production_field",
+        "toy_instance": null
+      },
+      "category-of-toys": null,
+      "lot_configurations": {
+        "toy_type": null,
+        "toy_instance": "lot_configuration_field"
+      },
+      "material": {
+        "toy_type": "material_field",
+        "toy_instance": null
+      },
+      "manufacturer": {
+        "toy_type": "manufacturer_field",
+        "toy_instance": null
+      },
+      "size": {
+        "toy_type": "size_field",
+        "toy_instance": null
+      },
+      "property": {
+        "toy_type": null,
+        "toy_instance": "property_field"
+      },
+      "condition": {
+        "toy_type": null,
+        "toy_instance": "condition_field"
+      },
+      "tube_condition": {
+        "toy_type": null,
+        "toy_instance": "tube_condition_field"
+      },
+      "mounting_type": {
+        "toy_type": "mounting_type_field",
+        "toy_instance": null
+      },
+      "paint_type": {
+        "toy_type": null,
+        "toy_instance": "paint_type_field"
+      },
+      "glass_thickness": {
+        "toy_type": "glass_thickness_field",
+        "toy_instance": null
+      },
+      "color_type": {
+        "toy_type": null,
+        "toy_instance": "color_type_field"
+      },
+      "back_color": {
+        "toy_type": null,
+        "toy_instance": "back_color_field"
+      }
+    },
+    "rest_api_field_to_internal": {
+      "toy_type": {
+        "occurrence": "occurrence_field",
+        "year_of_production": "year_of_production_field",
+        "material": "material_field",
+        "manufacturer": "manufacturer_field",
+        "size": "size_field",
+        "glass_thickness": "glass_thickness_field",
+        "mounting_type": "mounting_type_field"
+      },
+      "toy_instance": {
+        "authenticity": "authenticity_field",
+        "lot_configurations": "lot_configuration_field",
+        "property": "property_field",
+        "condition": "condition_field",
+        "tube_condition": "tube_condition_field",
+        "paint_type": "paint_type_field",
+        "color_type": "color_type_field",
+        "back_color": "back_color_field"
+      }
+    }
+  }
+}
+

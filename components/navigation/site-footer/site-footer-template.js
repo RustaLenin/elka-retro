@@ -7,7 +7,7 @@ export function site_footer_template(state) {
         <div class="site_footer-brand">
           <div class="site_footer-logo">
             <ui-icon name="logo" size="large" class="site_footer-logo_icon"></ui-icon>
-            <span class="site_footer-logo_text">НАША ЁЛКА</span>
+            <span class="site_footer-logo_text">ЁЛКА РЕТРО</span>
           </div>
           <p class="site_footer-tagline">
            Магазин антикварной елочной игрушки. Самый большой веб каталог в России.

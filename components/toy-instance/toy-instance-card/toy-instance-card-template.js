@@ -131,15 +131,39 @@ function getRarityColorClass(rarity) {
   return '';
 }
 
+// Получить класс цвета для состояния (condition)
+// Значения: Люкс, Хорошее, Так себе, Плохое
+function getConditionColorClass(condition) {
+  if (!condition) return '';
+  
+  const slug = condition.toLowerCase().trim();
+  const name = condition.toLowerCase().trim();
+  
+  // Проверяем по slug и name
+  if (slug === 'lux' || slug === 'люкс' || name === 'люкс' || name.includes('люкс')) {
+    return 'condition-lux'; // Люкс - зеленый
+  } else if (slug === 'good' || slug === 'хорошее' || name === 'хорошее' || name.includes('хорош')) {
+    return 'condition-good'; // Хорошее - светло-зеленый/желто-зеленый
+  } else if (slug === 'so-so' || slug === 'так себе' || name === 'так себе' || name.includes('так себе') || name.includes('средн')) {
+    return 'condition-so-so'; // Так себе - желтый/оранжевый
+  } else if (slug === 'bad' || slug === 'плохое' || name === 'плохое' || name.includes('плох')) {
+    return 'condition-bad'; // Плохое - красный
+  }
+  
+  return '';
+}
+
 export function toy_instance_card_template(state) {
-  const { id, title, price, image, rarity, tubeCondition, available } = state;
+  const { id, title, price, image, rarity, tubeCondition, condition, status } = state;
   
   const safeTitle = title ? escapeHtml(title) : '';
   const safeImage = image ? escapeHtml(image) : '';
-  const tubeIcon = getTubeIcon(tubeCondition);
-  const tubeIconColor = getTubeIconColor(tubeCondition);
-  const tubeConditionLabel = getTubeConditionLabel(tubeCondition);
+  const safeCondition = condition ? escapeHtml(condition) : '';
+  const conditionClass = getConditionColorClass(condition);
   const rarityClass = getRarityColorClass(rarity);
+  
+  // Проверяем, доступен ли экземпляр для покупки
+  const isAvailable = status === 'publish';
   
   // Форматируем цену
   let formattedPrice = '';
@@ -163,18 +187,22 @@ export function toy_instance_card_template(state) {
         ${safeTitle ? `
           <h3 class="toy-instance-card_title">${safeTitle}</h3>
         ` : ''}
-        <div class="toy-instance-card_meta">
-          ${tubeIcon ? `
-            <div class="toy-instance-card_tube-condition" data-hint="${escapeHtml(tubeConditionLabel)}" style="${tubeIconColor ? `color: ${escapeHtml(tubeIconColor)};` : ''}">
-              <ui-icon name="${tubeIcon}" size="small"></ui-icon>
-            </div>
-          ` : ''}
+        <div class="toy-instance-card_condition">
+          <span class="toy-instance-card_condition-label">Состояние:</span>
+          <span class="toy-instance-card_condition-value ${conditionClass}">${safeCondition || '—'}</span>
+        </div>
+        <div class="toy-instance-card_price-row">
           ${formattedPrice ? `
-            <div class="toy-instance-card_price">${formattedPrice}</div>
+            <div class="toy-instance-card_price ${!isAvailable ? 'toy-instance-card_price--blocked' : ''}">${formattedPrice}</div>
+          ` : ''}
+          ${isAvailable ? `
+            <button class="toy-instance-card_cart-btn" type="button" aria-label="Добавить в корзину">
+              <ui-icon name="cart" size="small"></ui-icon>
+            </button>
           ` : ''}
         </div>
-        <button class="toy-instance-card_buy-btn" type="button">
-          Добавить в корзину
+        <button class="toy-instance-card_details-btn" type="button">
+          Больше подробностей
         </button>
       </div>
     </article>

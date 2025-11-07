@@ -82,12 +82,12 @@ export function post_card_template(state) {
       ` : ''}
       ${link ? `
         <div class="post-card_actions">
-          <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="post-card_read-more-link">
             <ui-button 
               type="secondary" 
+              action="link_blank"
+              href="${escapeHtml(link)}"
               label="Читать целиком">
             </ui-button>
-          </a>
         </div>
       ` : ''}
     </article>

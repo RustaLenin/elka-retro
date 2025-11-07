@@ -3,7 +3,7 @@ ui-button, .ui-button {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 10px 20px;
   border-radius: 8px;
   font-family: var(--font-sans);
   font-weight: 600;
@@ -11,6 +11,12 @@ ui-button, .ui-button {
   cursor: pointer;
   user-select: none;
   transition: background-color .2s ease, color .2s ease, transform .05s ease, opacity .2s ease;
+  width: fit-content;
+}
+
+ui-button.full-width, .ui-button.full-width {
+  width: 100%;
+  display: flex;
 }
 
 ui-button[aria-disabled="true"], .ui-button[aria-disabled="true"] {

@@ -8,8 +8,6 @@
  * @package ElkaRetro
  */
 
-// Вычисляем дату месяц назад
-$one_month_ago = date('Y-m-d H:i:s', strtotime('-1 month'));
 
 // WP Query с ограничениями
 $toy_types_query = new WP_Query(array(
@@ -18,12 +16,6 @@ $toy_types_query = new WP_Query(array(
     'posts_per_page' => 9,
     'orderby'        => 'date',
     'order'          => 'DESC',
-    'date_query'     => array(
-        array(
-            'after'     => $one_month_ago,
-            'inclusive' => true,
-        ),
-    ),
 ));
 
 // Проверяем есть ли типы игрушек
@@ -37,8 +29,6 @@ if ($toy_types_query->have_posts()) :
     echo '<div class="toy-types-section-title-icon">';
     echo '<ui-icon name="gift" size="small"></ui-icon>';
     echo '</div>';
-    echo '<h2 class="toy-types-section-title">Новые поступления</h2>';
-    echo '</div>';
     
     // Получаем ссылку на архив toy_type
     $archive_link = '';
@@ -50,16 +40,21 @@ if ($toy_types_query->have_posts()) :
         $archive_link = home_url('/toy-type/');
     }
     
+    // Выводим заголовок со ссылкой в скобках сразу после него
+    echo '<h2 class="toy-types-section-title">Новые поступления';
     if ($archive_link) {
-        echo '<div class="toy-types-section-link-wrapper">';
-        echo '<a href="' . esc_url($archive_link) . '" class="toy-types-section-link">Смотреть все</a>';
-        echo '<ui-icon name="grid" size="small" class="toy-types-section-link-icon"></ui-icon>';
-        echo '</div>';
+        echo ' <a href="' . esc_url($archive_link) . '" class="toy-types-section-link">(Смотреть все)</a>';
     }
+    echo '</h2>';
+    echo '</div>';
     echo '</div>';
     
     // Создаём контейнер с flex layout (в одну строку, как у post-card)
     echo '<div class="toy-type-cards-container" data-layout="flex" data-justify="center" data-gap="medium">';
+    
+    // Получаем название поля instances из дата-модели (используем один раз для всех циклов)
+    $instances_field_config = elkaretro_get_field_config('toy_type', 'instances');
+    $instances_meta_field = $instances_field_config && isset($instances_field_config['meta_field']) ? $instances_field_config['meta_field'] : 'instances';
     
     // Массив для хранения ID типов, которые нужно исключить (без экземпляров)
     $excluded_types = array();
@@ -75,7 +70,8 @@ if ($toy_types_query->have_posts()) :
         if (function_exists('pods')) {
             $temp_toy_type_pod = pods('toy_type', $temp_toy_type_id);
             if ($temp_toy_type_pod && $temp_toy_type_pod->exists()) {
-                $temp_instances = $temp_toy_type_pod->field('instances');
+                // Используем название поля из дата-модели
+                $temp_instances = $temp_toy_type_pod->field($instances_meta_field);
                 if ($temp_instances) {
                     if (is_array($temp_instances)) {
                         foreach ($temp_instances as $instance) {
@@ -128,6 +124,20 @@ if ($toy_types_query->have_posts()) :
         $title = get_the_title();
         $link = get_permalink();
         
+        // Получаем названия полей из дата-модели
+        $photos_field_config = elkaretro_get_field_config('toy_type', 'toy_type_photos');
+        $photos_meta_field = $photos_field_config && isset($photos_field_config['meta_field']) ? $photos_field_config['meta_field'] : 'toy_type_photos';
+        
+        $year_field_config = elkaretro_get_field_config('toy_type', 'year_of_production_field');
+        $year_taxonomy = $year_field_config && isset($year_field_config['related_taxonomy']) ? $year_field_config['related_taxonomy'] : 'year_of_production';
+        
+        $manufacturer_field_config = elkaretro_get_field_config('toy_type', 'manufacturer_field');
+        $manufacturer_taxonomy = $manufacturer_field_config && isset($manufacturer_field_config['related_taxonomy']) ? $manufacturer_field_config['related_taxonomy'] : 'manufacturer';
+        
+        $occurrence_field_config = elkaretro_get_field_config('toy_type', 'occurrence_field');
+        $occurrence_taxonomy = $occurrence_field_config && isset($occurrence_field_config['related_taxonomy']) ? $occurrence_field_config['related_taxonomy'] : 'occurrence';
+        $occurrence_meta_field = $occurrence_field_config && isset($occurrence_field_config['meta_field']) ? $occurrence_field_config['meta_field'] : 'occurrence_field';
+        
         // Получаем изображение (thumbnail или первая из toy_type_photos)
         $thumbnail_id = get_post_thumbnail_id($toy_type_id);
         $image_url = '';
@@ -138,7 +148,7 @@ if ($toy_types_query->have_posts()) :
             }
         } else {
             // Если нет featured image, пробуем получить первую из toy_type_photos
-            $toy_type_photos = get_post_meta($toy_type_id, 'toy_type_photos', true);
+            $toy_type_photos = get_post_meta($toy_type_id, $photos_meta_field, true);
             if ($toy_type_photos && is_array($toy_type_photos) && !empty($toy_type_photos) && isset($toy_type_photos[0])) {
                 $first_photo_id = $toy_type_photos[0];
                 $image_url = wp_get_attachment_image_url($first_photo_id, 'large');
@@ -150,7 +160,7 @@ if ($toy_types_query->have_posts()) :
         
         // Получаем таксономии
         // Годы производства (берем первый для краткости, в карточке можно показать все)
-        $years = get_the_terms($toy_type_id, 'year_of_production');
+        $years = get_the_terms($toy_type_id, $year_taxonomy);
         $year = '';
         if ($years && !is_wp_error($years) && !empty($years) && isset($years[0])) {
             // Берем первый год, можно позже показывать все
@@ -158,7 +168,7 @@ if ($toy_types_query->have_posts()) :
         }
         
         // Производители (multi pick)
-        $manufacturers = get_the_terms($toy_type_id, 'manufacturer');
+        $manufacturers = get_the_terms($toy_type_id, $manufacturer_taxonomy);
         $factory = '';
         $manufacturer_ids = array();
         if ($manufacturers && !is_wp_error($manufacturers) && !empty($manufacturers) && isset($manufacturers[0])) {
@@ -177,8 +187,8 @@ if ($toy_types_query->have_posts()) :
             // Получаем через Pods API (приоритет)
             $toy_type_pod = pods('toy_type', $toy_type_id);
             if ($toy_type_pod && $toy_type_pod->exists()) {
-                // Пробуем получить через Pods поле occurrences
-                $occurrence_data = $toy_type_pod->field('occurrences');
+                // Пробуем получить через Pods поле occurrence_field
+                $occurrence_data = $toy_type_pod->field($occurrence_meta_field);
                 if ($occurrence_data) {
                     // Может быть массив объектов или один объект
                     if (is_array($occurrence_data) && !empty($occurrence_data) && isset($occurrence_data[0])) {
@@ -195,7 +205,7 @@ if ($toy_types_query->have_posts()) :
         
         // Fallback: если через Pods не получили, используем стандартный WP API
         if (empty($rarity)) {
-            $occurrences = get_the_terms($toy_type_id, 'occurrence');
+            $occurrences = get_the_terms($toy_type_id, $occurrence_taxonomy);
             if ($occurrences && !is_wp_error($occurrences) && !empty($occurrences) && isset($occurrences[0])) {
                 $rarity = $occurrences[0]->slug; // Используем slug для удобства (often, not-often, rarely, rare)
             }
@@ -207,8 +217,8 @@ if ($toy_types_query->have_posts()) :
         if (function_exists('pods')) {
             $toy_type_pod = pods('toy_type', $toy_type_id);
             if ($toy_type_pod && $toy_type_pod->exists()) {
-                // Получаем связанные экземпляры через Pods relationship
-                $instances = $toy_type_pod->field('instances');
+                // Получаем связанные экземпляры через Pods relationship, используя название поля из дата-модели
+                $instances = $toy_type_pod->field($instances_meta_field);
                 if ($instances) {
                     // Pods может вернуть как массив объектов, так и один объект
                     if (is_array($instances)) {

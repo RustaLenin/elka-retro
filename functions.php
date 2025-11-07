@@ -17,6 +17,105 @@ define( 'THEME_COR', dirname( __FILE__ ) . '/core/'                   );
 define( 'THEME_MOD', dirname( __FILE__ ) . '/modules/'                );
 define( 'THEME_ASS', dirname( __FILE__ ) . '/assets/'	              );
 
+/**
+ * Load and initialize Data Model
+ * Загружает JSON файл дата-модели и делает его доступным как глобальную константу
+ */
+if (!function_exists('elkaretro_load_data_model')) {
+    function elkaretro_load_data_model() {
+        $data_model_file = THEME_DIR . '/core/data-model.json';
+        
+        if (!file_exists($data_model_file)) {
+            error_log('ElkaRetro: Data model file not found: ' . $data_model_file);
+            return false;
+        }
+        
+        $json_content = file_get_contents($data_model_file);
+        if ($json_content === false) {
+            error_log('ElkaRetro: Failed to read data model file: ' . $data_model_file);
+            return false;
+        }
+        
+        $data_model = json_decode($json_content, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('ElkaRetro: JSON decode error in data model: ' . json_last_error_msg());
+            return false;
+        }
+        
+        // Сохраняем как глобальную константу (массив в константе доступен с PHP 5.6+)
+        // Используем define() с проверкой, чтобы не переопределить
+        if (!defined('ELKARETRO_DATA_MODEL')) {
+            define('ELKARETRO_DATA_MODEL', $data_model);
+        }
+        
+        return true;
+    }
+}
+
+// Загружаем дата-модель при инициализации темы
+elkaretro_load_data_model();
+
+/**
+ * Helper functions for Data Model access
+ * Вспомогательные функции для доступа к дата-модели
+ */
+if (!function_exists('elkaretro_get_data_model')) {
+    /**
+     * Получить всю дата-модель или её часть
+     * 
+     * @param string|null $path Путь к нужной части (например, 'post_types.toy_type.fields.size_field')
+     * @return array|mixed|null Вся модель, часть модели или null если не найдено
+     */
+    function elkaretro_get_data_model($path = null) {
+        if (!defined('ELKARETRO_DATA_MODEL')) {
+            return null;
+        }
+        
+        $model = ELKARETRO_DATA_MODEL;
+        
+        if ($path === null) {
+            return $model;
+        }
+        
+        $keys = explode('.', $path);
+        $current = $model;
+        
+        foreach ($keys as $key) {
+            if (!isset($current[$key])) {
+                return null;
+            }
+            $current = $current[$key];
+        }
+        
+        return $current;
+    }
+}
+
+if (!function_exists('elkaretro_get_field_config')) {
+    /**
+     * Получить конфигурацию поля для указанного типа поста
+     * 
+     * @param string $post_type Тип поста (toy_type, toy_instance)
+     * @param string $field_slug Slug поля
+     * @return array|null Конфигурация поля или null
+     */
+    function elkaretro_get_field_config($post_type, $field_slug) {
+        return elkaretro_get_data_model("post_types.{$post_type}.fields.{$field_slug}");
+    }
+}
+
+if (!function_exists('elkaretro_get_taxonomy_config')) {
+    /**
+     * Получить конфигурацию таксономии
+     * 
+     * @param string $taxonomy_slug Slug таксономии
+     * @return array|null Конфигурация таксономии или null
+     */
+    function elkaretro_get_taxonomy_config($taxonomy_slug) {
+        return elkaretro_get_data_model("taxonomies.{$taxonomy_slug}");
+    }
+}
+
 require_once( THEME_COR . 'setup.php' );
 
 // Theme Settings (управление настройками темы)
@@ -27,6 +126,9 @@ require_once( THEME_COR . 'taxonomy-sync.php' );
 
 // Mock Data Installer (для локальной разработки)
 require_once( THEME_COR . 'mock-data-installer.php' );
+
+// Publishing Script (скрипт массовой публикации)
+require_once( THEME_COR . 'publishing-script.php' );
 
 /**
  * Include files if module is supported
@@ -39,6 +141,92 @@ require_once( THEME_COR . 'filters/content.php' );
 require_once( THEME_COR . 'default_controller.php');
 
 @ini_set( 'upload_max_size' , '500M' );
+
+/**
+ * Get taxonomy terms for JavaScript
+ * Получает все термины указанных таксономий для проброса в JavaScript
+ * 
+ * @param array $taxonomies Массив slug таксономий
+ * @return array Ассоциативный массив [taxonomy_slug => [id => [name, slug, ...]]]
+ */
+if (!function_exists('elkaretro_get_taxonomy_terms_for_js')) {
+    function elkaretro_get_taxonomy_terms_for_js($taxonomies = array()) {
+        $terms_map = array();
+        
+        foreach ($taxonomies as $taxonomy_slug) {
+            $terms = get_terms(array(
+                'taxonomy' => $taxonomy_slug,
+                'hide_empty' => false,
+            ));
+            
+            if (is_wp_error($terms) || empty($terms)) {
+                continue;
+            }
+            
+            $terms_map[$taxonomy_slug] = array();
+            foreach ($terms as $term) {
+                $terms_map[$taxonomy_slug][$term->term_id] = array(
+                    'id' => $term->term_id,
+                    'name' => $term->name,
+                    'slug' => $term->slug,
+                    'description' => $term->description,
+                );
+            }
+        }
+        
+        return $terms_map;
+    }
+}
+
+/**
+ * Emit Data Model to JavaScript in window.data_model
+ * Выводит дата-модель в window.data_model для доступа из JavaScript
+ * Приоритет 1 - выполняется раньше других скриптов
+ */
+add_action('wp_head', function () {
+    if (!defined('ELKARETRO_DATA_MODEL')) {
+        return;
+    }
+    
+    $data_model = ELKARETRO_DATA_MODEL;
+    $json = wp_json_encode($data_model, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    
+    if ($json === false) {
+        error_log('ElkaRetro: Failed to encode data model to JSON');
+        return;
+    }
+    
+    // Получаем термины таксономий, которые используются в экземплярах
+    // Это таксономии, которые связаны с toy_instance через поля
+    $taxonomies_to_load = array(
+        'condition',        // Состояние
+        'tube_condition',   // Состояние трубочек
+        'authenticity',     // Аутентичность
+        'lot_configurations', // Комплектация лотов
+        'property',         // Собственность
+        'paint_type',       // Тип окраса
+        'color_type',       // Характер окраса
+        'back_color',       // Цвет фона
+    );
+    
+    $taxonomy_terms = elkaretro_get_taxonomy_terms_for_js($taxonomies_to_load);
+    $terms_json = wp_json_encode($taxonomy_terms, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    
+    // Выводим дата-модель в window.data_model
+    // Используем IIFE для безопасности и немедленного выполнения
+    echo '<script id="elkaretro-data-model">' . "\n";
+    echo '  (function() {' . "\n";
+    echo '    if (typeof window !== "undefined") {' . "\n";
+    echo '      window.data_model = ' . $json . ';' . "\n";
+    echo '      Object.freeze(window.data_model); // Делаем объект неизменяемым' . "\n";
+    if ($terms_json !== false) {
+        echo '      window.taxonomy_terms = ' . $terms_json . ';' . "\n";
+        echo '      Object.freeze(window.taxonomy_terms); // Делаем объект неизменяемым' . "\n";
+    }
+    echo '    }' . "\n";
+    echo '  })();' . "\n";
+    echo '</script>' . "\n";
+}, 1);
 
 /**
  * Emit a JSON list of required web components for the current page.

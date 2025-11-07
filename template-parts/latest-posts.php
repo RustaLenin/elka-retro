@@ -2,28 +2,19 @@
 /**
  * Template part for displaying latest posts on homepage
  * 
- * Выводит последние 3 поста не старше 3 месяцев
+ * Выводит последние 3 поста
  * Использует компонент post-card
  *
  * @package ElkaRetro
  */
 
-// Вычисляем дату 3 месяца назад
-$three_months_ago = date('Y-m-d H:i:s', strtotime('-3 months'));
-
-// WP Query с ограничениями
+// WP Query для получения последних 3 постов
 $posts_query = new WP_Query(array(
     'post_type'      => 'post',
     'post_status'    => 'publish',
     'posts_per_page' => 3,
     'orderby'        => 'date',
     'order'          => 'DESC',
-    'date_query'     => array(
-        array(
-            'after'     => $three_months_ago,
-            'inclusive' => true,
-        ),
-    ),
 ));
 
 // Проверяем есть ли посты
@@ -37,8 +28,7 @@ if ($posts_query->have_posts()) :
     echo '<div class="posts-section-title-icon">';
     echo '<ui-icon name="news" size="small"></ui-icon>';
     echo '</div>';
-    echo '<h2 class="posts-section-title">Новости</h2>';
-    echo '</div>';
+    
     // Получаем ссылку на архив постов
     $archive_link = '';
     
@@ -66,12 +56,13 @@ if ($posts_query->have_posts()) :
         // $archive_link = add_query_arg('post_type', 'post', home_url('/'));
     }
     
+    // Выводим заголовок со ссылкой в скобках сразу после него
+    echo '<h2 class="posts-section-title">Новости';
     if ($archive_link) {
-        echo '<div class="posts-section-link-wrapper">';
-        echo '<a href="' . esc_url($archive_link) . '" class="posts-section-link">Читать все новости</a>';
-        echo '<ui-icon name="grid" size="small" class="posts-section-link-icon"></ui-icon>';
-        echo '</div>';
+        echo ' <a href="' . esc_url($archive_link) . '" class="posts-section-link">(Читать все новости)</a>';
     }
+    echo '</h2>';
+    echo '</div>';
     echo '</div>';
     
     // Создаём контейнер с flex layout (в одну строку)

@@ -1,3 +1,46 @@
 /* Category Breadcrumbs Component Styles */
-/* TODO: стили после фиксации data model */
 
+category-breadcrumbs {
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+category-breadcrumbs .category-breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.7));
+}
+
+category-breadcrumbs .category-breadcrumbs_item {
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.7));
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+category-breadcrumbs .category-breadcrumbs_item:hover {
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+category-breadcrumbs .category-breadcrumbs_item--current {
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+category-breadcrumbs .category-breadcrumbs_separator {
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.5));
+  margin: 0 0.25rem;
+}
+
+category-breadcrumbs .category-breadcrumbs_loading,
+category-breadcrumbs .category-breadcrumbs_error {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.7));
+}
+
+category-breadcrumbs .category-breadcrumbs_error {
+  color: var(--color-error, #ef4444);
+}

@@ -1,10 +1,17 @@
 import { BaseElement } from '../../base-element.js';
 import { toy_instance_card_template } from './toy-instance-card-template.js';
 
+// Загружаем стили на верхнем уровне модуля (не в connectedCallback)
+if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./toy-instance-card-styles.css', import.meta.url));
+}
+
 /**
  * Toy Instance Card Component
  * Карточка экземпляра игрушки для отображения под страницей типа
  * Статичный компонент: данные из атрибутов
+ * 
+ * Использует дата-модель для получения правильных названий полей из REST API
  */
 export class ToyInstanceCard extends BaseElement {
   static stateSchema = {
@@ -14,46 +21,48 @@ export class ToyInstanceCard extends BaseElement {
     image: { type: 'string', default: '', attribute: { name: 'image', observed: true, reflect: true } },
     rarity: { type: 'string', default: '', attribute: { name: 'rarity', observed: true, reflect: true } },
     tubeCondition: { type: 'string', default: '', attribute: { name: 'tube-condition', observed: true, reflect: true } },
+    condition: { type: 'string', default: '', attribute: { name: 'condition', observed: true, reflect: true } },
     available: { type: 'boolean', default: true, attribute: { name: 'available', observed: true, reflect: true } },
+    // Дополнительные поля из дата-модели (для будущего использования)
+    instanceIndex: { type: 'string', default: '', attribute: { name: 'instance-index', observed: true, reflect: true } },
+    status: { type: 'string', default: 'publish', attribute: { name: 'status', observed: true, reflect: true } },
   };
 
   constructor() {
     super();
     // Создаём обработчики один раз, чтобы не дублировать
-    this._handleCardClick = (e) => {
-      // Не открываем модалку если клик по кнопке "Купить"
-      if (e.target.closest('.toy-instance-card_buy-btn')) {
-        return;
-      }
-      // Открываем модальное окно с деталями экземпляра
-      this.openInstanceModal();
-    };
-    
     this._handleBuyClick = (e) => {
       e.stopPropagation();
       // TODO: Раскомментировать когда будет готова функция добавления в корзину
       // this.addToCart();
     };
+    
+    this._handleDetailsClick = (e) => {
+      e.stopPropagation();
+      // Открываем модальное окно с деталями экземпляра
+      this.openInstanceModal();
+    };
   }
 
   connectedCallback() {
-    window.app.toolkit.loadCSSOnce(new URL('./toy-instance-card-styles.css', import.meta.url));
     super.connectedCallback();
     this.render();
     this.setupEventListeners();
   }
 
   setupEventListeners() {
-    // Клик по всей карточке - открывает модалку
-    // Используем делегирование для избежания проблем при ререндере
-    this.removeEventListener('click', this._handleCardClick);
-    this.addEventListener('click', this._handleCardClick);
+    // Клик по кнопке "Добавить в корзину" (иконка)
+    const cartBtn = this.querySelector('.toy-instance-card_cart-btn');
+    if (cartBtn) {
+      cartBtn.removeEventListener('click', this._handleBuyClick);
+      cartBtn.addEventListener('click', this._handleBuyClick);
+    }
     
-    // Клик по кнопке "Купить" - используем делегирование через родителя
-    const buyBtn = this.querySelector('.toy-instance-card_buy-btn');
-    if (buyBtn) {
-      buyBtn.removeEventListener('click', this._handleBuyClick);
-      buyBtn.addEventListener('click', this._handleBuyClick);
+    // Клик по кнопке "Больше подробностей"
+    const detailsBtn = this.querySelector('.toy-instance-card_details-btn');
+    if (detailsBtn) {
+      detailsBtn.removeEventListener('click', this._handleDetailsClick);
+      detailsBtn.addEventListener('click', this._handleDetailsClick);
     }
   }
 

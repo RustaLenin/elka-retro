@@ -1,4 +1,10 @@
 import { BaseElement } from '../base-element.js';
+import { category_breadcrumbs_template } from './category-breadcrumbs-template.js';
+
+// Загружаем стили на верхнем уровне модуля (не в connectedCallback)
+if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./category-breadcrumbs-styles.css', import.meta.url));
+}
 
 /**
  * Category Breadcrumbs Component
@@ -18,26 +24,28 @@ export class CategoryBreadcrumbs extends BaseElement {
   }
 
   connectedCallback() {
-    window.app.toolkit.loadCSSOnce(new URL('./category-breadcrumbs-styles.css', import.meta.url));
     super.connectedCallback();
     if (this.state.categoryId) {
       this.loadCategoryPath();
+    } else {
+      this.render();
     }
   }
 
   async loadCategoryPath() {
     const { categoryId } = this.state;
-    if (!categoryId) return;
+    if (!categoryId) {
+      this.render();
+      return;
+    }
     
     this.setState({ loading: true, error: null });
     try {
-      // TODO: реализовать загрузку категории и её родителей через REST API
-      // Если указана только дочерняя категория - подтянуть всех родителей через parent
-      // Построить полный путь от корня до текущей категории
-      const category = await this.fetchCategory(categoryId);
-      const path = await this.buildCategoryPath(category);
+      // Загружаем категорию и всех её родителей через REST API
+      const path = await this.buildCategoryPath(categoryId);
       this.setState({ categories: path });
     } catch (e) {
+      console.error('[category-breadcrumbs] Error loading category path:', e);
       this.setState({ error: e.message || 'Ошибка загрузки' });
     } finally {
       this.setState({ loading: false });
@@ -45,22 +53,57 @@ export class CategoryBreadcrumbs extends BaseElement {
   }
 
   async fetchCategory(id) {
-    // TODO: GET /wp-json/wp/v2/toy_type_category-of-toys/{id}
-    return null;
+    try {
+      const res = await fetch(`/wp-json/wp/v2/category-of-toys/${id}`, { credentials: 'same-origin' });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return await res.json();
+    } catch (e) {
+      console.error(`[category-breadcrumbs] Failed to fetch category ${id}:`, e);
+      throw e;
+    }
   }
 
-  async buildCategoryPath(category) {
-    // TODO: рекурсивно собрать путь от корня через parent
-    return [];
+  async buildCategoryPath(categoryId) {
+    const path = [];
+    let currentId = categoryId;
+    
+    // Рекурсивно собираем путь от текущей категории до корня
+    while (currentId) {
+      try {
+        const category = await this.fetchCategory(currentId);
+        if (!category) break;
+        
+        path.unshift({
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+          url: category.link || `/category-of-toys/${category.slug}/`
+        });
+        
+        // Переходим к родительской категории
+        currentId = category.parent || 0;
+        if (currentId === 0) break;
+      } catch (e) {
+        console.error(`[category-breadcrumbs] Failed to build path for category ${currentId}:`, e);
+        break;
+      }
+    }
+    
+    return path;
   }
 
   onStateChanged(key) {
-    if (key === 'categoryId') this.loadCategoryPath();
+    if (key === 'categoryId') {
+      this.loadCategoryPath();
+    } else if (key === 'loading' || key === 'categories' || key === 'error') {
+      this.render();
+    }
   }
 
   render() {
-    // TODO: реализовать рендер хлебных крошек после получения data model
-    // Каждая категория кликабельна
+    this.innerHTML = category_breadcrumbs_template(this.state);
   }
 }
 

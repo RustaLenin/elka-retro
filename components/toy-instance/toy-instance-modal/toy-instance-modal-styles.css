@@ -66,7 +66,7 @@ toy-instance-modal .toy-instance-modal_gallery-placeholder {
   justify-content: center;
   background: var(--color-secondary, rgba(32, 34, 39, 0.5));
   border-radius: 0.5rem;
-  border: 2px dashed var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 2px dashed var(--color-border-accent);
   padding: 2rem;
 }
 
@@ -226,7 +226,7 @@ toy-instance-modal .toy-instance-modal_content ui-image-gallery {
 /* Улучшаем общий вид модального контейнера */
 toy-instance-modal .modal_container {
   background: var(--color-card, rgba(32, 34, 39, 0.95));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-border-accent);
 }
 
 /* Улучшаем вид body */

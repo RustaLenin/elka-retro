@@ -10,11 +10,10 @@ toy-instance-card .toy-instance-card {
   flex-direction: column;
   height: 100%;
   background: var(--color-card, rgba(32, 34, 39, 0.95));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-border-accent);
   border-radius: 1rem;
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
   position: relative;
 }
 
@@ -81,37 +80,95 @@ toy-instance-card .toy-instance-card_title {
   line-height: 1.4;
 }
 
-/* Мета-информация (иконка трубочки и цена) */
-toy-instance-card .toy-instance-card_meta {
+/* Состояние (condition) */
+toy-instance-card .toy-instance-card_condition {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
 }
 
-toy-instance-card .toy-instance-card_tube-condition {
+toy-instance-card .toy-instance-card_condition-label {
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.7));
+}
+
+toy-instance-card .toy-instance-card_condition-value {
+  font-weight: 500;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+/* Цвета для состояний */
+toy-instance-card .condition-lux {
+  color: #22c55e !important; /* Зеленый - Люкс */
+}
+
+toy-instance-card .condition-good {
+  color: #84cc16 !important; /* Лайм-зеленый - Хорошее */
+}
+
+toy-instance-card .condition-so-so {
+  color: #eab308 !important; /* Желтый - Так себе */
+}
+
+toy-instance-card .condition-bad {
+  color: #ef4444 !important; /* Красный - Плохое */
+}
+
+/* Строка с ценой и кнопкой корзины */
+toy-instance-card .toy-instance-card_price-row {
   display: flex;
   align-items: center;
-  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.7));
-  cursor: help;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: background-color 0.2s;
-}
-
-toy-instance-card .toy-instance-card_tube-condition:hover {
-  background: var(--color-secondary, rgba(32, 34, 39, 0.5));
-  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 toy-instance-card .toy-instance-card_price {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--color-accent, rgba(255, 232, 155, 1));
+  flex: 1;
 }
 
-/* Кнопка "Купить" */
-toy-instance-card .toy-instance-card_buy-btn {
+toy-instance-card .toy-instance-card_price--blocked {
+  color: var(--color-blocked, rgba(245, 247, 250, 0.5));
+}
+
+/* Кнопка корзины (иконка) */
+toy-instance-card .toy-instance-card_cart-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  background: var(--color-primary, rgba(155, 140, 255, 1));
+  border: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.2));
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0.85;
+}
+
+toy-instance-card .toy-instance-card_cart-btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+toy-instance-card .toy-instance-card_cart-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Кнопка "Больше подробностей" */
+toy-instance-card .toy-instance-card_details-btn {
   width: 100%;
   padding: 0.75rem 1rem;
   font-family: var(--font-sans, inherit);
@@ -119,21 +176,25 @@ toy-instance-card .toy-instance-card_buy-btn {
   font-weight: 500;
   color: var(--color-foreground, rgba(245, 247, 250, 1));
   background: var(--color-primary, rgba(155, 140, 255, 1));
-  border: none;
+  border: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.2));
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.2s;
+  transition: background-color 0.2s, transform 0.2s, border-color 0.2s, box-shadow 0.2s;
   margin-top: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-toy-instance-card .toy-instance-card_buy-btn:hover {
+toy-instance-card .toy-instance-card_details-btn:hover {
   background: var(--color-accent, rgba(255, 232, 155, 1));
   color: var(--color-background, rgba(11, 6, 22, 1));
+  border-color: var(--color-accent, rgba(255, 232, 155, 1));
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-toy-instance-card .toy-instance-card_buy-btn:active {
+toy-instance-card .toy-instance-card_details-btn:active {
   transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Container для карточек экземпляров */

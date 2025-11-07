@@ -10,7 +10,7 @@ toy-type-single {
 toy-type-single .toy-type-single_content {
   position: relative;
   background: var(--color-card, rgba(32, 34, 39, 0.95));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-border-accent);
   border-radius: 1rem;
   padding: 2rem;
   min-height: 200px;
@@ -32,7 +32,7 @@ toy-type-single .toy-type-single_empty {
   color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
   background: var(--color-card, rgba(32, 34, 39, 0.95));
   border-radius: 1rem;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-border-accent);
 }
 
 toy-type-single .toy-type-single_error {
@@ -47,7 +47,11 @@ toy-type-single category-breadcrumbs {
 
 /* Заголовок */
 toy-type-single .toy-type-single_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 2rem;
+  gap: 1rem;
 }
 
 toy-type-single .toy-type-single_title {
@@ -57,6 +61,65 @@ toy-type-single .toy-type-single_title {
   color: var(--color-foreground, rgba(245, 247, 250, 1));
   margin: 0;
   line-height: 1.2;
+  flex: 1;
+}
+
+/* Чипс редкости в правом верхнем углу */
+toy-type-single .toy-type-single_rarity {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+toy-type-single .toy-type-single_rarity:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Цвета для разных уровней редкости */
+toy-type-single .toy-type-single_rarity.rarity--often {
+  color: var(--color-chart-3, #22c55e);
+  border-color: var(--color-chart-3, #22c55e);
+}
+
+toy-type-single .toy-type-single_rarity.rarity--often:hover {
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+toy-type-single .toy-type-single_rarity.rarity--not-often {
+  color: #eab308;
+  border-color: #eab308;
+}
+
+toy-type-single .toy-type-single_rarity.rarity--not-often:hover {
+  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.3);
+}
+
+toy-type-single .toy-type-single_rarity.rarity--rarely {
+  color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+toy-type-single .toy-type-single_rarity.rarity--rarely:hover {
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+toy-type-single .toy-type-single_rarity.rarity--rare {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+toy-type-single .toy-type-single_rarity.rarity--rare:hover {
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 /* Основной контент - двухколоночный layout */
@@ -77,26 +140,18 @@ toy-type-single .toy-type-single_main-right {
   flex-direction: column;
 }
 
-/* Изображение - ограничено 50% ширины, слева */
+/* Изображение - контейнер для галереи */
 toy-type-single .toy-type-single_image {
   position: relative;
   width: 100%;
   max-width: 100%;
   margin-bottom: 0;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  background: var(--color-secondary, rgba(155, 140, 255, 0.1));
 }
 
-toy-type-single .toy-type-single_image img {
+/* Галерея внутри контейнера */
+toy-type-single .toy-type-single_image ui-image-gallery {
   width: 100%;
-  height: auto;
-  display: block;
-  object-fit: cover;
-  border-radius: 0.75rem;
 }
-
-/* TODO: В будущем здесь будет галерея картинок вместо одного изображения */
 
 /* Описание */
 toy-type-single .toy-type-single_body {
@@ -134,7 +189,7 @@ toy-type-single .toy-type-single_description-content p:last-child {
 /* Technical Information */
 toy-type-single .toy-type-single_technical {
   background: var(--color-secondary, rgba(32, 34, 39, 0.6));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--color-border-accent);
   border-radius: 0.75rem;
   padding: 1.5rem;
   margin-top: 2rem;
@@ -181,13 +236,12 @@ toy-type-single .toy-type-single_properties .property-value {
 /* Ссылки на таксономии - кликабельные */
 toy-type-single .toy-type-single_properties .taxonomy-link {
   color: var(--color-primary, rgba(155, 140, 255, 1));
-  text-decoration: none;
+  text-decoration: underline;
   transition: color 0.2s;
 }
 
 toy-type-single .toy-type-single_properties .taxonomy-link:hover {
   color: var(--color-accent, rgba(255, 232, 155, 1));
-  text-decoration: underline;
 }
 
 toy-type-single .toy-type-single_properties .taxonomy-empty {
@@ -195,15 +249,40 @@ toy-type-single .toy-type-single_properties .taxonomy-empty {
   font-style: italic;
 }
 
+/* Обертка для всех секций с экземплярами */
+toy-type-single .toy-type-single_instances-wrapper {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
 /* Секция с экземплярами */
 toy-type-single .toy-type-single_instances {
-  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-accent-border, rgba(255, 255, 255, 0.2));
+  border-radius: 8px;
+  background: var(--color-secondary, rgba(20, 20, 30, 0.5));
+}
+
+/* Забронированные экземпляры - особый стиль */
+toy-type-single .toy-type-single_instances--reserved {
+  border-color: var(--color-warning, rgba(255, 193, 7, 0.4));
+  background: var(--color-secondary, rgba(20, 20, 30, 0.5));
+}
+
+/* Проданные экземпляры - особый стиль */
+toy-type-single .toy-type-single_instances--sold {
+  border-color: var(--color-muted-foreground, rgba(245, 247, 250, 0.3));
+  background: var(--color-secondary, rgba(20, 20, 30, 0.3));
+  opacity: 0.8;
 }
 
 toy-type-single .toy-instance-cards-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1.5rem;
+  margin-top: 1rem;
 }
 
 /* Responsive для контейнера экземпляров */
@@ -242,7 +321,14 @@ toy-type-single .toy-instance-cards-container {
   }
   
   toy-type-single .toy-type-single_header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
     margin-bottom: 1.5rem;
+  }
+  
+  toy-type-single .toy-type-single_rarity {
+    align-self: flex-start;
   }
   
   toy-type-single .toy-type-single_main {
