@@ -130,6 +130,9 @@ require_once( THEME_COR . 'mock-data-installer.php' );
 // Publishing Script (скрипт массовой публикации)
 require_once( THEME_COR . 'publishing-script.php' );
 
+// Instances Counter (автоматический подсчет доступных экземпляров)
+require_once( THEME_COR . 'instances-counter.php' );
+
 /**
  * Include files if module is supported
  **/

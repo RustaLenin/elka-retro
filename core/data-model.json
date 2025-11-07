@@ -410,6 +410,20 @@
           "required": false,
           "multi_choose": false,
           "meta_field": "admin_comment"
+        },
+        "available_instances_count": {
+          "display_name": "Количество доступных экземпляров",
+          "slug": "available_instances_count",
+          "field_type": "number",
+          "public_description": "Количество опубликованных экземпляров этого типа игрушки (кешированное значение)",
+          "arch_description": "Pods поле типа number (plain_number) для хранения кешированного количества доступных (опубликованных) экземпляров. Автоматически обновляется при изменении статуса экземпляров через хуки WordPress и CRON. Скрыто от администраторов в интерфейсе, но доступно через REST API. Используется для фильтрации и быстрых запросов без подсчета связанных записей",
+          "show_on_card": false,
+          "show_in_description": false,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "available_instances_count"
         }
       },
       "publishing_requirements": {

@@ -9,13 +9,21 @@
  */
 
 
-// WP Query с ограничениями
+// WP Query с фильтрацией по количеству доступных экземпляров
 $toy_types_query = new WP_Query(array(
     'post_type'      => 'toy_type',
     'post_status'    => 'publish',
     'posts_per_page' => 9,
     'orderby'        => 'date',
     'order'          => 'DESC',
+    'meta_query'     => array(
+        array(
+            'key'     => 'available_instances_count',
+            'value'   => '0',
+            'compare' => '>',
+            'type'    => 'NUMERIC'
+        )
+    )
 ));
 
 // Проверяем есть ли типы игрушек
@@ -52,74 +60,12 @@ if ($toy_types_query->have_posts()) :
     // Создаём контейнер с flex layout (в одну строку, как у post-card)
     echo '<div class="toy-type-cards-container" data-layout="flex" data-justify="center" data-gap="medium">';
     
-    // Получаем название поля instances из дата-модели (используем один раз для всех циклов)
-    $instances_field_config = elkaretro_get_field_config('toy_type', 'instances');
-    $instances_meta_field = $instances_field_config && isset($instances_field_config['meta_field']) ? $instances_field_config['meta_field'] : 'instances';
-    
-    // Массив для хранения ID типов, которые нужно исключить (без экземпляров)
-    $excluded_types = array();
-    
-    // Сначала проходим все посты и собираем ID тех, у которых нет экземпляров
-    $temp_query = clone $toy_types_query;
-    while ($temp_query->have_posts()) :
-        $temp_query->the_post();
-        $temp_toy_type_id = get_the_ID();
-        
-        // Подсчитываем экземпляры для этого типа
-        $temp_available_count = 0;
-        if (function_exists('pods')) {
-            $temp_toy_type_pod = pods('toy_type', $temp_toy_type_id);
-            if ($temp_toy_type_pod && $temp_toy_type_pod->exists()) {
-                // Используем название поля из дата-модели
-                $temp_instances = $temp_toy_type_pod->field($instances_meta_field);
-                if ($temp_instances) {
-                    if (is_array($temp_instances)) {
-                        foreach ($temp_instances as $instance) {
-                            $instance_id = null;
-                            if (is_object($instance)) {
-                                $instance_id = isset($instance->ID) ? $instance->ID : (isset($instance->id) ? $instance->id : null);
-                            } elseif (is_array($instance)) {
-                                $instance_id = isset($instance['ID']) ? $instance['ID'] : (isset($instance['id']) ? $instance['id'] : (is_numeric($instance) ? $instance : null));
-                            } elseif (is_numeric($instance)) {
-                                $instance_id = $instance;
-                            }
-                            
-                            if ($instance_id && get_post_status($instance_id) === 'publish') {
-                                $temp_available_count++;
-                            }
-                        }
-                    } elseif (is_object($temp_instances)) {
-                        $instance_id = isset($temp_instances->ID) ? $temp_instances->ID : (isset($temp_instances->id) ? $temp_instances->id : null);
-                        if ($instance_id && get_post_status($instance_id) === 'publish') {
-                            $temp_available_count = 1;
-                        }
-                    } elseif (is_numeric($temp_instances)) {
-                        if (get_post_status($temp_instances) === 'publish') {
-                            $temp_available_count = 1;
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Если экземпляров нет, добавляем в исключения
-        if ($temp_available_count === 0) {
-            $excluded_types[] = $temp_toy_type_id;
-        }
-    endwhile;
-    wp_reset_postdata();
-    
-    // Теперь выводим только те типы, которые есть в исходном запросе и не в исключениях
+    // Выводим типы игрушек (уже отфильтрованные по available_instances_count > 0)
     while ($toy_types_query->have_posts()) :
         $toy_types_query->the_post();
         
         // Получаем данные типа игрушки
         $toy_type_id = get_the_ID();
-        
-        // Пропускаем типы без экземпляров
-        if (in_array($toy_type_id, $excluded_types)) {
-            continue;
-        }
         
         $title = get_the_title();
         $link = get_permalink();
@@ -180,25 +126,27 @@ if ($toy_types_query->have_posts()) :
             }
         }
         
+        // Получаем Pods объект один раз для всех операций
+        $toy_type_pod = null;
+        if (function_exists('pods')) {
+            $toy_type_pod = pods('toy_type', $toy_type_id);
+        }
+        
         // Встречаемость (occurrence) - получаем через таксономию
         // Используем Pods API для получения таксономии, так как в Pods она может храниться как поле
         $rarity = '';
-        if (function_exists('pods')) {
-            // Получаем через Pods API (приоритет)
-            $toy_type_pod = pods('toy_type', $toy_type_id);
-            if ($toy_type_pod && $toy_type_pod->exists()) {
-                // Пробуем получить через Pods поле occurrence_field
-                $occurrence_data = $toy_type_pod->field($occurrence_meta_field);
-                if ($occurrence_data) {
-                    // Может быть массив объектов или один объект
-                    if (is_array($occurrence_data) && !empty($occurrence_data) && isset($occurrence_data[0])) {
-                        $first = $occurrence_data[0];
-                        $rarity = is_object($first) && isset($first->slug) ? $first->slug : (is_array($first) && isset($first['slug']) ? $first['slug'] : '');
-                    } elseif (is_object($occurrence_data) && isset($occurrence_data->slug)) {
-                        $rarity = $occurrence_data->slug;
-                    } elseif (is_array($occurrence_data) && isset($occurrence_data['slug'])) {
-                        $rarity = $occurrence_data['slug'];
-                    }
+        if ($toy_type_pod && $toy_type_pod->exists()) {
+            // Пробуем получить через Pods поле occurrence_field
+            $occurrence_data = $toy_type_pod->field($occurrence_meta_field);
+            if ($occurrence_data) {
+                // Может быть массив объектов или один объект
+                if (is_array($occurrence_data) && !empty($occurrence_data) && isset($occurrence_data[0])) {
+                    $first = $occurrence_data[0];
+                    $rarity = is_object($first) && isset($first->slug) ? $first->slug : (is_array($first) && isset($first['slug']) ? $first['slug'] : '');
+                } elseif (is_object($occurrence_data) && isset($occurrence_data->slug)) {
+                    $rarity = $occurrence_data->slug;
+                } elseif (is_array($occurrence_data) && isset($occurrence_data['slug'])) {
+                    $rarity = $occurrence_data['slug'];
                 }
             }
         }
@@ -211,66 +159,23 @@ if ($toy_types_query->have_posts()) :
             }
         }
         
-        // Подсчитываем доступные экземпляры
-        // В Pods поле instances - это двусторонняя связь, нужно получать через Pods API
+        // Получаем количество доступных экземпляров из кешированного поля
         $available_count = 0;
-        if (function_exists('pods')) {
-            $toy_type_pod = pods('toy_type', $toy_type_id);
-            if ($toy_type_pod && $toy_type_pod->exists()) {
-                // Получаем связанные экземпляры через Pods relationship, используя название поля из дата-модели
-                $instances = $toy_type_pod->field($instances_meta_field);
-                if ($instances) {
-                    // Pods может вернуть как массив объектов, так и один объект
-                    if (is_array($instances)) {
-                        foreach ($instances as $instance) {
-                            // Может быть объект Pods или массив с полями
-                            $instance_id = null;
-                            if (is_object($instance)) {
-                                // Pods объект имеет поле ID
-                                $instance_id = isset($instance->ID) ? $instance->ID : (isset($instance->id) ? $instance->id : null);
-                            } elseif (is_array($instance)) {
-                                // Массив может иметь ключи 'ID', 'id', или быть просто числом
-                                $instance_id = isset($instance['ID']) ? $instance['ID'] : (isset($instance['id']) ? $instance['id'] : (is_numeric($instance) ? $instance : null));
-                            } elseif (is_numeric($instance)) {
-                                $instance_id = $instance;
-                            }
-                            
-                            if ($instance_id && get_post_status($instance_id) === 'publish') {
-                                $available_count++;
-                            }
-                        }
-                    } elseif (is_object($instances)) {
-                        // Один экземпляр как объект
-                        $instance_id = isset($instances->ID) ? $instances->ID : (isset($instances->id) ? $instances->id : null);
-                        if ($instance_id && get_post_status($instance_id) === 'publish') {
-                            $available_count = 1;
-                        }
-                    } elseif (is_numeric($instances)) {
-                        // Один экземпляр как число
-                        if (get_post_status($instances) === 'publish') {
-                            $available_count = 1;
-                        }
-                    }
-                }
+        $count_obtained = false;
+        
+        if ($toy_type_pod && $toy_type_pod->exists()) {
+            $count = $toy_type_pod->field('available_instances_count');
+            if ($count !== null && $count !== false && $count !== '') {
+                $available_count = (int)$count;
+                $count_obtained = true;
             }
         }
         
-        // Fallback: если Pods недоступен, пробуем через get_post_meta
-        if ($available_count === 0 && function_exists('get_post_meta')) {
-            $instances_meta = get_post_meta($toy_type_id, 'instances', true);
-            if ($instances_meta) {
-                if (is_array($instances_meta)) {
-                    foreach ($instances_meta as $instance_id) {
-                        $id = is_array($instance_id) && isset($instance_id['ID']) ? $instance_id['ID'] : $instance_id;
-                        if ($id && get_post_status($id) === 'publish') {
-                            $available_count++;
-                        }
-                    }
-                } elseif (is_numeric($instances_meta)) {
-                    if (get_post_status($instances_meta) === 'publish') {
-                        $available_count = 1;
-                    }
-                }
+        // Fallback: если Pods недоступен или не вернул значение, пробуем через get_post_meta
+        if (!$count_obtained) {
+            $count_meta = get_post_meta($toy_type_id, 'available_instances_count', true);
+            if ($count_meta !== '' && $count_meta !== false && $count_meta !== null) {
+                $available_count = (int)$count_meta;
             }
         }
         

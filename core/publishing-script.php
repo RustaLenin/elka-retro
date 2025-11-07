@@ -12,8 +12,9 @@ class ELKARETRO_PUBLISHING_SCRIPT {
     
     /**
      * Лимит записей за один запуск
+     * Временно закомментировано для разовой обработки всех записей
      */
-    const BATCH_LIMIT = 100;
+    // const BATCH_LIMIT = 100;
     
     /**
      * Инициализация
@@ -74,11 +75,12 @@ class ELKARETRO_PUBLISHING_SCRIPT {
             return;
         }
         
-        // Получаем записи в статусе draft с лимитом
+        // Получаем записи в статусе draft
+        // Временно убран батчинг для разовой обработки всех записей
         $query = new WP_Query(array(
             'post_type' => $post_type,
             'post_status' => 'draft',
-            'posts_per_page' => self::BATCH_LIMIT,
+            'posts_per_page' => -1, // Обрабатываем все записи
             'orderby' => 'ID',
             'order' => 'ASC'
         ));
@@ -139,11 +141,12 @@ class ELKARETRO_PUBLISHING_SCRIPT {
             return;
         }
         
-        // Получаем записи в статусе draft с лимитом
+        // Получаем записи в статусе draft
+        // Временно убран батчинг для разовой обработки всех записей
         $query = new WP_Query(array(
             'post_type' => $post_type,
             'post_status' => 'draft',
-            'posts_per_page' => self::BATCH_LIMIT,
+            'posts_per_page' => -1, // Обрабатываем все записи
             'orderby' => 'ID',
             'order' => 'ASC'
         ));
@@ -402,22 +405,35 @@ class ELKARETRO_PUBLISHING_SCRIPT {
             }
         }
         
-        // Проверка missing_fields
+        // Проверка missing_fields (хотя бы одно из указанных полей должно отсутствовать)
+        $missing_fields_check = false;
         if (isset($conditions['missing_fields']) && is_array($conditions['missing_fields'])) {
             $matches = array_intersect($missing_fields, $conditions['missing_fields']);
-            if (empty($matches)) {
+            $missing_fields_check = !empty($matches);
+            // Если указано missing_fields, то хотя бы одно должно отсутствовать
+            if (!$missing_fields_check) {
                 return false;
             }
         }
         
-        // Проверка or_missing (хотя бы одно из полей должно отсутствовать)
+        // Проверка or_missing (опциональное условие - работает как дополнительное OR условие)
+        // Если missing_fields выполнилось, то or_missing не обязательно
+        // Если missing_fields не указано или не выполнилось, то or_missing проверяется отдельно
         if (isset($conditions['or_missing']) && is_array($conditions['or_missing'])) {
             $matches = array_intersect($missing_fields, $conditions['or_missing']);
-            if (empty($matches)) {
-                return false;
+            $or_missing_check = !empty($matches);
+            
+            // Если missing_fields не указано или не выполнилось, то or_missing обязательно должно выполниться
+            // Если missing_fields выполнилось, то or_missing опционально (не блокирует)
+            if (!isset($conditions['missing_fields']) || !$missing_fields_check) {
+                if (!$or_missing_check) {
+                    return false;
+                }
             }
+            // Если missing_fields выполнилось, то or_missing игнорируется (не блокирует)
         }
         
+        // Если все обязательные условия выполнены, возвращаем true
         return true;
     }
     

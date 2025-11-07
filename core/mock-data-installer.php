@@ -320,6 +320,69 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
             </div>
             
             <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
+                <h2>Instances Counter</h2>
+                
+                <div class="card" style="padding: 20px; margin-top: 15px;">
+                    <h3>Пересчет количества экземпляров</h3>
+                    <p>
+                        Пересчитывает поле <code>available_instances_count</code> для всех типов игрушек.
+                        Это поле кеширует количество опубликованных экземпляров для быстрых запросов.
+                    </p>
+                    <p style="margin-top: 10px;">
+                        <strong>Когда использовать:</strong>
+                    </p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>После массового импорта данных</li>
+                        <li>Если данные выглядят несинхронизированными</li>
+                        <li>После первичной настройки темы</li>
+                    </ul>
+                    
+                    <?php
+                    // Подсчитываем общее количество типов игрушек
+                    $toy_types_total = wp_count_posts('toy_type');
+                    $toy_types_count = array_sum((array)$toy_types_total);
+                    ?>
+                    
+                    <p style="margin-top: 15px;">
+                        <strong>Всего типов игрушек:</strong> <?php echo esc_html($toy_types_count); ?>
+                    </p>
+                    
+                    <?php
+                    // Проверяем статус CRON
+                    require_once THEME_DIR . '/core/instances-counter.php';
+                    $cron_next = wp_next_scheduled(ELKARETRO_INSTANCES_COUNTER::CRON_HOOK);
+                    ?>
+                    
+                    <p style="margin-top: 15px;">
+                        <strong>Автоматический пересчет (CRON):</strong>
+                        <?php if ($cron_next): ?>
+                            <span style="color: #46b450;">
+                                ✓ Запланирован (следующий запуск: <?php echo esc_html(date_i18n('d.m.Y H:i', $cron_next)); ?>)
+                            </span>
+                        <?php else: ?>
+                            <span style="color: #dc3232;">
+                                ✗ Не запланирован
+                            </span>
+                        <?php endif; ?>
+                    </p>
+                    
+                    <div style="margin-top: 20px;">
+                        <?php
+                        $recalculate_url = wp_nonce_url(
+                            add_query_arg('elkaretro_action', 'recalculate_instances_count', admin_url('themes.php?page=elkaretro-settings')),
+                            'elkaretro_action_recalculate_instances_count'
+                        );
+                        ?>
+                        <a href="<?php echo esc_url($recalculate_url); ?>" 
+                           class="button button-primary" 
+                           onclick="return confirm('Запустить пересчет количества экземпляров для всех типов игрушек?');">
+                            Пересчитать все типы игрушек
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
                 <h2>Theme Tools</h2>
                 
                 <div class="card" style="padding: 20px; margin-top: 15px;">
@@ -445,6 +508,14 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
                 $message = $result['success'] 
                     ? $result['message'] 
                     : 'Failed to delete posts: ' . ($result['message'] ?? 'Unknown error');
+                break;
+                
+            case 'recalculate_instances_count':
+                require_once THEME_DIR . '/core/instances-counter.php';
+                $result = ELKARETRO_INSTANCES_COUNTER::recalculate_all_instances_count();
+                $message = $result['success'] 
+                    ? $result['message'] 
+                    : 'Failed to recalculate instances count: ' . ($result['message'] ?? 'Unknown error');
                 break;
         }
         
