@@ -116,6 +116,121 @@ if (!function_exists('elkaretro_get_taxonomy_config')) {
     }
 }
 
+if (!function_exists('elkaretro_get_catalog_filter_taxonomies')) {
+	/**
+	 * Получить список таксономий, используемых в фильтрах каталога (toy_type и toy_instance).
+	 *
+	 * @return array Список slug таксономий.
+	 */
+	function elkaretro_get_catalog_filter_taxonomies() {
+		if (!defined('ELKARETRO_DATA_MODEL')) {
+			return array();
+		}
+
+		$post_types  = array( 'toy_type', 'toy_instance' );
+		$taxonomies  = array();
+
+		foreach ( $post_types as $post_type ) {
+			$fields = elkaretro_get_data_model( "post_types.{$post_type}.fields" );
+
+			if ( ! is_array( $fields ) ) {
+				continue;
+			}
+
+			foreach ( $fields as $field ) {
+				if (
+					isset( $field['field_type'], $field['show_in_filters'], $field['related_taxonomy'] )
+					&& 'taxonomy' === $field['field_type']
+					&& ! empty( $field['show_in_filters'] )
+					&& ! empty( $field['related_taxonomy'] )
+				) {
+					$taxonomies[] = $field['related_taxonomy'];
+				}
+			}
+		}
+
+		// Добавляем иерархическую таксономию категорий типов, если она доступна для фильтров.
+		$category_taxonomy = elkaretro_get_taxonomy_config( 'category-of-toys' );
+		if ( is_array( $category_taxonomy ) && ! empty( $category_taxonomy['show_in_filters'] ) ) {
+			$taxonomies[] = 'category-of-toys';
+		}
+
+		$taxonomies = array_values( array_unique( $taxonomies ) );
+		sort( $taxonomies );
+
+		return $taxonomies;
+	}
+}
+
+if ( ! function_exists( 'elkaretro_get_catalog_settings' ) ) {
+	/**
+	 * Возвращает настройки каталога для фронтенда.
+	 *
+	 * @return array
+	 */
+	function elkaretro_get_catalog_settings() {
+		$defaults = array(
+			'per_page_options' => array( 30, 50, 100 ),
+			'default_per_page' => 30,
+			'default_sort'     => 'newest',
+			'sort_options'     => array( 'newest', 'oldest' ),
+		);
+
+		/**
+		 * Фильтр настроек каталога.
+		 *
+		 * @param array $defaults
+		 */
+		return apply_filters( 'elkaretro_catalog_settings', $defaults );
+	}
+}
+
+if ( ! function_exists( 'elkaretro_get_catalog_page_id' ) ) {
+	/**
+	 * Возвращает ID страницы каталога, если она существует.
+	 *
+	 * @return int
+	 */
+	function elkaretro_get_catalog_page_id() {
+		// Сначала ищем страницу, привязанную к шаблону page-catalog.php.
+		$pages = get_pages(
+			array(
+				'post_type'   => 'page',
+				'post_status' => array( 'publish', 'draft', 'pending' ),
+				'meta_key'    => '_wp_page_template',
+				'meta_value'  => 'page-catalog.php',
+				'number'      => 1,
+			)
+		);
+
+		if ( ! empty( $pages ) ) {
+			return (int) $pages[0]->ID;
+		}
+
+		// Фолбэк: ищем страницу по slug 'catalog'.
+		$page = get_page_by_path( 'catalog' );
+
+		return $page ? (int) $page->ID : 0;
+	}
+}
+
+if ( ! function_exists( 'elkaretro_get_catalog_page_url' ) ) {
+	/**
+	 * Возвращает ссылку на страницу каталога.
+	 *
+	 * @return string
+	 */
+	function elkaretro_get_catalog_page_url() {
+		$page_id = elkaretro_get_catalog_page_id();
+
+		if ( $page_id ) {
+			return get_permalink( $page_id );
+		}
+
+		return home_url( '/catalog/' );
+	}
+}
+
 require_once( THEME_COR . 'setup.php' );
 
 // Theme Settings (управление настройками темы)
@@ -133,6 +248,9 @@ require_once( THEME_COR . 'publishing-script.php' );
 // Instances Counter (автоматический подсчет доступных экземпляров)
 require_once( THEME_COR . 'instances-counter.php' );
 
+// Instances Duplicates Merger (объединение дублей экземпляров)
+require_once( THEME_COR . 'instances-duplicates-merger.php' );
+
 /**
  * Include files if module is supported
  **/
@@ -142,6 +260,12 @@ require_once( THEME_MOD . 'quick_tags.php' );
 require_once( THEME_MOD . 'dereg.php' );
 require_once( THEME_COR . 'filters/content.php' );
 require_once( THEME_COR . 'default_controller.php');
+require_once( THEME_COR . 'catalog/catalog-query-manager.php' );
+require_once( THEME_COR . 'catalog/catalog-response-adapter.php' );
+require_once( THEME_COR . 'catalog/catalog-toy-type-service.php' );
+require_once( THEME_COR . 'catalog/catalog-toy-instance-service.php' );
+require_once( THEME_COR . 'catalog/catalog-rest-controller.php' );
+require_once( THEME_COR . 'catalog/catalog-loader.php' );
 
 @ini_set( 'upload_max_size' , '500M' );
 
@@ -199,18 +323,8 @@ add_action('wp_head', function () {
         return;
     }
     
-    // Получаем термины таксономий, которые используются в экземплярах
-    // Это таксономии, которые связаны с toy_instance через поля
-    $taxonomies_to_load = array(
-        'condition',        // Состояние
-        'tube_condition',   // Состояние трубочек
-        'authenticity',     // Аутентичность
-        'lot_configurations', // Комплектация лотов
-        'property',         // Собственность
-        'paint_type',       // Тип окраса
-        'color_type',       // Характер окраса
-        'back_color',       // Цвет фона
-    );
+    // Получаем термины таксономий, используемых в фильтрах каталога (типы и экземпляры)
+    $taxonomies_to_load = elkaretro_get_catalog_filter_taxonomies();
     
     $taxonomy_terms = elkaretro_get_taxonomy_terms_for_js($taxonomies_to_load);
     $terms_json = wp_json_encode($taxonomy_terms, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -230,6 +344,8 @@ add_action('wp_head', function () {
     echo '  })();' . "\n";
     echo '</script>' . "\n";
 }, 1);
+
+\Elkaretro\Core\Catalog\Catalog_Loader::init();
 
 /**
  * Emit a JSON list of required web components for the current page.
@@ -255,6 +371,7 @@ add_filter('elkaretro_required_components', function($components) {
     if (is_front_page() || is_home()) {
         $components[] = 'post-card';
         $components[] = 'toy-type-card';
+        $components[] = 'ny-accessory-card';
     }
     
     // Страница отдельного поста
@@ -270,6 +387,11 @@ add_filter('elkaretro_required_components', function($components) {
         $components[] = 'toy-instance-modal'; // Модальное окно для детального просмотра экземпляра
     }
     
+    if (is_single() && get_post_type() === 'ny_accessory') {
+        $components[] = 'ny-accessory-single';
+        $components[] = 'ny-accessory-card';
+    }
+    
     // Обычная страница (но не страница блога)
     if (is_page() && !is_front_page()) {
         $posts_page_id = get_option('page_for_posts');
@@ -278,6 +400,12 @@ add_filter('elkaretro_required_components', function($components) {
         if ($posts_page_id != $current_page_id) {
             $components[] = 'wp-page';
         }
+    }
+
+    if (is_page_template('page-catalog.php')) {
+        $components[] = 'catalog-page';
+        $components[] = 'toy-type-card';
+        $components[] = 'toy-instance-card';
     }
     
     // Страница блога (архив постов)
@@ -319,6 +447,33 @@ add_action('after_setup_theme', function() {
             update_option('page_for_posts', $page_id);
             // Убеждаемся, что шаблон привязан (на случай если при создании не сработало)
             update_post_meta($page_id, '_wp_page_template', 'page-blog.php');
+        }
+    }
+
+    $catalog_page_id = elkaretro_get_catalog_page_id();
+
+    if ($catalog_page_id) {
+        $current_template = get_page_template_slug($catalog_page_id);
+        if ($current_template !== 'page-catalog.php') {
+            update_post_meta($catalog_page_id, '_wp_page_template', 'page-catalog.php');
+        }
+    } else {
+        $catalog_page = array(
+            'post_title'   => 'Каталог ёлочных игрушек',
+            'post_name'    => 'catalog',
+            'post_content' => '',
+            'post_status'  => 'publish',
+            'post_type'    => 'page',
+            'post_author'  => 1,
+            'meta_input'   => array(
+                '_wp_page_template' => 'page-catalog.php',
+            ),
+        );
+
+        $catalog_page_id = wp_insert_post($catalog_page);
+
+        if (!is_wp_error($catalog_page_id)) {
+            update_post_meta($catalog_page_id, '_wp_page_template', 'page-catalog.php');
         }
     }
 });

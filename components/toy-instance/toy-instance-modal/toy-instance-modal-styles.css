@@ -1,65 +1,75 @@
-/* Toy Instance Modal Component Styles */
-
 toy-instance-modal {
   display: none;
-  pointer-events: none; /* Не блокируем клики когда модалка скрыта */
+  pointer-events: none;
   position: relative;
-  isolation: isolate; /* Создаем новый stacking context */
 }
 
 toy-instance-modal.modal--visible {
   display: flex;
-  pointer-events: auto; /* Разрешаем клики только когда модалка видима */
+  pointer-events: auto;
 }
 
-/* Когда модалка скрыта, overlay и container не должны блокировать клики */
-toy-instance-modal:not(.modal--visible) .modal_overlay,
-toy-instance-modal:not(.modal--visible) .modal_container {
-  pointer-events: none;
+/* Toy Instance Modal Component Styles */
+.toy-instance-modal_overlay {
+  z-index: var(--z-index-modal-toy-instance-overlay, 2000);
 }
 
-/* Применяем видимость к overlay и container через классы */
-toy-instance-modal.modal--visible .modal_overlay {
-  opacity: 1;
-}
-
-toy-instance-modal.modal--visible .modal_container {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-}
-
-/* Размеры модального окна */
-toy-instance-modal.modal--small .modal_container {
-  width: 400px;
-}
-
-toy-instance-modal.modal--medium .modal_container {
-  width: 600px;
-}
-
-toy-instance-modal.modal--large .modal_container {
-  width: 800px;
-}
-
-/* Контент модального окна */
-toy-instance-modal .modal_body {
+.toy-instance-modal_container {
+  z-index: var(--z-index-modal-toy-instance-container, 2001);
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border: 1px solid var(--color-border-accent);
+  min-width: clamp(320px, 70vw, 800px);
+  min-height: 420px;
   display: flex;
   flex-direction: column;
-  padding: 0; /* Убираем padding из базового стиля, будем контролировать внутри */
+}
+
+.toy-instance-modal_container .modal_body {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
   min-height: 400px;
-  max-height: calc(80vh - 120px); /* Учитываем header и footer */
+  max-height: calc(80vh - 120px);
   overflow-y: auto;
+  background: transparent;
 }
 
-toy-instance-modal .toy-instance-modal_content {
+.toy-instance-modal_content {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
   padding: 1.5rem;
 }
 
-/* Placeholder для галереи */
-toy-instance-modal .toy-instance-modal_gallery-placeholder {
+.toy-instance-modal_main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.toy-instance-modal_gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.toy-instance-modal_gallery ui-image-gallery {
+  width: 100%;
+}
+
+.toy-instance-modal_details {
+  display: flex;
+  flex-direction: column;
+}
+
+.toy-instance-modal_description {
+  font-family: var(--font-sans, inherit);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-foreground, rgba(245, 247, 250, 0.9));
+}
+
+.toy-instance-modal_container .toy-instance-modal_gallery-placeholder {
   min-height: 200px;
   display: flex;
   align-items: center;
@@ -70,21 +80,21 @@ toy-instance-modal .toy-instance-modal_gallery-placeholder {
   padding: 2rem;
 }
 
-/* Информационный блок */
-toy-instance-modal .toy-instance-modal_info {
+.toy-instance-modal_container .toy-instance-modal_info {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-/* Заголовок и описание */
-toy-instance-modal .toy-instance-modal_header {
+.toy-instance-modal_container .toy-instance-modal_header {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
 }
 
-toy-instance-modal .toy-instance-modal_title {
+.toy-instance-modal_container .toy-instance-modal_title {
   font-family: var(--font-heading, inherit);
   font-size: 1.75rem;
   font-weight: 700;
@@ -93,21 +103,13 @@ toy-instance-modal .toy-instance-modal_title {
   line-height: 1.3;
 }
 
-toy-instance-modal .toy-instance-modal_description {
-  font-family: var(--font-sans, inherit);
-  font-size: 1rem;
-  line-height: 1.7;
-  color: var(--color-foreground, rgba(245, 247, 250, 0.9));
-}
-
-/* Секция с характеристиками */
-toy-instance-modal .toy-instance-modal_properties {
+.toy-instance-modal_container .toy-instance-modal_properties {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-toy-instance-modal .toy-instance-modal_section-title {
+.toy-instance-modal_container .toy-instance-modal_section-title {
   font-family: var(--font-heading, inherit);
   font-size: 1.25rem;
   font-weight: 600;
@@ -115,22 +117,22 @@ toy-instance-modal .toy-instance-modal_section-title {
   margin: 0;
 }
 
-/* Таблица характеристик */
-toy-instance-modal .toy-instance-modal_table {
+.toy-instance-modal_container .toy-instance-modal_table {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-sans, inherit);
+  margin: 0;
 }
 
-toy-instance-modal .toy-instance-modal_table tbody tr {
+.toy-instance-modal_container .toy-instance-modal_table tbody tr {
   border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
 }
 
-toy-instance-modal .toy-instance-modal_table tbody tr:last-child {
+.toy-instance-modal_container .toy-instance-modal_table tbody tr:last-child {
   border-bottom: none;
 }
 
-toy-instance-modal .toy-instance-modal_table .property-label {
+.toy-instance-modal_container .toy-instance-modal_table .property-label {
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--color-foreground, rgba(245, 247, 250, 1));
@@ -140,7 +142,7 @@ toy-instance-modal .toy-instance-modal_table .property-label {
   width: 40%;
 }
 
-toy-instance-modal .toy-instance-modal_table .property-value {
+.toy-instance-modal_container .toy-instance-modal_table .property-value {
   font-size: 0.9375rem;
   color: var(--color-foreground, rgba(245, 247, 250, 0.9));
   padding: 1rem 0;
@@ -148,48 +150,44 @@ toy-instance-modal .toy-instance-modal_table .property-value {
   vertical-align: top;
 }
 
-/* Кликабельные ссылки на таксономии */
-toy-instance-modal .toy-instance-modal_table .taxonomy-link {
+.toy-instance-modal_container .toy-instance-modal_table .taxonomy-link {
   color: var(--color-primary, rgba(155, 140, 255, 1));
   text-decoration: underline;
   transition: color 0.2s;
 }
 
-toy-instance-modal .toy-instance-modal_table .taxonomy-link:hover {
+.toy-instance-modal_container .toy-instance-modal_table .taxonomy-link:hover {
   color: var(--color-accent, rgba(255, 232, 155, 1));
 }
 
-toy-instance-modal .toy-instance-modal_table .taxonomy-empty {
+.toy-instance-modal_container .toy-instance-modal_table .taxonomy-empty {
   color: var(--color-muted-foreground, rgba(245, 247, 250, 0.5));
   font-style: italic;
 }
 
-/* Footer с ценой и кнопкой */
-/* Footer находится внутри modal_container, после modal_body */
-toy-instance-modal .modal_container .toy-instance-modal_footer {
+.toy-instance-modal_container .toy-instance-modal_footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1.5rem;
-  padding: 1.5rem 1.5rem 1.5rem 1.5rem;
+  padding: 1.5rem;
   border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
   flex-shrink: 0;
   margin-top: 0;
 }
 
-toy-instance-modal .toy-instance-modal_price {
+.toy-instance-modal_container .toy-instance-modal_price {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-accent, rgba(255, 232, 155, 1));
-  margin-right: auto; /* Цена слева */
+  margin-right: auto;
 }
 
-/* Кнопка должна быть справа */
-toy-instance-modal .modal_container .toy-instance-modal_footer .toy-instance-modal_buy-btn {
-  margin-left: auto; /* Кнопка справа с автоматическим отступом */
+.toy-instance-modal_container .toy-instance-modal_footer .toy-instance-modal_buy-btn {
+  margin-left: auto;
 }
 
-toy-instance-modal .toy-instance-modal_buy-btn {
+.toy-instance-modal_container .toy-instance-modal_buy-btn {
   padding: 0.875rem 2rem;
   font-family: var(--font-sans, inherit);
   font-size: 1rem;
@@ -203,74 +201,72 @@ toy-instance-modal .toy-instance-modal_buy-btn {
   white-space: nowrap;
 }
 
-toy-instance-modal .toy-instance-modal_buy-btn:hover {
+.toy-instance-modal_container .toy-instance-modal_buy-btn:hover {
   background: var(--color-accent, rgba(255, 232, 155, 1));
   transform: translateY(-1px);
 }
 
-toy-instance-modal .toy-instance-modal_buy-btn:active {
+.toy-instance-modal_container .toy-instance-modal_buy-btn:active {
   transform: translateY(0);
 }
 
-/* Улучшаем стили для таблицы характеристик */
-toy-instance-modal .toy-instance-modal_table {
-  margin: 0;
-}
-
-/* Галерея изображений */
-toy-instance-modal .toy-instance-modal_content ui-image-gallery {
+.toy-instance-modal_container .toy-instance-modal_content ui-image-gallery {
   width: 100%;
   margin-bottom: 0;
+  position: relative;
+  z-index: 0;
 }
 
-/* Улучшаем общий вид модального контейнера */
-toy-instance-modal .modal_container {
-  background: var(--color-card, rgba(32, 34, 39, 0.95));
-  border: 1px solid var(--color-border-accent);
+.toy-instance-modal_container ui-image-gallery .image-gallery_fullscreen-overlay {
+  z-index: var(--z-index-gallery-fullscreen-overlay, 10000) !important;
 }
 
-/* Улучшаем вид body */
-toy-instance-modal .modal_body {
-  background: transparent;
+toy-instance-modal.modal--small .toy-instance-modal_container {
+  width: 400px;
 }
 
-/* Заголовок внутри модалки (если есть) */
-toy-instance-modal .modal_header {
-  background: var(--color-card, rgba(32, 34, 39, 0.95));
-  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+toy-instance-modal.modal--medium .toy-instance-modal_container {
+  width: 600px;
 }
 
-/* Responsive */
+toy-instance-modal.modal--large .toy-instance-modal_container {
+  width: 800px;
+}
+
 @media (max-width: 768px) {
-  toy-instance-modal .modal_body {
+  .toy-instance-modal_container .modal_body {
     max-height: calc(80vh - 100px);
   }
-  
-  toy-instance-modal .toy-instance-modal_content {
+
+  .toy-instance-modal_main {
+    grid-template-columns: 1fr;
+  }
+
+  .toy-instance-modal_container .toy-instance-modal_content {
     padding: 1rem;
     gap: 1.5rem;
   }
-  
-  toy-instance-modal .toy-instance-modal_title {
+
+  .toy-instance-modal_container .toy-instance-modal_title {
     font-size: 1.5rem;
   }
-  
-  toy-instance-modal .modal_container .toy-instance-modal_footer {
+
+  .toy-instance-modal_container .toy-instance-modal_footer {
     flex-direction: column;
     align-items: stretch;
     padding: 1rem 1.5rem;
   }
-  
-  toy-instance-modal .toy-instance-modal_buy-btn {
+
+  .toy-instance-modal_container .toy-instance-modal_buy-btn {
     width: 100%;
   }
-  
-  toy-instance-modal .toy-instance-modal_table .property-label {
+
+  .toy-instance-modal_container .toy-instance-modal_table .property-label {
     width: 50%;
     padding: 0.75rem 1rem 0.75rem 0;
   }
-  
-  toy-instance-modal .toy-instance-modal_table .property-value {
+
+  .toy-instance-modal_container .toy-instance-modal_table .property-value {
     padding: 0.75rem 0;
   }
 }

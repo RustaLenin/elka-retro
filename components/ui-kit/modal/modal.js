@@ -6,12 +6,27 @@ if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
   window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
 }
 
+let modalOverlayArea = null;
+let modalOverlayIdCounter = 0;
+
 function ensureArea() {
   if (!document.querySelector('.UIModalArea')) {
     const area = document.createElement('div');
     area.className = 'UIModalArea';
     document.body.appendChild(area);
   }
+}
+
+function ensureOverlayArea() {
+  if (!modalOverlayArea || !modalOverlayArea.isConnected) {
+    modalOverlayArea = document.querySelector('.UIModalOverlayArea');
+    if (!modalOverlayArea) {
+      modalOverlayArea = document.createElement('div');
+      modalOverlayArea.className = 'UIModalOverlayArea';
+      document.body.appendChild(modalOverlayArea);
+    }
+  }
+  return modalOverlayArea;
 }
 
 export class UIModal extends BaseElement {
@@ -28,6 +43,120 @@ export class UIModal extends BaseElement {
     super();
     this._onOverlayClick = this._onOverlayClick.bind(this);
     this._onEscape = this._onEscape.bind(this);
+    this._overlayId = `ui-modal-overlay-${++modalOverlayIdCounter}`;
+    this._overlayElement = null;
+    this._containerElement = null;
+  }
+
+  _removeOverlayFromBody() {
+    if (this._overlayElement && this._overlayElement.parentNode) {
+      this._overlayElement.remove();
+    }
+    if (this._containerElement && this._containerElement.parentNode) {
+      this._containerElement.remove();
+    }
+    this._overlayElement = null;
+    this._containerElement = null;
+  }
+
+  _mountOverlayToBody() {
+    if (!this.state.visible) {
+      this._removeOverlayFromBody();
+      return;
+    }
+
+    const overlayInComponent = this.querySelector('.modal_overlay');
+    const containerInComponent = this.querySelector('.modal_container');
+    if (!overlayInComponent || !containerInComponent) {
+      return;
+    }
+
+    overlayInComponent.dataset.modalOverlayId = this._overlayId;
+    containerInComponent.dataset.modalOverlayId = this._overlayId;
+
+    const host = ensureOverlayArea();
+
+    this._removeOverlayFromBody();
+
+    host.appendChild(overlayInComponent);
+    host.appendChild(containerInComponent);
+
+    this._overlayElement = overlayInComponent;
+    this._containerElement = containerInComponent;
+  }
+
+  _getOverlayElement() {
+    if (this._overlayElement && this._overlayElement.isConnected) {
+      return this._overlayElement;
+    }
+
+    const host = modalOverlayArea && modalOverlayArea.isConnected
+      ? modalOverlayArea
+      : document.querySelector('.UIModalOverlayArea');
+
+    if (host) {
+      const overlay = host.querySelector(`.modal_overlay[data-modal-overlay-id="${this._overlayId}"]`);
+      if (overlay) {
+        this._overlayElement = overlay;
+        return overlay;
+      }
+    }
+
+    const inlineOverlay = this.querySelector('.modal_overlay');
+    if (inlineOverlay) {
+      this._overlayElement = inlineOverlay;
+      return inlineOverlay;
+    }
+
+    return null;
+  }
+
+  _getContainerElement() {
+    if (this._containerElement && this._containerElement.isConnected) {
+      return this._containerElement;
+    }
+
+    const host = modalOverlayArea && modalOverlayArea.isConnected
+      ? modalOverlayArea
+      : document.querySelector('.UIModalOverlayArea');
+
+    if (host) {
+      const container = host.querySelector(`.modal_container[data-modal-overlay-id="${this._overlayId}"]`);
+      if (container) {
+        this._containerElement = container;
+        return container;
+      }
+    }
+
+    const inlineContainer = this.querySelector('.modal_container');
+    if (inlineContainer) {
+      this._containerElement = inlineContainer;
+      return inlineContainer;
+    }
+
+    return null;
+  }
+
+  _queryContainer(selector) {
+    const container = this._getContainerElement();
+    return container ? container.querySelector(selector) : null;
+  }
+
+  _queryAllContainer(selector) {
+    const container = this._getContainerElement();
+    return container ? container.querySelectorAll(selector) : [];
+  }
+
+  _syncOverlayState() {
+    const overlay = this._getOverlayElement() || this.querySelector('.modal_overlay');
+    const container = this._getContainerElement() || this.querySelector('.modal_container');
+    const isVisible = !!this.state.visible;
+    if (overlay) {
+      overlay.classList.toggle('modal_overlay--visible', isVisible);
+    }
+    if (container) {
+      container.classList.toggle('modal_container--visible', isVisible);
+    }
   }
 
   connectedCallback() {
@@ -43,6 +172,7 @@ export class UIModal extends BaseElement {
 
   disconnectedCallback() {
     document.removeEventListener('keydown', this._onEscape);
+    this._removeOverlayFromBody();
   }
 
   async loadData() {
@@ -84,20 +214,25 @@ export class UIModal extends BaseElement {
     this.setState({ visible: true });
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', this._onEscape);
-    const overlay = this.querySelector('.modal_overlay');
-    if (overlay) overlay.addEventListener('click', this._onOverlayClick);
     
-    // Trigger focus trap if needed
-    const firstFocusable = this.querySelector('button, a, input, textarea, select, [tabindex]:not([tabindex="-1"])');
-    if (firstFocusable) firstFocusable.focus();
+    requestAnimationFrame(() => {
+      this._syncOverlayState();
+      const overlay = this._getOverlayElement();
+      if (overlay) overlay.addEventListener('click', this._onOverlayClick);
+      
+      const firstFocusable = this._queryContainer('button, a, input, textarea, select, [tabindex]:not([tabindex="-1"])');
+      if (firstFocusable) firstFocusable.focus();
+    });
   }
 
   hide() {
     this.setState({ visible: false });
     document.body.style.overflow = '';
     document.removeEventListener('keydown', this._onEscape);
-    const overlay = this.querySelector('.modal_overlay');
+    const overlay = this._getOverlayElement();
     if (overlay) overlay.removeEventListener('click', this._onOverlayClick);
+    
+    requestAnimationFrame(() => this._syncOverlayState());
   }
 
   destroy() {
@@ -125,16 +260,17 @@ export class UIModal extends BaseElement {
     const { title, size, closable, loading, visible } = this.state;
     this.className = `modal modal--${size} ${visible ? 'modal--visible' : ''}`;
     
+    const existingBody = this._queryContainer('.modal_body') || this.querySelector('.modal_body');
+    const existingContent = existingBody ? existingBody.innerHTML : '';
+
+    this._removeOverlayFromBody();
+
     const header = title ? `
       <div class="modal_header">
         <h2 class="modal_title">${title}</h2>
         ${closable ? `<button class="modal_close" aria-label="Close">×</button>` : ''}
       </div>
     ` : '';
-    
-    // Сохраняем существующий контент body перед перерисовкой
-    const body = this.querySelector('.modal_body');
-    const existingContent = body ? body.innerHTML : '';
     
     this.innerHTML = `
       <div class="modal_overlay"></div>
@@ -146,22 +282,25 @@ export class UIModal extends BaseElement {
       </div>
     `;
     
+    this._mountOverlayToBody();
+    this._syncOverlayState();
+
     // Attach close handler
-    const closeBtn = this.querySelector('.modal_close');
+    const closeBtn = this._queryContainer('.modal_close');
     if (closeBtn) {
       closeBtn.addEventListener('click', () => this._onCloseClick());
     }
   }
   
   setBodyContent(html) {
-    const body = this.querySelector('.modal_body');
+    const body = this._queryContainer('.modal_body');
     if (body) {
       body.innerHTML = html;
     }
   }
   
   appendBodyContent(element) {
-    const body = this.querySelector('.modal_body');
+    const body = this._queryContainer('.modal_body');
     if (body && element) {
       body.appendChild(element);
     }

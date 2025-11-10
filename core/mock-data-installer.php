@@ -381,6 +381,34 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
                     </div>
                 </div>
             </div>
+
+            <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
+                <h2>Объединение дублей экземпляров</h2>
+                <div class="card" style="padding: 20px; margin-top: 15px;">
+                    <h3>Объединить записи «На спецификации» и «На оформлении»</h3>
+                    <p>
+                        Если для одного и того же экземпляра существуют две записи (одна с фотографиями и другая с описанием),
+                        скрипт перенесёт заполненные поля из записи <strong>«На оформлении»</strong> в запись <strong>«На спецификации»</strong>,
+                        а затем удалит дублирующую запись.
+                    </p>
+                    <p style="margin-top: 10px;">
+                        Поиск дублей выполняется по совпадению названия экземпляра. После объединения запись переводится в статус «На оформлении».
+                    </p>
+                    <div style="margin-top: 20px;">
+                        <?php
+                        $merge_duplicates_url = wp_nonce_url(
+                            add_query_arg('elkaretro_action', 'merge_instance_duplicates', admin_url('themes.php?page=elkaretro-settings')),
+                            'elkaretro_action_merge_instance_duplicates'
+                        );
+                        ?>
+                        <a href="<?php echo esc_url($merge_duplicates_url); ?>"
+                           class="button button-secondary"
+                           onclick="return confirm('Запустить поиск и объединение дублей экземпляров? Перед запуском рекомендуется сделать резервную копию.');">
+                            Найти и объединить дубли
+                        </a>
+                    </div>
+                </div>
+            </div>
             
             <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
                 <h2>Theme Tools</h2>
@@ -516,6 +544,12 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
                 $message = $result['success'] 
                     ? $result['message'] 
                     : 'Failed to recalculate instances count: ' . ($result['message'] ?? 'Unknown error');
+                break;
+
+            case 'merge_instance_duplicates':
+                require_once THEME_DIR . '/core/instances-duplicates-merger.php';
+                $result = ELKARETRO_INSTANCE_DUPLICATES_MERGER::run();
+                $message = $result['message'] ?? 'Завершено';
                 break;
         }
         

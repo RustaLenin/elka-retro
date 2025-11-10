@@ -1,0 +1,93 @@
+/* TODO: Align with final design tokens when available. */
+
+.ui-input-number__wrapper {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--input-number-border, #d0d5dd);
+  border-radius: 8px;
+  background: var(--input-number-background, #ffffff);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui-input-number__wrapper:focus-within {
+  border-color: var(--input-number-border-focus, #155eef);
+  box-shadow: 0 0 0 3px rgba(21, 94, 239, 0.1);
+}
+
+.ui-input-number__wrapper[data-status="error"] {
+  border-color: var(--input-number-border-error, #d92d20);
+}
+
+.ui-input-number__wrapper[data-status="success"] {
+  border-color: var(--input-number-border-success, #039855);
+}
+
+.ui-input-number__prefix,
+.ui-input-number__suffix {
+  font-size: 14px;
+  color: var(--input-number-adornment, #475467);
+  margin-right: 8px;
+}
+
+.ui-input-number__suffix {
+  margin-left: 8px;
+  margin-right: 0;
+}
+
+.ui-input-number__control {
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--input-number-text, #101828);
+  padding: 10px 0;
+  appearance: textfield;
+}
+
+.ui-input-number__control::-webkit-outer-spin-button,
+.ui-input-number__control::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ui-input-number__control::placeholder {
+  color: var(--input-number-placeholder, #98a2b3);
+}
+
+.ui-input-number__steppers {
+  display: flex;
+  flex-direction: column;
+  margin-left: 8px;
+  border-left: 1px solid var(--input-number-separator, #e4e7ec);
+}
+
+.ui-input-number__stepper {
+  border: none;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--input-number-stepper, #667085);
+}
+
+.ui-input-number__stepper:hover {
+  color: var(--input-number-stepper-hover, #344054);
+}
+
+.ui-input-number__stepper:focus {
+  outline: 2px solid var(--input-number-border-focus, #155eef);
+  outline-offset: 2px;
+}
+
+.ui-input-number__wrapper[data-disabled="true"] .ui-input-number__control,
+.ui-input-number__wrapper[data-disabled="true"],
+.ui-input-number__control:disabled {
+  cursor: not-allowed;
+  color: var(--input-number-disabled, #98a2b3);
+  opacity: 0.6;
+}
+
+

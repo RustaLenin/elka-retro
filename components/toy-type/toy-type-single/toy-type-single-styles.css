@@ -138,6 +138,7 @@ toy-type-single .toy-type-single_main-left {
 toy-type-single .toy-type-single_main-right {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
 }
 
 /* Изображение - контейнер для галереи */
@@ -151,11 +152,16 @@ toy-type-single .toy-type-single_image {
 /* Галерея внутри контейнера */
 toy-type-single .toy-type-single_image ui-image-gallery {
   width: 100%;
+  position: relative;
 }
 
 /* Описание */
 toy-type-single .toy-type-single_body {
-  margin-bottom: 0;
+  margin-top: 1.5rem;
+}
+
+toy-type-single .toy-type-single_body--full {
+  width: 100%;
 }
 
 toy-type-single .toy-type-single_section-title {
@@ -192,7 +198,7 @@ toy-type-single .toy-type-single_technical {
   border: 1px solid var(--color-border-accent);
   border-radius: 0.75rem;
   padding: 1.5rem;
-  margin-top: 2rem;
+  margin-top: 0;
 }
 
 toy-type-single .toy-type-single_technical .toy-type-single_section-title {

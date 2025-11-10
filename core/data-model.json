@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "last_updated": "2024-01-01",
+  "last_updated": "2025-11-09",
   "taxonomies": {
     "the_amalgam": {
       "display_name": "Амальгамы",
@@ -78,6 +78,20 @@
       "type": "taxonomy",
       "public_description": "Комплектация лота (одиночная, набор и т.д.)",
       "arch_description": "Кастомная таксономия для обозначения комплектации лота",
+      "show_on_card": false,
+      "show_in_description": true,
+      "show_in_cart_list": false,
+      "show_in_filters": true,
+      "required": false,
+      "multi_choose": false,
+      "hierarchical": false
+    },
+    "ny_category": {
+      "display_name": "Категории новогодних аксессуаров",
+      "slug": "ny_category",
+      "type": "taxonomy",
+      "public_description": "Категория новогоднего аксессуара",
+      "arch_description": "Плоская таксономия для группировки новогодних аксессуаров по категориям",
       "show_on_card": false,
       "show_in_description": true,
       "show_in_cart_list": false,
@@ -733,6 +747,196 @@
         }
       }
     }
+    ,
+    "ny_accessory": {
+      "display_name": "Новогодние аксессуары",
+      "slug": "ny_accessory",
+      "type": "post_type",
+      "public_description": "Конкретный новогодний аксессуар с возможностью продажи",
+      "arch_description": "Кастомный тип поста для новогодних аксессуаров. Не делится на типы и экземпляры, каждая запись представляет отдельный товар",
+      "fields": {
+        "ny_images": {
+          "display_name": "Фотографии новогодних аксессуаров",
+          "slug": "ny_images",
+          "field_type": "file",
+          "public_description": "Фотографии новогоднего аксессуара",
+          "arch_description": "Pods поле типа file (multi) для хранения фотографий аксессуара",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "ny_images"
+        },
+        "ny_accecory_index": {
+          "display_name": "Индекс аксессуара",
+          "slug": "ny_accecory_index",
+          "field_type": "text",
+          "public_description": "Уникальный индекс новогоднего аксессуара",
+          "arch_description": "Pods текстовое поле для хранения внутреннего индекса аксессуара",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": true,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "ny_accecory_index"
+        },
+        "ny_cost": {
+          "display_name": "Цена",
+          "slug": "ny_cost",
+          "field_type": "currency",
+          "public_description": "Цена новогоднего аксессуара",
+          "arch_description": "Pods поле типа currency для хранения цены аксессуара",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": true,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "ny_cost",
+          "currency": "RUB",
+          "decimal_places": 2
+        },
+        "ny_category_field": {
+          "display_name": "Категория аксессуара",
+          "slug": "ny_category_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "ny_category",
+          "public_description": "Категория, к которой относится аксессуар",
+          "arch_description": "Pods поле типа taxonomy для связи с плоской таксономией ny_category",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "ny_category_field"
+        },
+        "ny_lot_configuration_field": {
+          "display_name": "Комплектация лота",
+          "slug": "ny_lot_configuration_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "lot_configurations",
+          "public_description": "Тип комплектации лота для аксессуара",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией lot_configurations",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "ny_lot_configuration_field"
+        },
+        "ny_condition_field": {
+          "display_name": "Состояние",
+          "slug": "ny_condition_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "condition",
+          "public_description": "Состояние новогоднего аксессуара",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией condition",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "ny_condition_field"
+        },
+        "ny_material_field": {
+          "display_name": "Материал",
+          "slug": "ny_material_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "material",
+          "public_description": "Материал аксессуара",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией material",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "ny_material_field"
+        },
+        "ny_year_of_production_field": {
+          "display_name": "Год производства",
+          "slug": "ny_year_of_production_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "year_of_production",
+          "public_description": "Год или период производства аксессуара",
+          "arch_description": "Pods поле типа taxonomy для связи с таксономией year_of_production",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": true,
+          "required": false,
+          "multi_choose": true,
+          "meta_field": "ny_year_of_production_field"
+        },
+        "ny_property_field": {
+          "display_name": "Собственность",
+          "slug": "ny_property_field",
+          "field_type": "taxonomy",
+          "related_taxonomy": "property",
+          "public_description": "Тип собственности аксессуара",
+          "arch_description": "Pods поле типа taxonomy для связи с внутренней таксономией property",
+          "show_on_card": false,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "ny_property_field"
+        }
+      },
+      "publishing_requirements": {
+        "required_for_publish": [
+          {
+            "field": "post_title",
+            "type": "wp_core",
+            "description": "Название аксессуара (WP post_title)"
+          },
+          {
+            "field": "_thumbnail_id",
+            "type": "wp_core",
+            "description": "Миниатюра (WP featured image) для карточки"
+          },
+          {
+            "field": "ny_accecory_index",
+            "type": "pods_field",
+            "description": "Индекс аксессуара"
+          },
+          {
+            "field": "ny_cost",
+            "type": "pods_field",
+            "description": "Цена аксессуара",
+            "check_type": "numeric_gt_zero"
+          }
+        ],
+        "intermediate_statuses": {
+          "specification": {
+            "display_name": "На спецификации",
+            "description": "Запись имеет фотографии, но отсутствует описание или другие важные данные",
+            "conditions": {
+              "has_photos": true,
+              "missing_fields": ["post_excerpt", "post_content", "ny_accecory_index", "ny_cost"],
+              "priority": 1
+            }
+          },
+          "decoration": {
+            "display_name": "На оформлении",
+            "description": "Запись имеет данные, но отсутствуют фотографии или описание не готово к публикации",
+            "conditions": {
+              "has_data": true,
+              "missing_fields": ["_thumbnail_id", "ny_images"],
+              "or_missing": ["post_excerpt", "post_content"],
+              "priority": 2
+            }
+          }
+        }
+      }
+    }
   },
   "custom_post_statuses": {
     "specification": {
@@ -747,7 +951,7 @@
       "show_in_admin_all_list": true,
       "show_in_admin_status_list": true,
       "show_in_admin_dropdown": true,
-      "post_types": ["toy_type", "toy_instance"],
+      "post_types": ["toy_type", "toy_instance", "ny_accessory"],
       "description": "Запись имеет фотографии, но требует заполнения описания и других данных"
     },
     "decoration": {
@@ -762,7 +966,7 @@
       "show_in_admin_all_list": true,
       "show_in_admin_status_list": true,
       "show_in_admin_dropdown": true,
-      "post_types": ["toy_type", "toy_instance"],
+      "post_types": ["toy_type", "toy_instance", "ny_accessory"],
       "description": "Запись имеет данные, но требует фотографий или доработки описания"
     },
     "reserved": {
@@ -777,7 +981,7 @@
       "show_in_admin_all_list": true,
       "show_in_admin_status_list": true,
       "show_in_admin_dropdown": false,
-      "post_types": ["toy_instance"],
+      "post_types": ["toy_instance", "ny_accessory"],
       "description": "Экземпляр зарезервирован после оформления заказа"
     },
     "sold": {
@@ -792,7 +996,7 @@
       "show_in_admin_all_list": true,
       "show_in_admin_status_list": true,
       "show_in_admin_dropdown": false,
-      "post_types": ["toy_instance"],
+      "post_types": ["toy_instance", "ny_accessory"],
       "description": "Экземпляр продан после закрытия заказа"
     }
   },
@@ -809,16 +1013,19 @@
       },
       "year_of_production": {
         "toy_type": "year_of_production_field",
-        "toy_instance": null
+        "toy_instance": null,
+        "ny_accessory": "ny_year_of_production_field"
       },
       "category-of-toys": null,
       "lot_configurations": {
         "toy_type": null,
-        "toy_instance": "lot_configuration_field"
+        "toy_instance": "lot_configuration_field",
+        "ny_accessory": "ny_lot_configuration_field"
       },
       "material": {
         "toy_type": "material_field",
-        "toy_instance": null
+        "toy_instance": null,
+        "ny_accessory": "ny_material_field"
       },
       "manufacturer": {
         "toy_type": "manufacturer_field",
@@ -830,11 +1037,13 @@
       },
       "property": {
         "toy_type": null,
-        "toy_instance": "property_field"
+        "toy_instance": "property_field",
+        "ny_accessory": "ny_property_field"
       },
       "condition": {
         "toy_type": null,
-        "toy_instance": "condition_field"
+        "toy_instance": "condition_field",
+        "ny_accessory": "ny_condition_field"
       },
       "tube_condition": {
         "toy_type": null,
@@ -859,6 +1068,11 @@
       "back_color": {
         "toy_type": null,
         "toy_instance": "back_color_field"
+      },
+      "ny_category": {
+        "toy_type": null,
+        "toy_instance": null,
+        "ny_accessory": "ny_category_field"
       }
     },
     "rest_api_field_to_internal": {
@@ -880,6 +1094,14 @@
         "paint_type": "paint_type_field",
         "color_type": "color_type_field",
         "back_color": "back_color_field"
+      },
+      "ny_accessory": {
+        "lot_configurations": "ny_lot_configuration_field",
+        "condition": "ny_condition_field",
+        "material": "ny_material_field",
+        "year_of_production": "ny_year_of_production_field",
+        "property": "ny_property_field",
+        "ny_category": "ny_category_field"
       }
     }
   }

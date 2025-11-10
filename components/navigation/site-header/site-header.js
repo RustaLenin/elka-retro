@@ -6,7 +6,8 @@ class SiteHeader extends BaseElement {
     super();
     this.state = {
       cartCount: 2,
-      menuOpen: false
+      menuOpen: false,
+      catalogUrl: '/catalog/'
     };
   }
   
@@ -16,6 +17,11 @@ class SiteHeader extends BaseElement {
     const cartCountAttr = this.getAttribute('cart-count');
     if (cartCountAttr) {
       this.state.cartCount = parseInt(cartCountAttr, 10);
+    }
+
+    const catalogAttr = this.getAttribute('catalog-url');
+    if (catalogAttr) {
+      this.state.catalogUrl = catalogAttr;
     }
     
     this.render();

@@ -5,7 +5,7 @@
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
   padding: 8px 10px;
-  z-index: 100000;
+  z-index: var(--z-index-tooltip, 100000);
   transition: opacity .12s ease;
 }
 

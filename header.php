@@ -26,6 +26,10 @@
 
 <body>
 
+<?php
+$catalog_page_url = function_exists( 'elkaretro_get_catalog_page_url' ) ? elkaretro_get_catalog_page_url() : home_url( '/catalog/' );
+?>
+
 <div class="site_wrap">
-    <site-header cart-count="2"></site-header>
+    <site-header cart-count="2" catalog-url="<?php echo esc_url( $catalog_page_url ); ?>"></site-header>
 <?php

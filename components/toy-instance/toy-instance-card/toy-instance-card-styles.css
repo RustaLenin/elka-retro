@@ -3,6 +3,8 @@
 toy-instance-card {
   display: block;
   width: 100%;
+  position: relative;
+  z-index: var(--z-index-page-content, 1);
 }
 
 toy-instance-card .toy-instance-card {

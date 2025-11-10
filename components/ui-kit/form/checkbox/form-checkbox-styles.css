@@ -1,0 +1,108 @@
+/* TODO: Align colors with global tokens */
+
+.ui-form-checkbox {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.ui-form-checkbox__control {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ui-form-checkbox__box {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--checkbox-border, #98a2b3);
+  border-radius: 4px;
+  background: #ffffff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-form-checkbox__box-mark {
+  width: 10px;
+  height: 10px;
+  background: var(--checkbox-checkmark, #155eef);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: scale(0.6);
+}
+
+.ui-form-checkbox__control:focus-visible + .ui-form-checkbox__box {
+  outline: 2px solid var(--checkbox-focus-outline, #155eef);
+  outline-offset: 2px;
+}
+
+.ui-form-checkbox__control:checked + .ui-form-checkbox__box {
+  background: var(--checkbox-checked-background, #155eef);
+  border-color: var(--checkbox-checked-border, #155eef);
+}
+
+.ui-form-checkbox__control:checked + .ui-form-checkbox__box .ui-form-checkbox__box-mark {
+  opacity: 1;
+  background: #ffffff;
+  transform: scale(1);
+}
+
+.ui-form-checkbox__control[indeterminate] + .ui-form-checkbox__box .ui-form-checkbox__box-mark {
+  opacity: 1;
+  background: #ffffff;
+  transform: scale(0.6);
+}
+
+.ui-form-checkbox__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--checkbox-text, #101828);
+}
+
+.ui-form-checkbox__label {
+  font-weight: 600;
+}
+
+.ui-form-checkbox__required {
+  margin-left: 4px;
+  color: var(--checkbox-required, #d92d20);
+}
+
+.ui-form-checkbox__description {
+  font-size: 13px;
+  color: var(--checkbox-description, #475467);
+}
+
+.ui-form-checkbox__hint {
+  font-size: 12px;
+  color: var(--checkbox-hint, #667085);
+}
+
+.ui-form-checkbox--error .ui-form-checkbox__box {
+  border-color: var(--checkbox-error-border, #d92d20);
+}
+
+.ui-form-checkbox--error .ui-form-checkbox__label {
+  color: var(--checkbox-error-label, #d92d20);
+}
+
+.ui-form-checkbox--success .ui-form-checkbox__box {
+  border-color: var(--checkbox-success-border, #039855);
+}
+
+.ui-form-checkbox[data-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+

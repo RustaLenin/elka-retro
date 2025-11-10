@@ -387,6 +387,9 @@ export class ToyTypeSingle extends BaseElement {
         // Это вызовет событие app-state-changed, на которое подпишется галерея
         window.app.state.set('toyType.all_images', allImages);
         
+        // MVP: сохраняем только первое изображение (featured image) для галереи
+        window.app.state.set('toyType.featured_image', allImages.length > 0 ? [allImages[0]] : []);
+        
         // Dispatch события о загрузке данных типа
         const event = new CustomEvent('app-state-toy-type-loaded', {
           detail: {

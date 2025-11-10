@@ -31,11 +31,24 @@ export class ToyInstanceModal extends UIModal {
   }
 
   connectedCallback() {
+    this.setState({ loading: true });
     // Стили уже загружены при импорте модуля
     // window.app.toolkit.loadCSSOnce(new URL('./toy-instance-modal-styles.css', import.meta.url));
     super.connectedCallback();
     if (this.state.instanceId) {
       this.loadInstanceData();
+    }
+  }
+
+  render() {
+    super.render();
+    const overlay = this._getOverlayElement();
+    if (overlay) {
+      overlay.classList.add('toy-instance-modal_overlay');
+    }
+    const container = this._getContainerElement();
+    if (container) {
+      container.classList.add('toy-instance-modal_container');
     }
   }
 
@@ -45,71 +58,109 @@ export class ToyInstanceModal extends UIModal {
     
     this.setState({ loading: true, error: null });
     try {
-      // Загружаем экземпляр с embedded данными (для таксономий и изображений)
+      // TODO: cache loaded instance data locally to avoid refetching on subsequent openings
       const res = await fetch(`/wp-json/wp/v2/toy_instance/${instanceId}?_embed=1`, { credentials: 'same-origin' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       this.setState({ data: json });
       
-      // Сохраняем данные в глобальный стейт для доступа других компонентов (например, галереи)
       if (window.app && window.app.state) {
-        // Извлекаем изображения для галереи и сохраняем отдельно
-        const photos = json.meta?.photos_of_the_toy_instance || [];
-        const embeddedMedia = json._embedded?.['wp:attachment'] || [];
-        const featuredMedia = json._embedded?.['wp:featuredmedia'] || [];
-        const allMedia = [...embeddedMedia, ...featuredMedia];
-        
-        const images = photos.map(photoId => {
-          const id = Array.isArray(photoId) && photoId.ID ? photoId.ID : photoId;
-          const mediaObj = allMedia.find(m => m.id === id || m.media_details?.id === id);
-          if (mediaObj) {
-            return {
-              url: mediaObj.source_url || '',
-              thumbnail: mediaObj.media_details?.sizes?.thumbnail?.source_url || mediaObj.source_url || '',
-              alt: mediaObj.alt_text || mediaObj.title?.rendered || '',
-              caption: mediaObj.caption?.rendered || ''
-            };
-          }
-          return null;
-        }).filter(img => img !== null);
-        
-        // Если нет фото из meta, но есть featured_media
-        if (images.length === 0 && featuredMedia[0]) {
+        const photosRaw = json.photos_of_the_toy_instance || json.meta?.photos_of_the_toy_instance || [];
+        const featuredMediaArray = json._embedded?.['wp:featuredmedia'] || [];
+        const attachments = json._embedded?.['wp:attachment'] || [];
+
+        const seen = new Set();
+        const images = [];
+        const mediaCache = new Map();
+        const pendingPromises = [];
+
+        const pushMedia = (media) => {
+          if (!media) return;
+          const id = media.id || media.ID || media.media_details?.id || null;
+          if (id && seen.has(Number(id))) return;
+          if (id) seen.add(Number(id));
+          const url = media.source_url || media.guid?.rendered || '';
+          if (!url) return;
           images.push({
-            url: featuredMedia[0].source_url || '',
-            thumbnail: featuredMedia[0].media_details?.sizes?.thumbnail?.source_url || featuredMedia[0].source_url || '',
-            alt: featuredMedia[0].alt_text || featuredMedia[0].title?.rendered || '',
-            caption: featuredMedia[0].caption?.rendered || ''
+            id: id ? Number(id) : null,
+            url,
+            thumbnail: media.media_details?.sizes?.thumbnail?.source_url || url,
+            alt: media.alt_text || media.title?.rendered || media.post_title || '',
+            caption: media.caption?.rendered || media.post_excerpt || ''
           });
+        };
+
+        const getMediaById = (id) => {
+          if (!id) return Promise.resolve(null);
+          if (mediaCache.has(id)) return Promise.resolve(mediaCache.get(id));
+          const mediaObj = attachments.find(m => {
+            const mediaId = m.id || m.media_details?.id || parseInt(m.ID || 0, 10);
+            return mediaId === id;
+          });
+          if (mediaObj) {
+            mediaCache.set(id, mediaObj);
+            return Promise.resolve(mediaObj);
+          }
+          return fetch(`/wp-json/wp/v2/media/${id}`, { credentials: 'same-origin' })
+            .then(resp => (resp.ok ? resp.json() : null))
+            .then(mediaData => {
+              if (mediaData) mediaCache.set(id, mediaData);
+              return mediaData;
+            })
+            .catch(err => {
+              console.warn('[ToyInstanceModal] Failed to load media', id, err);
+              return null;
+            });
+        };
+
+        const featuredMedia = featuredMediaArray[0];
+        if (featuredMedia) {
+          pushMedia(featuredMedia);
+        }
+
+        photosRaw.forEach(photo => {
+          const rawId = photo?.ID || photo?.id || photo;
+          const id = parseInt(rawId, 10);
+          if (!id || seen.has(id)) return;
+          const promise = getMediaById(id).then(media => {
+            if (media) {
+              pushMedia(media);
+            } else {
+              seen.add(id);
+              const fallbackUrl = photo?.guid?.rendered || photo?.guid || '';
+              if (fallbackUrl) {
+                images.push({ id, url: fallbackUrl, thumbnail: fallbackUrl, alt: photo?.post_title || '', caption: photo?.post_excerpt || '' });
+              }
+            }
+          });
+          pendingPromises.push(promise);
+        });
+
+        await Promise.all(pendingPromises);
+
+        if (!images.length && featuredMedia) {
+          pushMedia(featuredMedia);
         }
         
-        // Сохраняем данные экземпляра в стейт
         window.app.state.currentPageData.toyInstance = json;
-        // Сохраняем изображения отдельно через set для dispatch события
         window.app.state.set('toyInstance.images', images);
         
-        // Dispatch события о загрузке данных экземпляра
         const event = new CustomEvent('app-state-toy-instance-loaded', {
           detail: {
             toyInstance: json,
-            images: images
+            images
           }
         });
         window.dispatchEvent(event);
       }
       
-      // Обновляем заголовок модалки на индекс экземпляра
       if (json.title?.rendered || json.title) {
         this.setState({ title: json.title.rendered || json.title });
       }
       
-      // Сбрасываем loading после загрузки данных
       this.setState({ loading: false });
-      
-      // Рендерим контент в body модалки (после установки loading: false)
       requestAnimationFrame(() => {
         this.renderInstanceContent(json);
-        // Подключаем обработчик кнопки "Купить" после рендера
         this.setupBuyButton();
       });
     } catch (e) {
@@ -135,7 +186,7 @@ export class ToyInstanceModal extends UIModal {
     
     // Добавляем footer в modal_container (после modal_body)
     if (footerContent) {
-      const container = this.querySelector('.modal_container');
+      const container = this._getContainerElement();
       if (container) {
         // Удаляем старый footer если есть
         const oldFooter = container.querySelector('.toy-instance-modal_footer');
@@ -173,6 +224,27 @@ export class ToyInstanceModal extends UIModal {
   onStateChanged(key) {
     if (key === 'instanceId') this.loadInstanceData();
     super.onStateChanged?.(key);
+  }
+
+  hide() {
+    if (!this.state.visible) return;
+    super.hide();
+    setTimeout(() => {
+      // Удаляем компонент после закрытия, чтобы не копились экземпляры
+      if (!this.isConnected) return;
+      this.remove();
+    }, 350);
+  }
+
+  _onCloseClick() {
+    if (!this.state.closable) return;
+    this.hide();
+  }
+
+  _onOverlayClick(e) {
+    if (e.target === e.currentTarget && this.state.closable) {
+      this.hide();
+    }
   }
 }
 

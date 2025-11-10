@@ -503,22 +503,11 @@ export function toy_type_single_template(state) {
       <div class="toy-type-single_main">
         <div class="toy-type-single_main-left">
           <div class="toy-type-single_image">
-            <ui-image-gallery state-path="toyType.all_images"></ui-image-gallery>
+            <ui-image-gallery state-path="toyType.featured_image"></ui-image-gallery>
           </div>
         </div>
         
         <div class="toy-type-single_main-right">
-          ${content ? `
-            <div class="toy-type-single_body">
-              <section class="toy-type-single_description">
-                <h2 class="toy-type-single_section-title">Описание:</h2>
-                <div class="toy-type-single_description-content">
-                  ${content}
-                </div>
-              </section>
-            </div>
-          ` : ''}
-          
           ${hasTechnicalInfo ? `
             <div class="toy-type-single_technical">
               <h2 class="toy-type-single_section-title">Технические характеристики:</h2>
@@ -536,6 +525,17 @@ export function toy_type_single_template(state) {
           ` : ''}
         </div>
       </div>
+      
+      ${content ? `
+        <div class="toy-type-single_body toy-type-single_body--full">
+          <section class="toy-type-single_description">
+            <h2 class="toy-type-single_section-title">Описание:</h2>
+            <div class="toy-type-single_description-content">
+              ${content}
+            </div>
+          </section>
+        </div>
+      ` : ''}
       
       ${renderInstancesSection(data, instancesByStatus)}
     </div>

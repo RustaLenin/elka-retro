@@ -123,93 +123,77 @@ function renderTerms(terms) {
 export function toy_instance_modal_template(data) {
   if (!data) return '<p>Данные не загружены</p>';
   
-  // Получаем основные данные
-  // В Pods REST API для toy_instance: title может быть post_title или title.rendered
   const title = data.title?.rendered || data.post_title || data.title || '';
-  // content может быть post_content (строка) или content.rendered (объект с rendered)
-  let content = '';
-  if (data.post_content && typeof data.post_content === 'string') {
-    content = data.post_content; // Прямая строка из Pods API
-  } else if (data.content?.rendered && typeof data.content.rendered === 'string') {
-    content = data.content.rendered; // Стандартный WP REST API формат
+  let description = '';
+  if (data.content?.rendered && typeof data.content.rendered === 'string') {
+    description = data.content.rendered;
+  } else if (typeof data.post_content === 'string') {
+    description = data.post_content;
   } else if (typeof data.content === 'string') {
-    content = data.content; // Строка напрямую
+    description = data.content;
   } else if (data.content && typeof data.content === 'object') {
-    // Если content это объект, пытаемся извлечь rendered или raw
-    content = data.content.rendered || data.content.raw || '';
+    description = data.content.rendered || data.content.raw || '';
   }
-  // Гарантируем, что content это строка, а не объект
-  if (typeof content !== 'string') {
-    content = String(content || ''); // Преобразуем в строку, если это не строка
+  if (typeof description !== 'string') {
+    description = String(description || '');
   }
   const cost = data.cost ? parseFloat(data.cost) : (data.meta?.cost ? parseFloat(data.meta.cost) : null);
   
-  // Получаем таксономии для обработки
-  const taxonomyData = data._embedded || {};
-  const embeddedTerms = taxonomyData['wp:term'] || [];
+  const dataModel = window?.data_model;
+  const taxonomyContext = {
+    'wp:term': data._embedded?.['wp:term'] || [],
+    taxonomyMap: dataModel?.taxonomyMap || {}
+  };
   
-  // Создаем маппинг таксономий
-  const taxonomyMap = {};
-  embeddedTerms.forEach(termArray => {
-    if (Array.isArray(termArray)) {
-      termArray.forEach(term => {
-        const taxSlug = term.taxonomy;
-        if (!taxonomyMap[taxSlug]) {
-          taxonomyMap[taxSlug] = [];
-        }
-        taxonomyMap[taxSlug].push(term);
-      });
-    }
-  });
-  
-  // Обрабатываем все таксономии экземпляра
   const authenticity = formatTaxonomyValue(
-    data['toy_instance_authenticity'] || data.meta?.authenticitys,
+    data.authenticity_field,
     'authenticity',
-    { 'wp:term': embeddedTerms, taxonomyMap }
-  );
-  
-  const condition = formatTaxonomyValue(
-    data['toy_instance_condition'] || data.meta?.conditions,
-    'condition',
-    { 'wp:term': embeddedTerms, taxonomyMap }
+    taxonomyContext
   );
   
   const lotConfiguration = formatTaxonomyValue(
-    data['toy_instance_lot_configurations'] || data.meta?.lot_configuration,
+    data.lot_configuration_field,
     'lot_configurations',
-    { 'wp:term': embeddedTerms, taxonomyMap }
+    taxonomyContext
   );
   
   const property = formatTaxonomyValue(
-    data['toy_instance_property'] || data.meta?.propertys,
+    data.property_field,
     'property',
-    { 'wp:term': embeddedTerms, taxonomyMap }
+    taxonomyContext
+  );
+  
+  const condition = formatTaxonomyValue(
+    data.condition_field,
+    'condition',
+    taxonomyContext
   );
   
   const tubeCondition = formatTaxonomyValue(
-    data['toy_instance_tube_condition'] || data.meta?.tube_conditions,
+    data.tube_condition_field,
     'tube_condition',
-    { 'wp:term': embeddedTerms, taxonomyMap }
+    taxonomyContext
   );
   
   const paintType = formatTaxonomyValue(
-    data['toy_instance_paint_type'] || data.meta?.paint_types,
+    data.paint_type_field,
     'paint_type',
-    { 'wp:term': embeddedTerms, taxonomyMap }
+    taxonomyContext
+  );
+  
+  const colorType = formatTaxonomyValue(
+    data.color_type_field,
+    'color_type',
+    taxonomyContext
   );
   
   const backColor = formatTaxonomyValue(
-    data['toy_instance_back_color'] || data.meta?.back_colors,
+    data.back_color_field,
     'back_color',
-    { 'wp:term': embeddedTerms, taxonomyMap }
+    taxonomyContext
   );
-  
-  const colorTypes = formatTaxonomyValue(
-    data['toy_instance_color_type'] || data.meta?.color_types,
-    'color_type',
-    { 'wp:term': embeddedTerms, taxonomyMap }
-  );
+
+  const size = data.size_field || data.meta?.size_field || '';
   
   // Форматируем цену
   let formattedPrice = '';
@@ -224,134 +208,134 @@ export function toy_instance_modal_template(data) {
   
   // Получаем изображения экземпляра для галереи
   let galleryImages = [];
-  const photos = data.meta?.photos_of_the_toy_instance || [];
+  const seenImageIds = new Set();
+  const attachments = data._embedded?.['wp:attachment'] || [];
+  const featuredMedia = data._embedded?.['wp:featuredmedia']?.[0] || null;
+  const photosRaw = data.photos_of_the_toy_instance || data.meta?.photos_of_the_toy_instance || [];
   
-  if (photos.length > 0) {
-    // Если есть _embedded медиа, используем их
-    const embeddedMedia = data._embedded?.['wp:attachment'] || [];
-    const featuredMedia = data._embedded?.['wp:featuredmedia'] || [];
-    const allMedia = [...embeddedMedia, ...featuredMedia];
-    
-    galleryImages = photos.map(photoId => {
-      // Может быть массив с ID или просто число
-      const id = Array.isArray(photoId) && photoId.ID ? photoId.ID : photoId;
-      
-      // Ищем в embedded медиа
-      const mediaObj = allMedia.find(m => m.id === id || m.media_details?.id === id);
-      if (mediaObj) {
-        return {
-          url: mediaObj.source_url || '',
-          thumbnail: mediaObj.media_details?.sizes?.thumbnail?.source_url || mediaObj.source_url || '',
-          alt: mediaObj.alt_text || mediaObj.title?.rendered || '',
-          caption: mediaObj.caption?.rendered || ''
-        };
-      }
-      
-      // Если не нашли в embedded, возвращаем только ID для загрузки через компонент
-      return { id: typeof id === 'number' ? id : null, url: '', alt: '', thumbnail: '' };
-    }).filter(img => img.id || img.url); // Фильтруем только валидные изображения
-  }
-  
-  // Если нет фото из meta, но есть featured_media
-  if (galleryImages.length === 0 && data.featured_media) {
-    const featuredMedia = data._embedded?.['wp:featuredmedia']?.[0];
-    if (featuredMedia) {
-      galleryImages = [{
-        url: featuredMedia.source_url || '',
-        thumbnail: featuredMedia.media_details?.sizes?.thumbnail?.source_url || featuredMedia.source_url || '',
-        alt: featuredMedia.alt_text || featuredMedia.title?.rendered || '',
-        caption: featuredMedia.caption?.rendered || ''
-      }];
+  function addMedia(media) {
+    if (!media) return;
+    const id = media.id || media.ID || media.media_details?.id || null;
+    if (id && seenImageIds.has(Number(id))) {
+      return;
     }
+    if (id) {
+      seenImageIds.add(Number(id));
+    }
+    galleryImages.push({
+      id: id ? Number(id) : null,
+      url: media.source_url || media.guid?.rendered || '',
+      thumbnail: media.media_details?.sizes?.thumbnail?.source_url || media.source_url || media.guid?.rendered || '',
+      alt: media.alt_text || media.title?.rendered || media.post_title || '',
+      caption: media.caption?.rendered || media.post_excerpt || ''
+    });
   }
   
-  // Сериализуем изображения для атрибута JSON
-  // Используем двойные кавычки и экранируем их для HTML атрибута
+  if (featuredMedia) {
+    addMedia(featuredMedia);
+  }
+  
+  photosRaw.forEach(photo => {
+    const id = parseInt(photo?.ID || photo?.id || photo, 10);
+    if (!id || seenImageIds.has(id)) return;
+    const mediaObj = attachments.find(m => {
+      const mediaId = m.id || m.media_details?.id || parseInt(m.ID || 0, 10);
+      return mediaId === id;
+    });
+    if (mediaObj) {
+      addMedia(mediaObj);
+    } else {
+      const fallbackUrl = photo?.guid?.rendered || photo?.guid || '';
+      if (fallbackUrl) {
+        seenImageIds.add(id);
+        galleryImages.push({
+          id,
+          url: fallbackUrl,
+          thumbnail: fallbackUrl,
+          alt: photo?.post_title || '',
+          caption: photo?.post_excerpt || ''
+        });
+      } else {
+        seenImageIds.add(id);
+      }
+    }
+  });
+  
+  if (!galleryImages.length && featuredMedia) {
+    addMedia(featuredMedia);
+  }
+  
   const galleryImagesJson = galleryImages.length > 0 
     ? JSON.stringify(galleryImages).replace(/"/g, '&quot;') 
     : '';
   
-  // Получаем массив ID для альтернативного способа передачи
-  const imageIds = galleryImages
-    .map(img => img.id)
-    .filter(id => id !== null && id !== undefined);
-  const imageIdsJson = imageIds.length > 0 
-    ? JSON.stringify(imageIds).replace(/"/g, '&quot;') 
+  const imageIdsJson = seenImageIds.size > 0 
+    ? JSON.stringify(Array.from(seenImageIds)).replace(/"/g, '&quot;')
     : '';
   
   return `
     <div class="toy-instance-modal_content">
-      <!-- Используем глобальный стейт для галереи (приоритет 1) -->
-      <ui-image-gallery state-path="toyInstance.images" ${galleryImagesJson ? `images="${galleryImagesJson}"` : ''} ${imageIdsJson ? `image-ids="${imageIdsJson}"` : ''}></ui-image-gallery>
-      
-      <div class="toy-instance-modal_info">
-        <div class="toy-instance-modal_header">
-          ${title ? `
-            <h2 class="toy-instance-modal_title">${escapeHtml(title)}</h2>
-          ` : ''}
-          ${content ? `
-            <div class="toy-instance-modal_description">
-              ${content}
-            </div>
-          ` : ''}
+      <div class="toy-instance-modal_main">
+        <div class="toy-instance-modal_gallery">
+          <ui-image-gallery state-path="toyInstance.images" ${galleryImagesJson ? `images="${galleryImagesJson}"` : ''} ${imageIdsJson ? `image-ids="${imageIdsJson}"` : ''}></ui-image-gallery>
         </div>
-        
-        <div class="toy-instance-modal_properties">
-          <h3 class="toy-instance-modal_section-title">Характеристики</h3>
-          <table class="toy-instance-modal_table">
-            <tbody>
-              ${authenticity && authenticity.length > 0 ? `
-                <tr>
-                  <td class="property-label">Аутентичность</td>
-                  <td class="property-value">${renderTerms(authenticity)}</td>
-                </tr>
-              ` : ''}
-              ${condition && condition.length > 0 ? `
-                <tr>
-                  <td class="property-label">Состояние</td>
-                  <td class="property-value">${renderTerms(condition)}</td>
-                </tr>
-              ` : ''}
-              ${lotConfiguration && lotConfiguration.length > 0 ? `
-                <tr>
-                  <td class="property-label">Комплектация лота</td>
-                  <td class="property-value">${renderTerms(lotConfiguration)}</td>
-                </tr>
-              ` : ''}
-              ${property && property.length > 0 ? `
-                <tr>
-                  <td class="property-label">Собственность</td>
-                  <td class="property-value">${renderTerms(property)}</td>
-                </tr>
-              ` : ''}
-              ${tubeCondition && tubeCondition.length > 0 ? `
-                <tr>
-                  <td class="property-label">Состояние трубочки</td>
-                  <td class="property-value">${renderTerms(tubeCondition)}</td>
-                </tr>
-              ` : ''}
-              ${paintType && paintType.length > 0 ? `
-                <tr>
-                  <td class="property-label">Тип окраса</td>
-                  <td class="property-value">${renderTerms(paintType)}</td>
-                </tr>
-              ` : ''}
-              ${backColor && backColor.length > 0 ? `
-                <tr>
-                  <td class="property-label">Цвет фона</td>
-                  <td class="property-value">${renderTerms(backColor)}</td>
-                </tr>
-              ` : ''}
-              ${colorTypes && colorTypes.length > 0 ? `
-                <tr>
-                  <td class="property-label">Характер окраса</td>
-                  <td class="property-value">${renderTerms(colorTypes)}</td>
-                </tr>
-              ` : ''}
-            </tbody>
-          </table>
+        <div class="toy-instance-modal_details">
+          <div class="toy-instance-modal_properties">
+            <h3 class="toy-instance-modal_section-title">Характеристики</h3>
+            <table class="toy-instance-modal_table">
+              <tbody>
+                ${authenticity && authenticity.length > 0 ? `
+                  <tr>
+                    <td class="property-label">Аутентичность</td>
+                    <td class="property-value">${renderTerms(authenticity)}</td>
+                  </tr>
+                ` : ''}
+                ${lotConfiguration && lotConfiguration.length > 0 ? `
+                  <tr>
+                    <td class="property-label">Комплектация лота</td>
+                    <td class="property-value">${renderTerms(lotConfiguration)}</td>
+                  </tr>
+                ` : ''}
+                ${condition && condition.length > 0 ? `
+                  <tr>
+                    <td class="property-label">Состояние</td>
+                    <td class="property-value">${renderTerms(condition)}</td>
+                  </tr>
+                ` : ''}
+                ${tubeCondition && tubeCondition.length > 0 ? `
+                  <tr>
+                    <td class="property-label">Состояние трубочки</td>
+                    <td class="property-value">${renderTerms(tubeCondition)}</td>
+                  </tr>
+                ` : ''}
+                ${paintType && paintType.length > 0 ? `
+                  <tr>
+                    <td class="property-label">Тип окраса</td>
+                    <td class="property-value">${renderTerms(paintType)}</td>
+                  </tr>
+                ` : ''}
+                ${colorType && colorType.length > 0 ? `
+                  <tr>
+                    <td class="property-label">Характер окраса</td>
+                    <td class="property-value">${renderTerms(colorType)}</td>
+                  </tr>
+                ` : ''}
+                ${backColor && backColor.length > 0 ? `
+                  <tr>
+                    <td class="property-label">Цвет фона</td>
+                    <td class="property-value">${renderTerms(backColor)}</td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
+      ${description && description.trim() ? `
+        <div class="toy-instance-modal_description">
+          ${description}
+        </div>
+      ` : ''}
     </div>
     
     <div class="toy-instance-modal_footer">

@@ -7,7 +7,7 @@
   right: 0;
   max-width: 25vw;
   max-height: 75vh;
-  z-index: 99999;
+  z-index: var(--z-index-notification, 99999);
 }
 
 ui-notification {

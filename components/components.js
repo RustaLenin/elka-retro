@@ -12,6 +12,13 @@ import "./ui-kit/button/button.js";
 import "./ui-kit/tooltip/tooltip.js";
 import "./ui-kit/modal/modal.js";
 import "./ui-kit/image-gallery/image-gallery.js";
+import "./ui-kit/form/controller/form-controller.js";
+import "./ui-kit/form/field/form-field.js";
+import "./ui-kit/form/inputs/text-input/text-input.js";
+import "./ui-kit/form/inputs/number-input/number-input.js";
+import "./ui-kit/form/selects/select-single/select-single.js";
+import "./ui-kit/form/selects/select-multi/select-multi.js";
+import "./ui-kit/form/checkbox/form-checkbox.js";
 
 // Registry for page-specific components (extend as components are added)
 const registry = {
@@ -30,6 +37,13 @@ const registry = {
   // Toy Instance
   'toy-instance-card': () => import('./toy-instance/toy-instance-card/toy-instance-card.js'),
   'toy-instance-modal': () => import('./toy-instance/toy-instance-modal/toy-instance-modal.js'),
+  
+  // Ny Accessory
+  'ny-accessory-card': () => import('./ny-accessory/ny-accessory-card/ny-accessory-card.js'),
+  'ny-accessory-single': () => import('./ny-accessory/ny-accessory-single/ny-accessory-single.js'),
+  
+  // Catalog
+  'catalog-page': () => import('./catalog/index.js'),
   
   // Category
   'category-breadcrumbs': () => import('./category-breadcrumbs/category-breadcrumbs.js'),

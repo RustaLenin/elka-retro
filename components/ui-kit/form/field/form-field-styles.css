@@ -1,0 +1,89 @@
+/* TODO: Finalize design tokens once visuals are available. */
+
+.ui-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.ui-form-field__label-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ui-form-field__label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-primary, #171717);
+}
+
+.ui-form-field__required {
+  margin-left: 4px;
+  color: var(--color-danger, #d92d20);
+}
+
+.ui-form-field__description,
+.ui-form-field__hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #4a5568);
+}
+
+.ui-form-field__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ui-form-field__icon {
+  --icon-color: currentColor;
+  color: var(--icon-color);
+}
+
+.ui-form-field__feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ui-form-field__feedback-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.ui-form-field__feedback-list--error {
+  color: var(--color-danger, #d92d20);
+}
+
+.ui-form-field__feedback-list--success {
+  color: var(--color-success, #039855);
+}
+
+.ui-form-field__feedback-list--info {
+  color: var(--color-info, #155eef);
+}
+
+.ui-form-field[data-disabled="true"] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.ui-form-field--error .ui-form-field__label {
+  color: var(--color-danger, #d92d20);
+}
+
+.ui-form-field--success .ui-form-field__label {
+  color: var(--color-success, #039855);
+}
+
+.ui-form-field__tooltip {
+  margin-left: auto;
+}
+
+

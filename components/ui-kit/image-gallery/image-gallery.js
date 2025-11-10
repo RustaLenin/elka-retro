@@ -5,6 +5,21 @@ if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
   window.app.toolkit.loadCSSOnce(new URL('./image-gallery-styles.css', import.meta.url));
 }
 
+let imageGalleryOverlayArea = null;
+let imageGalleryOverlayIdCounter = 0;
+
+function ensureImageGalleryOverlayArea() {
+  if (!imageGalleryOverlayArea || !imageGalleryOverlayArea.isConnected) {
+    imageGalleryOverlayArea = document.querySelector('.ImageGalleryOverlayArea');
+    if (!imageGalleryOverlayArea) {
+      imageGalleryOverlayArea = document.createElement('div');
+      imageGalleryOverlayArea.className = 'ImageGalleryOverlayArea';
+      document.body.appendChild(imageGalleryOverlayArea);
+    }
+  }
+  return imageGalleryOverlayArea;
+}
+
 /**
  * Image Gallery Component
  * Галерея изображений с миниатюрами и переключением
@@ -50,6 +65,10 @@ export class ImageGallery extends HTMLElement {
     // Кеш предзагруженных изображений
     this._preloadedImages = [];
     
+    // Уникальный идентификатор и ссылка на overlay (используется при переносе в конец DOM)
+    this._overlayId = `image-gallery-overlay-${++imageGalleryOverlayIdCounter}`;
+    this._overlayElement = null;
+    
     // Привязка методов
     this._handleThumbnailClick = this._handleThumbnailClick.bind(this);
     this._handlePrevClick = this._handlePrevClick.bind(this);
@@ -80,15 +99,78 @@ export class ImageGallery extends HTMLElement {
     return window.app.state.get(path);
   }
 
+  _removeOverlayFromBody() {
+    if (this._overlayElement && this._overlayElement.parentNode) {
+      this._overlayElement.remove();
+    }
+    this._overlayElement = null;
+  }
+
+  _mountOverlayToBody() {
+    if (!this._data.fullscreen) {
+      this._removeOverlayFromBody();
+      return;
+    }
+    
+    // Удаляем предыдущий overlay (если он ещё присутствует в области)
+    if (this._overlayElement && this._overlayElement.isConnected) {
+      this._overlayElement.remove();
+      this._overlayElement = null;
+    }
+    
+    const overlayInComponent = this.querySelector('.image-gallery_fullscreen-overlay');
+    if (!overlayInComponent) {
+      return;
+    }
+    
+    overlayInComponent.dataset.galleryOverlayId = this._overlayId;
+    const host = ensureImageGalleryOverlayArea();
+    host.appendChild(overlayInComponent);
+    this._overlayElement = overlayInComponent;
+  }
+
+  _getOverlayElement() {
+    if (this._overlayElement && this._overlayElement.isConnected) {
+      return this._overlayElement;
+    }
+    
+    const host = imageGalleryOverlayArea && imageGalleryOverlayArea.isConnected
+      ? imageGalleryOverlayArea
+      : document.querySelector('.ImageGalleryOverlayArea');
+    
+    if (host) {
+      const overlay = host.querySelector(`.image-gallery_fullscreen-overlay[data-gallery-overlay-id="${this._overlayId}"]`);
+      if (overlay) {
+        this._overlayElement = overlay;
+        return overlay;
+      }
+    }
+    
+    const inlineOverlay = this.querySelector('.image-gallery_fullscreen-overlay');
+    if (inlineOverlay) {
+      this._overlayElement = inlineOverlay;
+      return inlineOverlay;
+    }
+    
+    return null;
+  }
+
+  _queryOverlay(selector) {
+    const overlay = this._getOverlayElement();
+    return overlay ? overlay.querySelector(selector) : null;
+  }
+
+  _queryAllOverlay(selector) {
+    const overlay = this._getOverlayElement();
+    return overlay ? overlay.querySelectorAll(selector) : [];
+  }
+
   connectedCallback() {
     // Загружаем изображения из различных источников
     this._loadImagesFromSources();
     
     // Рендерим компонент
     this._render();
-    
-    // Настраиваем обработчики событий
-    this._setupEventListeners();
     
     // Подписываемся на изменения глобального стейта если используется state-path
     if (this._data.statePath) {
@@ -101,6 +183,7 @@ export class ImageGallery extends HTMLElement {
     if (this._data.fullscreen) {
       document.body.style.overflow = '';
     }
+    this._removeOverlayFromBody();
     
     // Удаляем слушатели событий стейта
     window.removeEventListener('app-state-changed', this._handleStateChanged);
@@ -461,7 +544,7 @@ export class ImageGallery extends HTMLElement {
     // В полноэкранном режиме используется класс .image-gallery_fullscreen-image.image-gallery_main-image--current
     // В обычном режиме используется класс .image-gallery_main-image--current
     const currentImg = isFullscreen 
-      ? this.querySelector('.image-gallery_fullscreen-image.image-gallery_main-image--current')
+      ? this._queryOverlay('.image-gallery_fullscreen-image.image-gallery_main-image--current')
       : this.querySelector('.image-gallery_main-image--current');
     
     if (!currentImg || !this._data.images || !this._data.images[newIndex]) {
@@ -540,7 +623,7 @@ export class ImageGallery extends HTMLElement {
     });
     
     // Обновляем полноэкранные миниатюры (даже если overlay скрыт, элементы в DOM)
-    const fullscreenThumbnails = this.querySelectorAll('.image-gallery_fullscreen-thumbnail');
+    const fullscreenThumbnails = this._queryAllOverlay('.image-gallery_fullscreen-thumbnail');
     if (fullscreenThumbnails.length > 0) {
       fullscreenThumbnails.forEach((thumb, index) => {
         if (index === newIndex) {
@@ -606,8 +689,8 @@ export class ImageGallery extends HTMLElement {
     }
     
     // Кнопки навигации (полноэкранные)
-    const fullscreenPrevBtn = this.querySelector('.image-gallery_fullscreen-prev');
-    const fullscreenNextBtn = this.querySelector('.image-gallery_fullscreen-next');
+    const fullscreenPrevBtn = this._queryOverlay('.image-gallery_fullscreen-prev');
+    const fullscreenNextBtn = this._queryOverlay('.image-gallery_fullscreen-next');
     
     if (fullscreenPrevBtn) {
       fullscreenPrevBtn.removeEventListener('click', this._handlePrevClick);
@@ -620,21 +703,21 @@ export class ImageGallery extends HTMLElement {
     }
     
     // Кнопка закрытия полноэкранного режима
-    const closeBtn = this.querySelector('.image-gallery_fullscreen-close');
+    const closeBtn = this._queryOverlay('.image-gallery_fullscreen-close');
     if (closeBtn) {
       closeBtn.removeEventListener('click', this._handleFullscreenClose);
       closeBtn.addEventListener('click', this._handleFullscreenClose);
     }
     
     // Клик на overlay для закрытия
-    const overlay = this.querySelector('.image-gallery_fullscreen-overlay');
+    const overlay = this._getOverlayElement();
     if (overlay) {
       overlay.removeEventListener('click', this._handleFullscreenOverlayClick);
       overlay.addEventListener('click', this._handleFullscreenOverlayClick);
     }
     
     // Клики по миниатюрам в полноэкранном режиме
-    const fullscreenThumbnails = this.querySelectorAll('.image-gallery_fullscreen-thumbnail');
+    const fullscreenThumbnails = this._queryAllOverlay('.image-gallery_fullscreen-thumbnail');
     fullscreenThumbnails.forEach((thumb, index) => {
       thumb.removeEventListener('click', this._handleThumbnailClick);
       thumb.addEventListener('click', () => this._handleThumbnailClick(index));
@@ -678,6 +761,10 @@ export class ImageGallery extends HTMLElement {
   // Полный рендер компонента (только при изменении структуры)
   _render() {
     this.innerHTML = image_gallery_template(this._data);
+    
+    // Если fullscreen активен, переносим overlay в глобальную область (в конец DOM)
+    this._mountOverlayToBody();
+    
     this._setupEventListeners();
     
     // Предзагружаем все изображения после рендера
@@ -693,18 +780,18 @@ export class ImageGallery extends HTMLElement {
     // Полноэкранный режим (если открыт)
     if (this._data.fullscreen) {
       // В шаблоне используется класс image-gallery_fullscreen-image.image-gallery_main-image--current
-      const fullscreenImg = this.querySelector('.image-gallery_fullscreen-image.image-gallery_main-image--current');
+      const fullscreenImg = this._queryOverlay('.image-gallery_fullscreen-image.image-gallery_main-image--current');
       if (fullscreenImg) {
         fullscreenImg.style.opacity = '1';
       }
       // Показываем overlay
-      const overlay = this.querySelector('.image-gallery_fullscreen-overlay');
+      const overlay = this._getOverlayElement();
       if (overlay) {
         overlay.style.display = 'block';
       }
     } else {
       // Скрываем overlay если полноэкранный режим закрыт
-      const overlay = this.querySelector('.image-gallery_fullscreen-overlay');
+      const overlay = this._getOverlayElement();
       if (overlay) {
         overlay.style.display = 'none';
       }

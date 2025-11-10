@@ -3,7 +3,7 @@ main-sidebar {
   position: fixed;
   left: 0.75rem;
   top: 8rem;
-  z-index: 40;
+  z-index: var(--z-index-sidebar, 40);
 }
 
 @media (min-width: 1024px) {

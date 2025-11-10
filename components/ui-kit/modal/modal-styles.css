@@ -5,8 +5,14 @@
   pointer-events: none;
 }
 
+.UIModalOverlayArea {
+  position: relative;
+  z-index: var(--z-index-modal-toy-instance-overlay, 2000);
+}
+
 /* Глобальные базовые стили для всех модальных окон */
 /* Классы modal_overlay, modal_container и т.д. используются в любых компонентах, наследующихся от UIModal */
+.UIModalOverlayArea .modal_overlay,
 .modal_overlay {
   position: fixed;
   inset: 0;
@@ -14,10 +20,12 @@
   backdrop-filter: blur(4px);
   opacity: 0;
   transition: opacity 0.3s ease;
-  z-index: 100000; /* Высокий z-index для overlay */
-  pointer-events: auto;
+  /* z-index будет переопределен в конкретных модальных окнах */
+  z-index: var(--z-index-modal-toy-instance-overlay, 2000);
+  pointer-events: none;
 }
 
+.UIModalOverlayArea .modal_container,
 .modal_container {
   position: fixed;
   top: 50%;
@@ -33,10 +41,22 @@
   flex-direction: column;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
-  z-index: 100001; /* Высокий z-index для контейнера (выше overlay) */
-  pointer-events: auto;
+  /* z-index будет переопределен в конкретных модальных окнах */
+  z-index: var(--z-index-modal-toy-instance-container, 2001);
+  pointer-events: none;
   overflow: hidden;
-  isolation: isolate; /* Создаем новый stacking context для контейнера */
+  /* НЕ используем isolation: isolate, чтобы fullscreen overlay галереи мог выйти из stacking context */
+}
+
+.modal_overlay.modal_overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal_container.modal_container--visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
 }
 
 .modal_header {
@@ -76,7 +96,7 @@ ui-modal {
   display: none;
   pointer-events: none; /* Не блокируем клики когда модалка скрыта */
   position: relative;
-  isolation: isolate; /* Создаем новый stacking context */
+  /* НЕ используем isolation: isolate, чтобы fullscreen overlay галереи мог выйти из stacking context */
 }
 
 ui-modal.modal--visible {

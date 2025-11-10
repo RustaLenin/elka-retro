@@ -13,8 +13,9 @@ export function site_header_template(state) {
           </a>
           
           <nav class="site_header-nav_desktop" aria-label="Primary">
-            <nav-link href="/about" label="О нас" icon="about" variant="mint"></nav-link>
-            <nav-link href="/contact" label="Контакты" icon="contact" variant="gold"></nav-link>
+            <nav-link href="${state.catalogUrl}" label="Каталог" icon="grid" variant="mint"></nav-link>
+            <nav-link href="/about" label="О нас" icon="about" variant="gold"></nav-link>
+            <nav-link href="/contact" label="Контакты" icon="contact"></nav-link>
           </nav>
         </div>
         
@@ -55,6 +56,10 @@ export function site_header_template(state) {
           </div>
           
           <nav class="site_header-mobile_nav">
+            <a href="${state.catalogUrl}" class="site_header-mobile_link CloseMobileMenu">
+              <ui-icon name="grid" size="medium"></ui-icon>
+              <span>Каталог</span>
+            </a>
             <a href="/about" class="site_header-mobile_link CloseMobileMenu">
               <ui-icon name="about" size="medium"></ui-icon>
               <span>О Нас</span>
