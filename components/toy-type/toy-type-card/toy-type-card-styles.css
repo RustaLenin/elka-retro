@@ -59,22 +59,11 @@
 }
 
 toy-type-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 30%;
   max-width: 400px;
   flex-shrink: 0;
-}
-
-toy-type-card .toy-type-card_link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  flex: 1;
-}
-
-toy-type-card .toy-type-card {
-  display: flex;
-  flex-direction: column;
   height: 100%;
   background: var(--color-card, rgba(32, 34, 39, 0.95));
   border: 1px solid var(--color-border-accent);
@@ -86,29 +75,36 @@ toy-type-card .toy-type-card {
 }
 
 /* Цветной border при наведении в зависимости от редкости */
-toy-type-card .toy-type-card:hover {
+toy-type-card:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
-toy-type-card[rarity="often"] .toy-type-card:hover {
+toy-type-card[rarity="often"]:hover {
   border-color: var(--color-chart-3, #22c55e);
   box-shadow: 0 12px 32px rgba(34, 197, 94, 0.3);
 }
 
-toy-type-card[rarity="not-often"] .toy-type-card:hover {
+toy-type-card[rarity="not-often"]:hover {
   border-color: var(--color-chart-4, #38bdf8);
   box-shadow: 0 12px 32px rgba(56, 189, 248, 0.3);
 }
 
-toy-type-card[rarity="rarely"] .toy-type-card:hover {
+toy-type-card[rarity="rarely"]:hover {
   border-color: #fbbf24;
   box-shadow: 0 12px 32px rgba(251, 191, 36, 0.3);
 }
 
-toy-type-card[rarity="rare"] .toy-type-card:hover {
+toy-type-card[rarity="rare"]:hover {
   border-color: #ef4444;
   box-shadow: 0 12px 32px rgba(239, 68, 68, 0.3);
+}
+
+toy-type-card .toy-type-card_link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
 }
 
 toy-type-card .toy-type-card_image {
@@ -129,7 +125,7 @@ toy-type-card .toy-type-card_image img {
   transition: transform 0.3s ease;
 }
 
-toy-type-card .toy-type-card:hover .toy-type-card_image img {
+toy-type-card:hover .toy-type-card_image img {
   transform: scale(1.05);
 }
 
@@ -156,7 +152,7 @@ toy-type-card .toy-type-card_title {
   overflow: hidden;
 }
 
-toy-type-card .toy-type-card:hover .toy-type-card_title {
+toy-type-card:hover .toy-type-card_title {
   color: var(--color-accent, rgba(255, 232, 155, 1));
 }
 

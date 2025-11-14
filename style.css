@@ -296,14 +296,14 @@ button {
 
 .catalog-link-card__cta .ui-button.primary {
   background: var(--color-primary);
-  color: var(--color-background);
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
   border: 1px solid var(--color-border-accent);
 }
 
 .catalog-link-card__cta .ui-button.primary:hover,
 .catalog-link-card__cta .ui-button.primary:focus-visible {
   background: var(--color-accent);
-  color: var(--color-background);
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
   border-color: var(--color-accent);
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
@@ -486,6 +486,7 @@ button {
   font-weight: 600;
   color: var(--color-foreground);
   letter-spacing: 0;
+  scroll-margin-top: 2rem; /* Отступ при скролле к якорю, чтобы не обрезался */
 }
 
 .site-info-section__subtitle:not(:first-of-type) {

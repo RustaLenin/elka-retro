@@ -165,6 +165,9 @@ export function toy_instance_card_template(state) {
   // Проверяем, доступен ли экземпляр для покупки
   const isAvailable = status === 'publish';
   
+  // Проверяем, находится ли товар в корзине (передается из компонента)
+  const inCart = state.inCart || false;
+  
   // Форматируем цену
   let formattedPrice = '';
   if (price !== null && price !== undefined) {
@@ -177,35 +180,40 @@ export function toy_instance_card_template(state) {
   }
   
   return `
-    <article class="toy-instance-card ${rarityClass}" data-instance-id="${id || ''}">
-      ${safeImage ? `
-        <div class="toy-instance-card_image">
-          <img src="${safeImage}" alt="${safeTitle}" loading="lazy" />
-        </div>
-      ` : ''}
-      <div class="toy-instance-card_content">
-        ${safeTitle ? `
-          <h3 class="toy-instance-card_title">${safeTitle}</h3>
-        ` : ''}
-        <div class="toy-instance-card_condition">
-          <span class="toy-instance-card_condition-label">Состояние:</span>
-          <span class="toy-instance-card_condition-value ${conditionClass}">${safeCondition || '—'}</span>
-        </div>
-        <div class="toy-instance-card_price-row">
-          ${formattedPrice ? `
-            <div class="toy-instance-card_price ${!isAvailable ? 'toy-instance-card_price--blocked' : ''}">${formattedPrice}</div>
-          ` : ''}
-          ${isAvailable ? `
-            <button class="toy-instance-card_cart-btn" type="button" aria-label="Добавить в корзину">
-              <ui-icon name="cart" size="small"></ui-icon>
-            </button>
-          ` : ''}
-        </div>
-        <button class="toy-instance-card_details-btn" type="button">
-          Больше подробностей
-        </button>
+    ${safeImage ? `
+      <div class="toy-instance-card_image">
+        <img src="${safeImage}" alt="${safeTitle}" loading="lazy" />
       </div>
-    </article>
+    ` : ''}
+    <div class="toy-instance-card_content">
+      ${safeTitle ? `
+        <h3 class="toy-instance-card_title">${safeTitle}</h3>
+      ` : ''}
+      <div class="toy-instance-card_condition">
+        <span class="toy-instance-card_condition-label">Состояние:</span>
+        <span class="toy-instance-card_condition-value ${conditionClass}">${safeCondition || '—'}</span>
+      </div>
+      <div class="toy-instance-card_price-row">
+        ${formattedPrice ? `
+          <div class="toy-instance-card_price ${!isAvailable ? 'toy-instance-card_price--blocked' : ''}">${formattedPrice}</div>
+        ` : ''}
+        ${isAvailable ? `
+          <ui-button 
+            type="ghost" 
+            icon="${inCart ? 'trash' : 'cart'}" 
+            event="toy-instance-card:cart-click"
+            class="toy-instance-card_cart-btn"
+            aria-label="${inCart ? 'Убрать из корзины' : 'Добавить в корзину'}"
+          ></ui-button>
+        ` : ''}
+      </div>
+      <ui-button 
+        type="primary" 
+        label="Больше подробностей"
+        event="toy-instance-card:details-click"
+        class="toy-instance-card_details-btn"
+      ></ui-button>
+    </div>
   `;
 }
 

@@ -26,13 +26,8 @@ export default class CatalogResults {
       return;
     }
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'catalog-results__grid-inner';
-
-    const fragment = document.createDocumentFragment();
+    const wrapper = this.ensureWrapper();
     nodes.forEach((node) => wrapper.appendChild(node));
-    fragment.appendChild(wrapper);
-    this.container.appendChild(fragment);
   }
 
   appendItems(items = [], mode = 'type') {
@@ -40,8 +35,10 @@ export default class CatalogResults {
       return;
     }
 
+    const wrapper = this.ensureWrapper();
+
     const nodes = adaptResultList(items, mode);
-    nodes.forEach((node) => this.container.appendChild(node));
+    nodes.forEach((node) => wrapper.appendChild(node));
   }
 
   showSkeleton(markup) {
@@ -118,5 +115,29 @@ export default class CatalogResults {
     }
     this.hideEmpty();
     this.hideError();
+  }
+
+  ensureWrapper() {
+    if (!this.container) {
+      return null;
+    }
+
+    let wrapper = this.container.querySelector('.catalog-results__grid-inner');
+
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.className = 'catalog-results__grid-inner';
+      this.container.appendChild(wrapper);
+    }
+
+    const strayCards = Array.from(this.container.children).filter(
+      (child) =>
+        child !== wrapper &&
+        (child.tagName === 'TOY-TYPE-CARD' || child.tagName === 'TOY-INSTANCE-CARD')
+    );
+
+    strayCards.forEach((card) => wrapper.appendChild(card));
+
+    return wrapper;
   }
 }

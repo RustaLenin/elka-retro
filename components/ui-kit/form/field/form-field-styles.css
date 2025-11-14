@@ -1,6 +1,7 @@
 /* TODO: Finalize design tokens once visuals are available. */
 
-.ui-form-field {
+/* ⚠️ ВАЖНО: Web Component - это элемент, а не класс! Селектор БЕЗ точки */
+ui-form-field {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -17,7 +18,7 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 1.4;
-  color: var(--color-text-primary, #171717);
+  color: var(--color-text-primary, var(--color-foreground, #f5f7fa));
 }
 
 .ui-form-field__required {
@@ -29,14 +30,33 @@
 .ui-form-field__hint {
   font-size: 12px;
   line-height: 1.5;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary, var(--color-muted-foreground, #8a8f99));
 }
 
 .ui-form-field__control {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
+  width: 100%;
+  cursor: pointer;
+  /* Делаем весь control кликабельным, включая padding */
+}
+
+/* Для select-multi делаем весь control кликабельным */
+.ui-form-field__control:has(ui-select-multi) {
+  cursor: pointer;
+}
+
+/* Контролы должны занимать всю доступную ширину для кликабельности */
+.ui-form-field__control > ui-input-text,
+.ui-form-field__control > ui-input-number,
+.ui-form-field__control > ui-input-range,
+.ui-form-field__control > ui-select-single,
+.ui-form-field__control > ui-select-multi,
+.ui-form-field__control > ui-checkbox {
+  flex: 1;
+  min-width: 0; /* Позволяет сжиматься при необходимости */
 }
 
 .ui-form-field__icon {
@@ -69,16 +89,16 @@
   color: var(--color-info, #155eef);
 }
 
-.ui-form-field[data-disabled="true"] {
+ui-form-field[data-disabled="true"] {
   opacity: 0.6;
   pointer-events: none;
 }
 
-.ui-form-field--error .ui-form-field__label {
+ui-form-field.ui-form-field--error .ui-form-field__label {
   color: var(--color-danger, #d92d20);
 }
 
-.ui-form-field--success .ui-form-field__label {
+ui-form-field.ui-form-field--success .ui-form-field__label {
   color: var(--color-success, #039855);
 }
 

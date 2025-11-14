@@ -1,5 +1,10 @@
 import { BaseElement } from '../../base-element.js';
 
+// Загружаем стили сразу при импорте модуля
+if (window.app?.toolkit?.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./button-styles.css', import.meta.url));
+}
+
 function resolvePath(root, path) {
   if (!path) return null;
   const parts = String(path).split('.');
@@ -17,6 +22,7 @@ export class UIButton extends BaseElement {
     type:    { type: 'string',  default: 'primary', attribute: { name: 'type', observed: true, reflect: true } },
     disabled:{ type: 'boolean', default: false, attribute: { name: 'disabled', observed: true, reflect: true } },
     icon:    { type: 'string',  default: '', attribute: { name: 'icon', observed: true, reflect: true } },
+    iconPosition: { type: 'string', default: 'left', attribute: { name: 'icon-position', observed: true, reflect: true } },
     action:  { type: 'string',  default: '', attribute: { name: 'action', observed: true, reflect: true } },
     href:    { type: 'string',  default: '', attribute: { name: 'href', observed: true, reflect: true } },
     args:    { type: 'json',    default: null, attribute: { name: 'args', observed: true, reflect: true } },
@@ -33,7 +39,6 @@ export class UIButton extends BaseElement {
   }
 
   connectedCallback() {
-    window.app.toolkit.loadCSSOnce(new URL('./button-styles.css', import.meta.url));
     super.connectedCallback();
     this.render();
     this.addEventListener('click', this._onClick);
@@ -115,8 +120,27 @@ export class UIButton extends BaseElement {
   }
 
   render() {
-    const { type, disabled, loading, success, label, icon, width, action, href } = this.state;
+    const { type, disabled, loading, success, label, icon, iconPosition, width, action, href } = this.state;
+    // Сохраняем дополнительные классы перед установкой базовых
+    const preservedClasses = Array.from(this.classList).filter(cls => 
+      cls !== 'ui-button' && 
+      !cls.startsWith('ui-button--') &&
+      cls !== 'primary' && 
+      cls !== 'secondary' && 
+      cls !== 'warning' && 
+      cls !== 'ghost' && 
+      cls !== 'danger' &&
+      cls !== 'full-width' &&
+      cls !== 'pressed'
+    );
+    // Устанавливаем базовые классы
     this.className = `ui-button ${type}`;
+    // Восстанавливаем сохраненные дополнительные классы
+    preservedClasses.forEach(cls => {
+      if (cls) {
+        this.classList.add(cls);
+      }
+    });
     if (width === 'full_width') {
       this.classList.add('full-width');
     } else {
@@ -131,7 +155,11 @@ export class UIButton extends BaseElement {
       }
     } else {
       this.setAttribute('role', 'button');
-      this.removeAttribute('aria-label');
+      if (label) {
+        this.setAttribute('aria-label', label);
+      } else {
+        this.removeAttribute('aria-label');
+      }
     }
     
     if (disabled) {
@@ -149,8 +177,114 @@ export class UIButton extends BaseElement {
       return;
     }
 
-    const leftIcon = icon ? `<ui-icon name="${icon}" size="small"></ui-icon>` : '';
-    this.innerHTML = `<span class="content">${leftIcon}${label ? `<span class="label">${label}</span>` : ''}</span>`;
+    const iconElement = icon ? `<ui-icon name="${icon}" size="small"></ui-icon>` : '';
+    const labelElement = label ? `<span class="label">${label}</span>` : '';
+    
+    // Размещаем иконку слева или справа в зависимости от iconPosition
+    if (iconPosition === 'right') {
+      this.innerHTML = `<span class="content">${labelElement}${iconElement}</span>`;
+    } else {
+      this.innerHTML = `<span class="content">${iconElement}${labelElement}</span>`;
+    }
+  }
+
+  // Публичный API
+
+  /**
+   * Выполнить программный клик
+   * @returns {Promise}
+   */
+  async click() {
+    if (this.state.disabled) return Promise.resolve();
+    return this._onClick({ 
+      preventDefault: () => {}, 
+      stopPropagation: () => {} 
+    });
+  }
+
+  /**
+   * Установить состояние загрузки
+   * @param {boolean} loading - состояние загрузки
+   * @returns {this}
+   */
+  setLoading(loading) {
+    this.setState({ 
+      loading: Boolean(loading),
+      disabled: loading ? true : (this._previousDisabled !== undefined ? this._previousDisabled : this.state.disabled)
+    });
+    if (loading) {
+      // Сохраняем предыдущее состояние disabled перед установкой loading
+      this._previousDisabled = this.state.disabled;
+    } else {
+      // Восстанавливаем предыдущее состояние disabled после снятия loading
+      this._previousDisabled = undefined;
+    }
+    return this;
+  }
+
+  /**
+   * Установить состояние успеха
+   * @param {boolean} success - состояние успеха
+   * @returns {this}
+   */
+  setSuccess(success) {
+    this.setState({ success: Boolean(success) });
+    // Автоматически сбрасываем success через 1.5 секунды
+    if (success) {
+      setTimeout(() => {
+        if (this.state.success) {
+          this.setState({ success: false });
+        }
+      }, 1500);
+    }
+    return this;
+  }
+
+  /**
+   * Установить disabled состояние
+   * @param {boolean} disabled - disabled состояние
+   * @returns {this}
+   */
+  setDisabled(disabled) {
+    this.setState({ disabled: Boolean(disabled) });
+    return this;
+  }
+
+  /**
+   * Сбросить все состояния к дефолтным
+   * @returns {this}
+   */
+  reset() {
+    this.setState({ 
+      loading: false, 
+      success: false, 
+      disabled: false 
+    });
+    return this;
+  }
+
+  /**
+   * Проверить, находится ли кнопка в состоянии загрузки
+   * @returns {boolean}
+   */
+  isLoading() {
+    return Boolean(this.state.loading);
+  }
+
+  /**
+   * Проверить, находится ли кнопка в состоянии успеха
+   * @returns {boolean}
+   */
+  isSuccess() {
+    return Boolean(this.state.success);
+  }
+
+  /**
+   * Проверить, отключена ли кнопка
+   * @returns {boolean}
+   */
+  isDisabled() {
+    return Boolean(this.state.disabled);
   }
 }
 

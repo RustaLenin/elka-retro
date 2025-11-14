@@ -5,9 +5,6 @@ post-single {
   width: 80%;
   max-width: 1200px;
   margin: 4rem auto 2rem auto;
-}
-
-post-single .post-single_content {
   position: relative;
   background: var(--color-card, rgba(32, 34, 39, 0.95));
   border: 1px solid var(--color-border-accent);
@@ -168,7 +165,7 @@ post-single .post-single_error {
 }
 
 /* Loader внутри контента */
-post-single .post-single_content block-loader {
+post-single block-loader {
   position: relative;
   display: flex;
   align-items: center;
@@ -181,9 +178,6 @@ post-single .post-single_content block-loader {
   post-single {
     width: 95%;
     margin: 2rem auto 1rem auto;
-  }
-  
-  post-single .post-single_content {
     padding: 1.5rem;
   }
   

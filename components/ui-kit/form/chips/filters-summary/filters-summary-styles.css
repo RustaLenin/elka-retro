@@ -1,0 +1,16 @@
+/* TODO: Align with final design tokens when available. */
+
+.ui-filters-summary__wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ui-filters-summary__empty {
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--filters-summary-empty, #98a2b3);
+  font-style: italic;
+}
+

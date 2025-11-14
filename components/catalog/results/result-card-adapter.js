@@ -37,6 +37,10 @@ function createTypeCard(item) {
     element.setAttribute('factory', toStringOrEmpty(item.factory));
   }
 
+  if (item.rarityName) {
+    element.setAttribute('rarity-name', toStringOrEmpty(item.rarityName));
+  }
+
   if (item.rarity) {
     element.setAttribute('rarity', toStringOrEmpty(item.rarity));
   }

@@ -1,43 +1,39 @@
 /* Toy Instance Card Component Styles */
 
 toy-instance-card {
-  display: block;
-  width: 100%;
-  position: relative;
-  z-index: var(--z-index-page-content, 1);
-}
-
-toy-instance-card .toy-instance-card {
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100%;
+  position: relative;
+  z-index: var(--z-index-page-content, 1);
   background: var(--color-card, rgba(32, 34, 39, 0.95));
   border: 1px solid var(--color-border-accent);
   border-radius: 1rem;
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  position: relative;
+  cursor: pointer; /* Вся карточка кликабельна */
 }
 
-toy-instance-card .toy-instance-card:hover {
+toy-instance-card:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* Цветовая индикация редкости через border */
-toy-instance-card .toy-instance-card.rarity-rare {
+toy-instance-card.rarity-rare {
   border-left: 4px solid #ef4444; /* Красный для раритета */
 }
 
-toy-instance-card .toy-instance-card.rarity-rarely {
+toy-instance-card.rarity-rarely {
   border-left: 4px solid #f59e0b; /* Оранжевый для редко */
 }
 
-toy-instance-card .toy-instance-card.rarity-not-often {
+toy-instance-card.rarity-not-often {
   border-left: 4px solid #eab308; /* Желтый для не часто */
 }
 
-toy-instance-card .toy-instance-card.rarity-often {
+toy-instance-card.rarity-often {
   border-left: 4px solid #22c55e; /* Зеленый для часто */
 }
 
@@ -60,7 +56,7 @@ toy-instance-card .toy-instance-card_image img {
   transition: transform 0.3s ease;
 }
 
-toy-instance-card .toy-instance-card:hover .toy-instance-card_image img {
+toy-instance-card:hover .toy-instance-card_image img {
   transform: scale(1.05);
 }
 
@@ -137,66 +133,31 @@ toy-instance-card .toy-instance-card_price--blocked {
   color: var(--color-blocked, rgba(245, 247, 250, 0.5));
 }
 
-/* Кнопка корзины (иконка) */
+/* Кнопка корзины (только иконка, без текста) - специфичные размеры для ui-button */
 toy-instance-card .toy-instance-card_cart-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
   min-width: 2.5rem;
   min-height: 2.5rem;
   padding: 0;
-  background: var(--color-primary, rgba(155, 140, 255, 1));
-  border: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.2));
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
-  color: var(--color-foreground, rgba(245, 247, 250, 1));
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  opacity: 0.85;
+  cursor: pointer; /* Свой курсор для кнопки */
+  position: relative;
+  z-index: 2; /* Поверх карточки */
 }
 
-toy-instance-card .toy-instance-card_cart-btn:hover {
-  opacity: 1;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+/* Скрываем label у кнопки корзины */
+toy-instance-card .toy-instance-card_cart-btn .label {
+  display: none !important;
 }
 
-toy-instance-card .toy-instance-card_cart-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-/* Кнопка "Больше подробностей" */
+/* Кнопка "Больше подробностей" - на всю ширину */
 toy-instance-card .toy-instance-card_details-btn {
   width: 100%;
-  padding: 0.75rem 1rem;
-  font-family: var(--font-sans, inherit);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-foreground, rgba(245, 247, 250, 1));
-  background: var(--color-primary, rgba(155, 140, 255, 1));
-  border: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.2));
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: background-color 0.2s, transform 0.2s, border-color 0.2s, box-shadow 0.2s;
   margin-top: auto;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-toy-instance-card .toy-instance-card_details-btn:hover {
-  background: var(--color-accent, rgba(255, 232, 155, 1));
-  color: var(--color-background, rgba(11, 6, 22, 1));
-  border-color: var(--color-accent, rgba(255, 232, 155, 1));
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-toy-instance-card .toy-instance-card_details-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  cursor: pointer; /* Свой курсор для кнопки */
+  position: relative;
+  z-index: 2; /* Поверх карточки */
 }
 
 /* Container для карточек экземпляров */

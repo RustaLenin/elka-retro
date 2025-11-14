@@ -52,6 +52,16 @@ class Catalog_Query_Manager {
 			'orderby' => 'date',
 			'order'   => 'DESC',
 		),
+		'newest' => array(
+			'label'   => 'Сначала новые',
+			'orderby' => 'date',
+			'order'   => 'DESC',
+		),
+		'oldest' => array(
+			'label'   => 'Сначала старые',
+			'orderby' => 'date',
+			'order'   => 'ASC',
+		),
 		'alphabetical' => array(
 			'label'   => 'По алфавиту',
 			'orderby' => 'title',
@@ -71,6 +81,16 @@ class Catalog_Query_Manager {
 			'label'   => 'Новые',
 			'orderby' => 'date',
 			'order'   => 'DESC',
+		),
+		'newest' => array(
+			'label'   => 'Сначала новые',
+			'orderby' => 'date',
+			'order'   => 'DESC',
+		),
+		'oldest' => array(
+			'label'   => 'Сначала старые',
+			'orderby' => 'date',
+			'order'   => 'ASC',
 		),
 		'price_low_high' => array(
 			'label'    => 'Сначала дешёвые',
@@ -423,11 +443,32 @@ class Catalog_Query_Manager {
 				$values = array_map( 'sanitize_text_field', $values );
 			}
 
-			$tax_query[] = array(
-				'taxonomy' => $taxonomy,
-				'field'    => $field,
-				'terms'    => $values,
-			);
+			// По умолчанию WP обрабатывает terms через оператор IN (логика ИЛИ),
+			// но мы явно задаём структуру, чтобы избежать любых неочевидных
+			// преобразований при вложенных группах и кастомных фильтрах.
+			if ( count( $values ) > 1 ) {
+				$or_group = array(
+					'relation' => 'OR',
+				);
+
+				foreach ( $values as $value ) {
+					$or_group[] = array(
+						'taxonomy' => $taxonomy,
+						'field'    => $field,
+						'terms'    => array( $value ),
+						'operator' => 'IN',
+					);
+				}
+
+				$tax_query[] = $or_group;
+			} else {
+				$tax_query[] = array(
+					'taxonomy' => $taxonomy,
+					'field'    => $field,
+					'terms'    => $values,
+					'operator' => 'IN',
+				);
+			}
 		}
 
 		if ( count( $tax_query ) > 1 ) {

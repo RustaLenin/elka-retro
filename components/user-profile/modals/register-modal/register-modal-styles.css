@@ -1,0 +1,41 @@
+/**
+ * Register Modal Styles
+ */
+
+register-modal {
+  display: block;
+}
+
+.register-modal__content {
+  padding: 1rem 0;
+}
+
+.register-modal__links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border, #e0e0e0);
+}
+
+.register-modal__link {
+  color: var(--color-primary, #0055FF);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.register-modal__link:hover {
+  color: var(--color-primary-hover, #0033CC);
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .register-modal__links {
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+}
+

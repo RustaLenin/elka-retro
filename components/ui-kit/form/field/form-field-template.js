@@ -8,6 +8,15 @@ function escapeHTML(value) {
     .replace(/'/g, '&#39;');
 }
 
+function escapeAttribute(value) {
+  if (value == null) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function renderIcon(icon) {
   if (!icon || !icon.key) return '';
   const name = escapeHTML(icon.key);
@@ -75,6 +84,98 @@ function renderTooltip(tooltip) {
   `;
 }
 
+/**
+ * Загрузить опции из dataSource
+ * @param {Object} dataSource - Конфигурация источника данных
+ * @returns {Array} Массив опций [{ value, label }]
+ */
+function loadOptionsFromDataSource(dataSource) {
+  if (!dataSource) {
+    return null;
+  }
+  
+  // Для taxonomy из window.taxonomy_terms
+  if (dataSource.type === 'global' && dataSource.path && dataSource.path.startsWith('taxonomy_terms.')) {
+    const taxonomySlug = dataSource.path.replace('taxonomy_terms.', '');
+    
+    if (typeof window !== 'undefined' && window.taxonomy_terms && window.taxonomy_terms[taxonomySlug]) {
+      const terms = window.taxonomy_terms[taxonomySlug];
+      
+      // Преобразуем структуру { term_id: { id, name, slug, description } } в опции
+      const options = Object.values(terms).map(term => ({
+        value: term.slug || String(term.id),
+        label: term.name || String(term.id),
+        ...(term.description && { description: term.description }),
+      }));
+      
+      // Сортируем по названию
+      options.sort((a, b) => a.label.localeCompare(b.label, 'ru'));
+      
+      return options;
+    }
+  }
+  
+  return null;
+}
+
+function renderControl(state) {
+  const fieldConfig = state?.config;
+  if (!fieldConfig) {
+    return '<!-- no field config -->';
+  }
+  
+  const { type, id, placeholder, required, autocomplete, mask, icon, min, max, step, options, dataSource, searchable } = fieldConfig;
+  
+  // Определяем тип контрола
+  let controlTag = 'ui-input-text';
+  let controlAttrs = [];
+  
+  // Загружаем опции из dataSource, если они не переданы напрямую
+  let finalOptions = options;
+  if ((type === 'select-single' || type === 'select-multi') && !finalOptions && dataSource) {
+    finalOptions = loadOptionsFromDataSource(dataSource);
+  }
+  
+  if (type === 'number' || type === 'integer' || type === 'float') {
+    controlTag = 'ui-input-number';
+    if (min !== undefined) controlAttrs.push(`min="${escapeAttribute(min)}"`);
+    if (max !== undefined) controlAttrs.push(`max="${escapeAttribute(max)}"`);
+    if (step !== undefined) controlAttrs.push(`step="${escapeAttribute(step)}"`);
+  } else if (type === 'checkbox' || type === 'boolean') {
+    controlTag = 'ui-checkbox';
+  } else if (type === 'select' || type === 'select-single') {
+    controlTag = 'ui-select-single';
+    if (finalOptions && Array.isArray(finalOptions) && finalOptions.length > 0) {
+      controlAttrs.push(`options='${JSON.stringify(finalOptions).replace(/'/g, '&#39;')}'`);
+    }
+    if (searchable) controlAttrs.push('searchable');
+  } else if (type === 'select-multi') {
+    controlTag = 'ui-select-multi';
+    if (finalOptions && Array.isArray(finalOptions) && finalOptions.length > 0) {
+      controlAttrs.push(`options='${JSON.stringify(finalOptions).replace(/'/g, '&#39;')}'`);
+    }
+    if (searchable) controlAttrs.push('searchable');
+  } else if (type === 'range') {
+    controlTag = 'ui-input-range';
+    if (min !== undefined) controlAttrs.push(`min="${escapeAttribute(min)}"`);
+    if (max !== undefined) controlAttrs.push(`max="${escapeAttribute(max)}"`);
+    if (step !== undefined) controlAttrs.push(`step="${escapeAttribute(step)}"`);
+  }
+  
+  // Общие атрибуты
+  controlAttrs.push(`name="${escapeAttribute(id)}"`);
+  if (placeholder) controlAttrs.push(`placeholder="${escapeAttribute(placeholder)}"`);
+  if (required) controlAttrs.push('required');
+  if (autocomplete) controlAttrs.push(`autocomplete="${escapeAttribute(autocomplete)}"`);
+  if (mask) controlAttrs.push(`mask="${escapeAttribute(mask)}"`);
+  if (icon?.key) {
+    controlAttrs.push(`icon="${escapeAttribute(icon.key)}"`);
+    if (icon.icon_position) controlAttrs.push(`icon-position="${escapeAttribute(icon.icon_position)}"`);
+  }
+  
+  return `<${controlTag} ${controlAttrs.join(' ')}></${controlTag}>`;
+}
+
 export function renderFormFieldTemplate(state) {
   const status = state?.status || 'default';
   const disabled = state?.disabled ? ' data-disabled="true"' : '';
@@ -88,7 +189,7 @@ export function renderFormFieldTemplate(state) {
     <div class="ui-form-field ui-form-field--${escapeHTML(status)}"${disabled}>
       ${renderLabel(state)}
       <div class="ui-form-field__control">
-        <slot></slot>
+        ${renderControl(state)}
         ${renderTooltip(state?.tooltip)}
       </div>
       ${renderFeedback(messages)}

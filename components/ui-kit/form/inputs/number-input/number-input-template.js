@@ -38,20 +38,19 @@ export function renderNumberInputTemplate(state) {
   const prefix = renderAffix(state?.prefix, 'ui-input-number__prefix');
   const suffix = renderAffix(state?.suffix ?? state?.currency, 'ui-input-number__suffix');
   const stepper = renderStepper(state);
-  const status = state?.status ? ` data-status="${escapeAttr(state.status)}"` : '';
-  const disabledWrapper = state?.disabled ? ' data-disabled="true"' : '';
 
+  // Обёртка не нужна - стили контейнера на самом элементе ui-input-number
+  // Атрибуты status и disabled применяются к самому элементу через JS
+  // Просто возвращаем содержимое напрямую
   return `
-    <label class="ui-input-number__wrapper"${status}${disabledWrapper}>
-      ${prefix}
-      <input
-        class="ui-input-number__control"
-        type="number"
-        value="${escapeAttr(value)}"
-        placeholder="${escapeAttr(placeholder)}"${min}${max}${step}${disabled}${readonly}${nameAttr}${inputMode}
-      />
-      ${suffix}
-      ${stepper}
-    </label>
+    ${prefix}
+    <input
+      class="ui-input-number__control"
+      type="number"
+      value="${escapeAttr(value)}"
+      placeholder="${escapeAttr(placeholder)}"${min}${max}${step}${disabled}${readonly}${nameAttr}${inputMode}
+    />
+    ${suffix}
+    ${stepper}
   `;
 }

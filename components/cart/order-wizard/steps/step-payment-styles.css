@@ -1,0 +1,62 @@
+/**
+ * Step Payment Styles
+ * Стили для шага оплаты
+ */
+
+.step-payment {
+  width: 100%;
+}
+
+.step-payment_content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.step-payment_details {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--color-background-secondary, #f3f4f6);
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+}
+
+.step-payment_details-content {
+  color: var(--color-text, #111827);
+}
+
+.step-payment_details-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text, #111827);
+}
+
+.step-payment_details-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.step-payment_details-text p {
+  margin: 0.5rem 0;
+}
+
+.step-payment_details-text p:first-child {
+  margin-top: 0;
+}
+
+.step-payment_details-text p:last-child {
+  margin-bottom: 0;
+}
+
+.step-payment_details-text strong {
+  color: var(--color-text, #111827);
+  font-weight: 600;
+}
+
+.step-payment_details-text em {
+  color: var(--color-text-secondary, #6b7280);
+  font-style: italic;
+}
+

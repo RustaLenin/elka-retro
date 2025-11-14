@@ -17,19 +17,15 @@ export function post_single_template(state) {
   // Если загрузка - показываем loader поверх контента
   if (loading) {
     return `
-      <div class="post-single_content">
-        <block-loader></block-loader>
-      </div>
+      <block-loader></block-loader>
     `;
   }
   
   // Если ошибка
   if (error) {
     return `
-      <div class="post-single_content">
-        <div class="post-single_error">
-          <p>Ошибка загрузки новости: ${escapeHtml(error)}</p>
-        </div>
+      <div class="post-single_error">
+        <p>Ошибка загрузки новости: ${escapeHtml(error)}</p>
       </div>
     `;
   }
@@ -37,10 +33,8 @@ export function post_single_template(state) {
   // Если данных нет
   if (!data) {
     return `
-      <div class="post-single_content">
-        <div class="post-single_empty">
-          <p>Новость не найдена</p>
-        </div>
+      <div class="post-single_empty">
+        <p>Новость не найдена</p>
       </div>
     `;
   }
@@ -88,26 +82,24 @@ export function post_single_template(state) {
   }
   
   return `
-    <article class="post-single_content">
-      ${featuredImageUrl ? `
-        <div class="post-single_featured-image">
-          <img src="${escapeHtml(featuredImageUrl)}" alt="${escapeHtml(featuredImageAlt)}" loading="eager" />
-        </div>
-      ` : ''}
-      ${title ? `
-        <header class="post-single_header">
-          <h1 class="post-single_title">${title}</h1>
-          ${formattedDate ? `
-            <time class="post-single_date" datetime="${escapeHtml(date)}">${escapeHtml(formattedDate)}</time>
-          ` : ''}
-        </header>
-      ` : ''}
-      ${content ? `
-        <div class="post-single_body">
-          ${content}
-        </div>
-      ` : ''}
-    </article>
+    ${featuredImageUrl ? `
+      <div class="post-single_featured-image">
+        <img src="${escapeHtml(featuredImageUrl)}" alt="${escapeHtml(featuredImageAlt)}" loading="eager" />
+      </div>
+    ` : ''}
+    ${title ? `
+      <header class="post-single_header">
+        <h1 class="post-single_title">${title}</h1>
+        ${formattedDate ? `
+          <time class="post-single_date" datetime="${escapeHtml(date)}">${escapeHtml(formattedDate)}</time>
+        ` : ''}
+      </header>
+    ` : ''}
+    ${content ? `
+      <div class="post-single_body">
+        ${content}
+      </div>
+    ` : ''}
   `;
 }
 

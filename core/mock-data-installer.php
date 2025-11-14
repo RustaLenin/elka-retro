@@ -191,6 +191,37 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
                             </a>
                         </div>
                     </div>
+
+                    <div class="card" style="padding: 20px; margin-top: 15px;">
+                        <h3>Sync Term Relationships (Pods ➜ WordPress)</h3>
+                        <p>
+                            Проставляет термы WordPress на основе значений в Pods-полях для всех опубликованных типов
+                            и экземпляров игрушек. Запускайте после включения «Sync associated taxonomy» либо после
+                            миграции данных.
+                        </p>
+                        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                            <?php
+                            $sync_types_url = wp_nonce_url(
+                                add_query_arg('elkaretro_action', 'sync_toy_types_terms', admin_url('themes.php?page=elkaretro-settings')),
+                                'elkaretro_action_sync_toy_types_terms'
+                            );
+                            $sync_instances_url = wp_nonce_url(
+                                add_query_arg('elkaretro_action', 'sync_toy_instances_terms', admin_url('themes.php?page=elkaretro-settings')),
+                                'elkaretro_action_sync_toy_instances_terms'
+                            );
+                            ?>
+                            <a href="<?php echo esc_url($sync_types_url); ?>"
+                               class="button button-secondary"
+                               onclick="return confirm('Синхронизировать термы для всех типов игрушек?');">
+                                Sync Toy Types Terms
+                            </a>
+                            <a href="<?php echo esc_url($sync_instances_url); ?>"
+                               class="button button-secondary"
+                               onclick="return confirm('Синхронизировать термы для всех экземпляров игрушек?');">
+                                Sync Toy Instances Terms
+                            </a>
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
             
@@ -383,16 +414,17 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
             </div>
 
             <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
-                <h2>Объединение дублей экземпляров</h2>
+                <h2>Объединение дублей</h2>
                 <div class="card" style="padding: 20px; margin-top: 15px;">
                     <h3>Объединить записи «На спецификации» и «На оформлении»</h3>
                     <p>
-                        Если для одного и того же экземпляра существуют две записи (одна с фотографиями и другая с описанием),
+                        Если для одного и того же экземпляра или типа игрушки существуют две записи (одна с фотографиями и другая с описанием),
                         скрипт перенесёт заполненные поля из записи <strong>«На оформлении»</strong> в запись <strong>«На спецификации»</strong>,
                         а затем удалит дублирующую запись.
                     </p>
                     <p style="margin-top: 10px;">
-                        Поиск дублей выполняется по совпадению названия экземпляра. После объединения запись переводится в статус «На оформлении».
+                        Скрипт обрабатывает как <strong>экземпляры игрушек</strong>, так и <strong>типы игрушек</strong>.
+                        Поиск дублей выполняется по совпадению названия. После объединения запись переводится в статус <strong>«На утверждении»</strong> (pending).
                     </p>
                     <div style="margin-top: 20px;">
                         <?php
@@ -500,6 +532,22 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
                 } else {
                     $message = 'Taxonomy sync failed: ' . ($result['message'] ?? 'Unknown error');
                 }
+                break;
+
+            case 'sync_toy_types_terms':
+                require_once THEME_DIR . '/core/taxonomy-sync.php';
+                $result = ELKARETRO_TAXONOMY_SYNC::sync_toy_types_terms();
+                $message = $result['success']
+                    ? ($result['message'] ?? 'Sync completed')
+                    : 'Toy type term sync failed: ' . ($result['message'] ?? 'Unknown error');
+                break;
+
+            case 'sync_toy_instances_terms':
+                require_once THEME_DIR . '/core/taxonomy-sync.php';
+                $result = ELKARETRO_TAXONOMY_SYNC::sync_toy_instances_terms();
+                $message = $result['success']
+                    ? ($result['message'] ?? 'Sync completed')
+                    : 'Toy instance term sync failed: ' . ($result['message'] ?? 'Unknown error');
                 break;
                 
             case 'create_pages':

@@ -30,7 +30,7 @@ ui-button .label, .ui-button .label { white-space: nowrap; }
 /* Kinds */
 ui-button.primary, .ui-button.primary {
   background: var(--color-primary);
-  color: #0b0616;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
 }
 ui-button.primary:hover:not([aria-disabled="true"]) { filter: brightness(1.05); }
 
@@ -45,6 +45,28 @@ ui-button.warning, .ui-button.warning {
   color: #fff;
 }
 ui-button.warning:hover:not([aria-disabled="true"]) { filter: brightness(1.05); }
+
+ui-button.ghost, .ui-button.ghost {
+  background: transparent;
+  border: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.1));
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+}
+ui-button.ghost:hover:not([aria-disabled="true"]) {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error, #ef4444);
+  border-color: var(--color-error, #ef4444);
+}
+
+ui-button.danger, .ui-button.danger {
+  background: transparent;
+  border: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.1));
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+}
+ui-button.danger:hover:not([aria-disabled="true"]) {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error, #ef4444);
+  border-color: var(--color-error, #ef4444);
+}
 
 ui-button.pressed { transform: translateY(1px); }
 

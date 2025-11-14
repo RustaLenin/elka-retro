@@ -1,0 +1,28 @@
+/**
+ * Step Personal Styles
+ * Стили для шага личных данных
+ */
+
+.step-personal {
+  width: 100%;
+}
+
+.step-personal_content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.step-personal_loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.step-personal_loading p {
+  margin: 0;
+}
+

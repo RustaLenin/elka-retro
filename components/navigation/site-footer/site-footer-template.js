@@ -13,15 +13,15 @@ export function site_footer_template(state) {
            Магазин антикварной елочной игрушки. Самый большой веб каталог в России.
           </p>
           <div class="site_footer-social">
-            <a href="#" class="site_footer-social_link" aria-label="Facebook">
-              <ui-icon name="facebook" size="medium"></ui-icon>
+            <!-- TODO: Раскомментировать когда будут созданы аккаунты в соцсетях -->
+            <!--
+            <a href="https://t.me/elkaretro" class="site_footer-social_link" aria-label="Telegram" target="_blank" rel="noopener noreferrer">
+              <ui-icon name="telegram" size="medium"></ui-icon>
             </a>
-            <a href="#" class="site_footer-social_link" aria-label="Instagram">
-              <ui-icon name="instagram" size="medium"></ui-icon>
+            <a href="https://vk.com/elkaretro" class="site_footer-social_link" aria-label="VK" target="_blank" rel="noopener noreferrer">
+              <ui-icon name="vk" size="medium"></ui-icon>
             </a>
-            <a href="#" class="site_footer-social_link" aria-label="Twitter">
-              <ui-icon name="twitter" size="medium"></ui-icon>
-            </a>
+            -->
           </div>
         </div>
         
@@ -29,22 +29,20 @@ export function site_footer_template(state) {
         <div class="site_footer-links_grid">
           
           <div class="site_footer-links_section">
-            <h3 class="site_footer-links_title">Товары</h3>
+            <h3 class="site_footer-links_title">Каталоги</h3>
             <ul class="site_footer-links_list">
-              <li><a href="/catalog/elka-toys" class="site_footer-link">Елочные игрушки</a></li>
-              <li><a href="/catalog/new-year-accessories" class="site_footer-link">Аксесуары</a></li>
-              <li><a href="/catalog/all" class="site_footer-link">Все подряд</a></li>
-              <li><a href="/new-arrivals" class="site_footer-link">Новые поступления</a></li>
+              <li><a href="${state.toyCatalogUrl || '/catalog/'}" class="site_footer-link">Елочные игрушки</a></li>
+              <li><a href="${state.nyAccessoryUrl || '/ny-accessory/'}" class="site_footer-link">Новогодние аксессуары</a></li>
             </ul>
           </div>
           
           <div class="site_footer-links_section">
             <h3 class="site_footer-links_title">Инфо</h3>
             <ul class="site_footer-links_list">
-              <li><a href="/about" class="site_footer-link">О магазине</a></li>
-              <li><a href="/authenticity" class="site_footer-link">Соглашения и правила</a></li>
-              <li><a href="/news" class="site_footer-link">Новости</a></li>
-              <li><a href="/contact" class="site_footer-link">Контакты</a></li>
+              <li><a href="#site-info-anchor-pricing" class="site_footer-link">Ценообразование</a></li>
+              <li><a href="#site-info-anchor-buy-online" class="site_footer-link">Как покупать на сайте</a></li>
+              <li><a href="#site-info-anchor-discounts" class="site_footer-link">Скидки и льготы</a></li>
+              <li><a href="#site-info-anchor-buy-offline" class="site_footer-link">Как покупать</a></li>
             </ul>
           </div>
           

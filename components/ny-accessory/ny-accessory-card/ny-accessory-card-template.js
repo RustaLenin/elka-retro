@@ -58,53 +58,55 @@ export function ny_accessory_card_template(state) {
   const conditionClass = normalizeConditionSlug(condition, conditionSlug);
 
   return `
-    <article class="ny-accessory-card" data-accessory-id="${id || ''}">
-      <a class="ny-accessory-card__stretched-link" href="${safeLink}" aria-label="${safeTitle || 'Перейти к аксессуару'}"></a>
-      <div class="ny-accessory-card__media">
-        <a href="${safeLink}" class="ny-accessory-card__media-link" aria-label="${safeTitle || 'Просмотреть аксессуар'}">
-          ${safeImage ? `
-            <img src="${safeImage}" alt="${safeTitle}" loading="lazy" />
-          ` : `
-            <div class="ny-accessory-card__media-placeholder">
-              <ui-icon name="image" size="large"></ui-icon>
-            </div>
-          `}
-        </a>
-        ${safeIndex ? `<span class="ny-accessory-card__badge">${safeIndex}</span>` : ''}
-      </div>
-      <div class="ny-accessory-card__content">
-        ${safeTitle ? `
-          <h3 class="ny-accessory-card__title">
-            <a href="${safeLink}" class="ny-accessory-card__title-link">${safeTitle}</a>
-          </h3>
+    <a class="ny-accessory-card__stretched-link" href="${safeLink}" aria-label="${safeTitle || 'Перейти к аксессуару'}"></a>
+    <div class="ny-accessory-card__media">
+      <a href="${safeLink}" class="ny-accessory-card__media-link" aria-label="${safeTitle || 'Просмотреть аксессуар'}">
+        ${safeImage ? `
+          <img src="${safeImage}" alt="${safeTitle}" loading="lazy" />
+        ` : `
+          <div class="ny-accessory-card__media-placeholder">
+            <ui-icon name="image" size="large"></ui-icon>
+          </div>
+        `}
+      </a>
+      ${safeIndex ? `<span class="ny-accessory-card__badge">${safeIndex}</span>` : ''}
+    </div>
+    <div class="ny-accessory-card__content">
+      ${safeTitle ? `
+        <h3 class="ny-accessory-card__title">
+          <a href="${safeLink}" class="ny-accessory-card__title-link">${safeTitle}</a>
+        </h3>
+      ` : ''}
+      ${safeExcerpt ? `
+        <p class="ny-accessory-card__excerpt">${safeExcerpt}</p>
+      ` : ''}
+      <div class="ny-accessory-card__meta">
+        ${safeMaterial ? `
+          <span class="ny-accessory-card__meta-item ny-accessory-card__meta-item--material">
+            <span class="ny-accessory-card__meta-label">Материал:</span>
+            <span class="ny-accessory-card__meta-value">${safeMaterial}</span>
+          </span>
         ` : ''}
-        ${safeExcerpt ? `
-          <p class="ny-accessory-card__excerpt">${safeExcerpt}</p>
+        ${safeCondition ? `
+          <span class="ny-accessory-card__meta-item ny-accessory-card__meta-item--condition">
+            <span class="ny-accessory-card__meta-label">Состояние:</span>
+            <span class="ny-accessory-card__condition-value ${conditionClass ? `ny-accessory-card__condition-value--${conditionClass}` : ''}">
+              ${safeCondition}
+            </span>
+          </span>
         ` : ''}
-        <div class="ny-accessory-card__meta">
-          ${safeMaterial ? `
-            <span class="ny-accessory-card__meta-item ny-accessory-card__meta-item--material">
-              <span class="ny-accessory-card__meta-label">Материал:</span>
-              <span class="ny-accessory-card__meta-value">${safeMaterial}</span>
-            </span>
-          ` : ''}
-          ${safeCondition ? `
-            <span class="ny-accessory-card__meta-item ny-accessory-card__meta-item--condition">
-              <span class="ny-accessory-card__meta-label">Состояние:</span>
-              <span class="ny-accessory-card__condition-value ${conditionClass ? `ny-accessory-card__condition-value--${conditionClass}` : ''}">
-                ${safeCondition}
-              </span>
-            </span>
-          ` : ''}
-        </div>
-        <div class="ny-accessory-card__footer">
-          ${priceLabel ? `<span class="ny-accessory-card__price">${priceLabel}</span>` : ''}
-          <button class="ny-accessory-card__cart-button" type="button" aria-label="Добавить в корзину">
-            <ui-icon name="cart" size="small"></ui-icon>
-          </button>
-        </div>
       </div>
-    </article>
+      <div class="ny-accessory-card__footer">
+        ${priceLabel ? `<span class="ny-accessory-card__price">${priceLabel}</span>` : ''}
+        <ui-button 
+          type="${state.inCart ? 'danger' : 'primary'}" 
+          icon="${state.inCart ? 'trash' : 'cart'}" 
+          aria-label="${state.inCart ? 'Убрать из корзины' : 'Добавить в корзину'}"
+          event="ny-accessory-card:cart-click"
+          class="ny-accessory-card__cart-button ${state.inCart ? 'ny-accessory-card__cart-button--in-cart' : ''}"
+        ></ui-button>
+      </div>
+    </div>
   `;
 }
 

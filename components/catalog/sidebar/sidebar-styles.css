@@ -6,3 +6,134 @@
  * - Add mobile sheet/panel styles for small devices.
  */
 
+/* Основной контейнер сайдбара */
+.catalog-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+/* Секции сайдбара */
+.catalog-sidebar__section {
+  display: block;
+  width: 100%;
+}
+
+.catalog-sidebar__section--mode-toggle {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--catalog-sidebar-border, #e4e7ec);
+}
+
+.catalog-sidebar__section--category {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--catalog-sidebar-border, #e4e7ec);
+}
+
+.catalog-sidebar__section--filters {
+  flex: 1;
+  margin-bottom: 24px;
+}
+
+.catalog-sidebar__section--actions {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--catalog-sidebar-border, #e4e7ec);
+}
+
+/* Mode Toggle - переключатель режимов каталога */
+.catalog-mode-toggle {
+  display: block;
+  width: 100%;
+}
+
+/* Список фильтров (временная заглушка до интеграции с UI Form Kit) */
+.catalog-sidebar__filters-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.catalog-sidebar__filter-item {
+  padding: 12px;
+  background: var(--catalog-sidebar-filter-bg, #f9fafb);
+  border: 1px solid var(--catalog-sidebar-border, #e4e7ec);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--catalog-sidebar-text, #344054);
+}
+
+.catalog-sidebar__empty-filters {
+  padding: 24px;
+  text-align: center;
+  color: var(--catalog-sidebar-text-muted, #98a2b3);
+  font-size: 14px;
+}
+
+.catalog-sidebar__debug-note {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--catalog-sidebar-debug-bg, #fef3c7);
+  border: 1px solid var(--catalog-sidebar-debug-border, #fbbf24);
+  border-radius: 6px;
+  color: var(--catalog-sidebar-debug-text, #92400e);
+  font-size: 12px;
+}
+
+/* Кнопки действий */
+.catalog-sidebar__actions {
+  display: block;
+  width: 100%;
+}
+
+.catalog-sidebar__actions-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Стили для кнопок */
+.catalog-sidebar__apply-button,
+.catalog-sidebar__reset-button {
+  width: 100%;
+}
+
+.catalog-sidebar__reset-button {
+  /* Дополнительные стили для кнопки сброса, если нужно */
+}
+
+/* Подсветка фильтра при клике на чипс */
+.catalog-sidebar__filter--highlighted {
+  animation: catalog-sidebar-highlight 2s ease-in-out;
+}
+
+@keyframes catalog-sidebar-highlight {
+  0% {
+    background-color: var(--catalog-sidebar-highlight-start, transparent);
+  }
+  50% {
+    background-color: var(--catalog-sidebar-highlight-active, rgba(21, 94, 239, 0.1));
+    box-shadow: 0 0 0 2px var(--catalog-sidebar-highlight-border, rgba(21, 94, 239, 0.3));
+  }
+  100% {
+    background-color: var(--catalog-sidebar-highlight-end, transparent);
+  }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .catalog-sidebar__section--mode-toggle,
+  .catalog-sidebar__section--category,
+  .catalog-sidebar__section--filters {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+  }
+
+  .catalog-sidebar__section--actions {
+    padding-top: 20px;
+  }
+}
+

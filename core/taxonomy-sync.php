@@ -258,5 +258,275 @@ class ELKARETRO_TAXONOMY_SYNC {
     public static function get_taxonomies_to_sync() {
         return self::$taxonomies_to_sync;
     }
+
+    /**
+     * Проставляет термы для всех типов игрушек на основе Pods полей.
+     *
+     * @return array
+     */
+    public static function sync_toy_types_terms() {
+        if ( ! function_exists( 'pods' ) ) {
+            return array(
+                'success' => false,
+                'message' => 'Pods is not available',
+            );
+        }
+
+        $post_type = 'toy_type';
+        $fields    = array(
+            'occurrence_field'        => 'occurrence',
+            'year_of_production_field' => 'year_of_production',
+            'material_field'          => 'material',
+            'manufacturer_field'      => 'manufacturer',
+            'size_field'              => 'size',
+            'glass_thickness_field'   => 'glass_thickness',
+            'mounting_type_field'     => 'mounting_type',
+        );
+
+        $query = new WP_Query(
+            array(
+                'post_type'      => $post_type,
+                'post_status'    => 'any',
+                'posts_per_page' => -1,
+                'fields'         => 'ids',
+            )
+        );
+
+        if ( empty( $query->posts ) ) {
+            return array(
+                'success' => false,
+                'message' => 'No toy_type posts found',
+            );
+        }
+
+        $synced = 0;
+        foreach ( $query->posts as $post_id ) {
+            $pod = pods( $post_type, $post_id );
+            if ( ! $pod || ! $pod->exists() ) {
+                continue;
+            }
+
+            foreach ( $fields as $field_slug => $taxonomy ) {
+                $value = $pod->field( $field_slug );
+                if ( empty( $value ) ) {
+                    continue;
+                }
+
+                $term_slugs = self::extract_term_slugs( $value, $taxonomy );
+
+                if ( $term_slugs ) {
+                    wp_set_object_terms( $post_id, array_unique( $term_slugs ), $taxonomy, false );
+                    $synced++;
+                }
+            }
+        }
+
+        return array(
+            'success' => true,
+            'message' => sprintf( 'Synced %d toy_type term relationships', $synced ),
+        );
+    }
+
+    /**
+     * Проставляет термы для всех экземпляров игрушек на основе Pods полей.
+     *
+     * @return array
+     */
+    public static function sync_toy_instances_terms() {
+        if ( ! function_exists( 'pods' ) ) {
+            return array(
+                'success' => false,
+                'message' => 'Pods is not available',
+            );
+        }
+
+        $post_type = 'toy_instance';
+        $fields    = array(
+            'authenticity_field'    => 'authenticity',
+            'lot_configuration_field' => 'lot_configurations',
+            'property_field'        => 'property',
+            'condition_field'       => 'condition',
+            'tube_condition_field'  => 'tube_condition',
+            'paint_type_field'      => 'paint_type',
+            'color_type_field'      => 'color_type',
+            'back_color_field'      => 'back_color',
+        );
+
+        $query = new WP_Query(
+            array(
+                'post_type'      => $post_type,
+                'post_status'    => 'any',
+                'posts_per_page' => -1,
+                'fields'         => 'ids',
+            )
+        );
+
+        if ( empty( $query->posts ) ) {
+            return array(
+                'success' => false,
+                'message' => 'No toy_instance posts found',
+            );
+        }
+
+        $synced = 0;
+        foreach ( $query->posts as $post_id ) {
+            $pod = pods( $post_type, $post_id );
+            if ( ! $pod || ! $pod->exists() ) {
+                continue;
+            }
+
+            foreach ( $fields as $field_slug => $taxonomy ) {
+                $value = $pod->field( $field_slug );
+                if ( empty( $value ) ) {
+                    continue;
+                }
+
+                $term_slugs = self::extract_term_slugs( $value, $taxonomy );
+
+                if ( $term_slugs ) {
+                    wp_set_object_terms( $post_id, array_unique( $term_slugs ), $taxonomy, false );
+                    $synced++;
+                }
+            }
+        }
+
+        return array(
+            'success' => true,
+            'message' => sprintf( 'Synced %d toy_instance term relationships', $synced ),
+        );
+    }
+
+    /**
+     * Преобразует данные Pods поля в массив slug'ов таксономии.
+     *
+     * @param mixed  $value
+     * @param string $taxonomy
+     * @return array
+     */
+    protected static function extract_term_slugs( $value, $taxonomy ) {
+        $slugs = array();
+
+        if ( is_array( $value ) ) {
+            foreach ( $value as $item ) {
+                if ( is_array( $item ) ) {
+                    if ( isset( $item['term_id'] ) ) {
+                        $term = get_term( (int) $item['term_id'], $taxonomy );
+                        if ( $term && ! is_wp_error( $term ) && $term->taxonomy === $taxonomy && $term->slug !== $taxonomy ) {
+                            $slugs[] = $term->slug;
+                            continue;
+                        }
+                    }
+                    $resolved_slug = self::resolve_term_slug(
+                        isset( $item['slug'] ) ? $item['slug'] : '',
+                        $taxonomy,
+                        isset( $item['name'] ) ? $item['name'] : ''
+                    );
+                    if ( $resolved_slug ) {
+                        $slugs[] = $resolved_slug;
+                        continue;
+                    }
+                } elseif ( is_object( $item ) ) {
+                    if ( isset( $item->term_id ) ) {
+                        $term = get_term( (int) $item->term_id, $taxonomy );
+                        if ( $term && ! is_wp_error( $term ) && $term->taxonomy === $taxonomy && $term->slug !== $taxonomy ) {
+                            $slugs[] = $term->slug;
+                            continue;
+                        }
+                    }
+                    $resolved_slug = self::resolve_term_slug(
+                        ! empty( $item->slug ) ? $item->slug : '',
+                        $taxonomy,
+                        ! empty( $item->name ) ? $item->name : ''
+                    );
+                    if ( $resolved_slug ) {
+                        $slugs[] = $resolved_slug;
+                        continue;
+                    }
+                } elseif ( is_numeric( $item ) ) {
+                    $term = get_term( (int) $item, $taxonomy );
+                    if ( $term && ! is_wp_error( $term ) && $term->taxonomy === $taxonomy && $term->slug !== $taxonomy ) {
+                        $slugs[] = $term->slug;
+                    }
+                } elseif ( is_string( $item ) && $item !== '' ) {
+                    $resolved_slug = self::resolve_term_slug( $item, $taxonomy );
+                    if ( $resolved_slug ) {
+                        $slugs[] = $resolved_slug;
+                    }
+                }
+            }
+        } elseif ( is_object( $value ) && isset( $value->term_id ) ) {
+            $term = get_term( (int) $value->term_id, $taxonomy );
+            if ( $term && ! is_wp_error( $term ) && $term->taxonomy === $taxonomy && $term->slug !== $taxonomy ) {
+                $slugs[] = $term->slug;
+            }
+        } elseif ( is_object( $value ) && ( ! empty( $value->slug ) || ! empty( $value->name ) ) ) {
+            $resolved_slug = self::resolve_term_slug(
+                ! empty( $value->slug ) ? $value->slug : '',
+                $taxonomy,
+                ! empty( $value->name ) ? $value->name : ''
+            );
+            if ( $resolved_slug ) {
+                $slugs[] = $resolved_slug;
+            }
+        } elseif ( is_numeric( $value ) ) {
+            $term = get_term( (int) $value, $taxonomy );
+            if ( $term && ! is_wp_error( $term ) && $term->taxonomy === $taxonomy && $term->slug !== $taxonomy ) {
+                $slugs[] = $term->slug;
+            }
+        } elseif ( is_string( $value ) && $value !== '' ) {
+            $resolved_slug = self::resolve_term_slug( $value, $taxonomy );
+            if ( $resolved_slug ) {
+                $slugs[] = $resolved_slug;
+            }
+        }
+
+        return $slugs;
+    }
+
+    /**
+     * Возвращает slug существующего терма, проверяя slug/ID/название.
+     *
+     * @param string $slug_candidate  Возможный slug или произвольное значение.
+     * @param string $taxonomy        Таксономия.
+     * @param string $name_candidate  Необязательное название терма.
+     * @return string
+     */
+    protected static function resolve_term_slug( $slug_candidate, $taxonomy, $name_candidate = '' ) {
+        $slug_candidate = is_string( $slug_candidate ) ? trim( $slug_candidate ) : '';
+        if ( '' !== $slug_candidate ) {
+            $sanitized = sanitize_title( $slug_candidate );
+            if ( $sanitized && $sanitized !== $taxonomy ) {
+                $term = get_term_by( 'slug', $sanitized, $taxonomy );
+                if ( $term && ! is_wp_error( $term ) ) {
+                    return $term->slug;
+                }
+
+                if ( ctype_digit( (string) $sanitized ) ) {
+                    $term = get_term( (int) $sanitized, $taxonomy );
+                    if ( $term && ! is_wp_error( $term ) && $term->taxonomy === $taxonomy ) {
+                        return $term->slug;
+                    }
+                }
+            }
+        }
+
+        $name_candidate = is_string( $name_candidate ) ? trim( $name_candidate ) : '';
+        if ( '' !== $name_candidate ) {
+            $term = get_term_by( 'name', $name_candidate, $taxonomy );
+            if ( $term && ! is_wp_error( $term ) ) {
+                return $term->slug;
+            }
+
+            $alt_slug = sanitize_title( $name_candidate );
+            if ( $alt_slug && $alt_slug !== $taxonomy ) {
+                $term = get_term_by( 'slug', $alt_slug, $taxonomy );
+                if ( $term && ! is_wp_error( $term ) ) {
+                    return $term->slug;
+                }
+            }
+        }
+
+        return '';
+    }
 }
 

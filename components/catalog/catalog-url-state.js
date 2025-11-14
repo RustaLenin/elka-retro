@@ -68,8 +68,9 @@ export const parse = (search = '') => {
       return;
     }
 
-    if (rawKey.startsWith('filters[') && rawKey.endsWith(']')) {
-      const filterKey = rawKey.slice(8, -1).trim();
+    if (rawKey.startsWith('filters[')) {
+      const match = rawKey.match(/^filters\[(.+?)\](?:\[\])?$/);
+      const filterKey = match ? match[1].trim() : '';
       if (!filterKey) {
         return;
       }
@@ -130,7 +131,7 @@ export const serialize = (state = {}) => {
       }
       values.forEach((value) => {
         if (value !== undefined && value !== null && value !== '') {
-          params.append(`filters[${key}]`, value);
+          params.append(`filters[${key}][]`, value);
         }
       });
     });

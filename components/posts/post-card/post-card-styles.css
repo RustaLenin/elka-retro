@@ -59,14 +59,10 @@
 }
 
 post-card {
-  display: block;
-  width: 30%;
-  max-width: 400px;
-}
-
-post-card .post-card {
   display: flex;
   flex-direction: column;
+  width: 30%;
+  max-width: 400px;
   height: 100%;
   background: var(--color-card, rgba(32, 34, 39, 0.95));
   border: 1px solid var(--color-border-accent);
@@ -76,7 +72,7 @@ post-card .post-card {
   position: relative;
 }
 
-post-card .post-card:hover {
+post-card:hover {
   transform: translateY(-4px) scale(1.02);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
@@ -107,7 +103,7 @@ post-card .post-card_image img {
   transition: transform 0.3s ease;
 }
 
-post-card .post-card:hover .post-card_image img {
+post-card:hover .post-card_image img {
   transform: scale(1.05);
 }
 
@@ -130,7 +126,7 @@ post-card .post-card_title {
   transition: color 0.2s;
 }
 
-post-card .post-card:hover .post-card_title {
+post-card:hover .post-card_title {
   color: var(--color-accent, rgba(255, 232, 155, 1));
 }
 

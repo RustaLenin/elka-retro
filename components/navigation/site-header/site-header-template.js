@@ -5,7 +5,7 @@ export function site_header_template(state) {
         
         <!-- Left: Logo and Nav -->
         <div class="site_header-left">
-          <a href="/" class="site_header-logo_link" aria-label="Go to homepage">
+          <a href="/" class="site_header-logo_link" aria-label="Перейти на главную">
             <span class="site_header-logo">
               <ui-icon name="logo" size="large" class="site_header-logo_icon"></ui-icon>
               <span class="site_header-logo_text">Ёлка Ретро</span>
@@ -21,68 +21,21 @@ export function site_header_template(state) {
         
         <!-- Right: Actions -->
         <div class="site_header-actions">
-          <button class="site_header-action_button" aria-label="Search">
-            <ui-icon name="search" size="medium" class="site_header-action_icon"></ui-icon>
-          </button>
+          <!-- Меню пользователя (для авторизованных) или кнопка входа (для неавторизованных) -->
+          <user-menu></user-menu>
           
-          <a href="/account" class="site_header-action_button" aria-label="Account">
-            <ui-icon name="account" size="medium" class="site_header-action_icon"></ui-icon>
-          </a>
-          
-          <a href="/cart" class="site_header-cart_link" aria-label="Cart">
-            <ui-icon name="cart" size="medium" class="site_header-action_icon"></ui-icon>
-            <span class="site_header-cart_text">Корзина</span>
-            ${state.cartCount > 0 ? `
-              <span class="site_header-cart_badge">${state.cartCount > 99 ? '99+' : state.cartCount}</span>
-            ` : ''}
-          </a>
-          
-          <button class="site_header-menu_button MobileMenuToggle" aria-label="Open menu">
-            <ui-icon name="menu" size="medium" class="site_header-action_icon"></ui-icon>
-          </button>
+          <ui-button
+            type="ghost"
+            icon="cart"
+            label="Корзина"
+            action="link"
+            href="/cart"
+            class="site_header-cart_button"
+            aria-label="Корзина"
+            ${state.cartCount > 0 ? `data-badge="${state.cartCount > 99 ? '99+' : state.cartCount}"` : ''}
+          ></ui-button>
         </div>
         
-      </div>
-      
-      <!-- Mobile Menu -->
-      <div class="site_header-mobile_menu ${state.menuOpen ? 'site_header-mobile_menu--open' : ''}">
-        <div class="site_header-mobile_content">
-          <div class="site_header-mobile_header">
-            <a href="/" class="site_header-mobile_logo">
-              <ui-icon name="logo" size="medium" class="site_header-logo_icon"></ui-icon>
-              <span>НАША ЁЛКА</span>
-            </a>
-            <p class="site_header-mobile_subtitle">Vintage ornaments, modern experience</p>
-          </div>
-          
-          <nav class="site_header-mobile_nav">
-            <a href="${state.catalogUrl}" class="site_header-mobile_link CloseMobileMenu">
-              <ui-icon name="grid" size="medium"></ui-icon>
-              <span>Каталог</span>
-            </a>
-            <a href="/about" class="site_header-mobile_link CloseMobileMenu">
-              <ui-icon name="about" size="medium"></ui-icon>
-              <span>О Нас</span>
-            </a>
-            <a href="/contact" class="site_header-mobile_link CloseMobileMenu">
-              <ui-icon name="contact" size="medium"></ui-icon>
-              <span>Контакты</span>
-            </a>
-          </nav>
-          
-          <div class="site_header-mobile_footer">
-            <a href="/account" class="site_header-mobile_link CloseMobileMenu">
-              <ui-icon name="account" size="medium" class="site_header-nav_icon"></ui-icon>
-              <span>Аккаунт</span>
-            </a>
-            <a href="/cart" class="site_header-mobile_link CloseMobileMenu">
-              <ui-icon name="cart" size="medium" class="site_header-nav_icon"></ui-icon>
-              <span>Корзина ${state.cartCount > 0 ? `(${state.cartCount})` : ''}</span>
-            </a>
-          </div>
-        </div>
-        
-        <div class="site_header-mobile_overlay CloseMobileMenu"></div>
       </div>
       
       <!-- Accent Line -->

@@ -6,7 +6,6 @@ class SiteHeader extends BaseElement {
     super();
     this.state = {
       cartCount: 2,
-      menuOpen: false,
       catalogUrl: '/catalog/'
     };
   }
@@ -24,15 +23,119 @@ class SiteHeader extends BaseElement {
       this.state.catalogUrl = catalogAttr;
     }
     
+    // Инициализируем состояние авторизации
+    this.state.authenticated = window.app?.auth?.authenticated || false;
+    this.state.user = window.app?.auth?.user || null;
+    
     this.render();
     this.attachEventListeners();
     
-    // Listen for cart updates
+    // Инициализируем счетчик корзины
+    this.initCartCount();
+    
+    // Инициализируем компоненты авторизации
+    this._initAuth();
+    
+    // Listen for cart updates (новые события от cartStore)
+    this._handleCartUpdated = (e) => {
+      this.state.cartCount = e.detail.count || 0;
+      this.render();
+      this.attachEventListeners();
+    };
+    
+    window.addEventListener('elkaretro:cart:updated', this._handleCartUpdated);
+    
+    // Также слушаем старое событие для обратной совместимости
     window.addEventListener('cart-updated', (e) => {
-      this.state.cartCount = e.detail.count;
+      this.state.cartCount = e.detail.count || 0;
       this.render();
       this.attachEventListeners();
     });
+
+    // Слушаем изменения авторизации
+    this._handleAuthChange = () => this._updateAuthState();
+    window.addEventListener('elkaretro:auth:login', this._handleAuthChange);
+    window.addEventListener('elkaretro:auth:register', this._handleAuthChange);
+    window.addEventListener('elkaretro:auth:logout', this._handleAuthChange);
+  }
+
+  async _initAuth() {
+    // Загружаем auth-modal-manager и user-menu
+    try {
+      await Promise.all([
+        import('../../user-profile/auth-modal-manager.js'),
+        import('../../user-profile/user-menu/user-menu.js')
+      ]);
+
+      // Инициализируем менеджер модальных окон
+      if (window.app?.authModalManager) {
+        await window.app.authModalManager.init();
+      }
+    } catch (error) {
+      console.error('[SiteHeader] Failed to initialize auth components:', error);
+    }
+  }
+
+  _updateAuthState() {
+    if (window.app?.auth) {
+      this.state.authenticated = window.app.auth.authenticated || false;
+      this.state.user = window.app.auth.user || null;
+      this.render();
+      this.attachEventListeners();
+    }
+  }
+
+  disconnectedCallback() {
+    if (this._handleCartUpdated) {
+      window.removeEventListener('elkaretro:cart:updated', this._handleCartUpdated);
+    }
+    
+    if (this._handleAuthChange) {
+      window.removeEventListener('elkaretro:auth:login', this._handleAuthChange);
+      window.removeEventListener('elkaretro:auth:register', this._handleAuthChange);
+      window.removeEventListener('elkaretro:auth:logout', this._handleAuthChange);
+    }
+  }
+
+  /**
+   * Инициализировать счетчик корзины из cartStore
+   */
+  async initCartCount() {
+    // Пытаемся получить счетчик из cartStore
+    if (window.app && window.app.cartStore) {
+      const count = window.app.cartStore.getCount();
+      if (count !== this.state.cartCount) {
+        this.state.cartCount = count;
+        this.render();
+        this.attachEventListeners();
+      }
+    } else {
+      // Fallback: пытаемся загрузить cartStore асинхронно
+      try {
+        const { getCartStore } = await import('../../cart/cart-store.js');
+        const cartStore = getCartStore();
+        if (!window.app.cartStore) {
+          window.app.cartStore = cartStore;
+        }
+        const count = cartStore.getCount();
+        if (count !== this.state.cartCount) {
+          this.state.cartCount = count;
+          this.render();
+          this.attachEventListeners();
+        }
+      } catch (error) {
+        console.warn('[SiteHeader] Failed to load cart store:', error);
+        // Если не удалось загрузить, проверяем через небольшую задержку
+        setTimeout(() => {
+          if (window.app && window.app.cartStore) {
+            const count = window.app.cartStore.getCount();
+            this.state.cartCount = count;
+            this.render();
+            this.attachEventListeners();
+          }
+        }, 500);
+      }
+    }
   }
   
   render() {
@@ -40,29 +143,7 @@ class SiteHeader extends BaseElement {
   }
   
   attachEventListeners() {
-    // Mobile menu toggle
-    const menuButton = this.querySelector('.MobileMenuToggle');
-    if (menuButton) {
-      menuButton.addEventListener('click', () => this.toggleMenu());
-    }
-    
-    // Close mobile menu
-    const closeButtons = this.querySelectorAll('.CloseMobileMenu');
-    closeButtons.forEach(button => {
-      button.addEventListener('click', () => this.closeMenu());
-    });
-  }
-  
-  toggleMenu() {
-    this.state.menuOpen = !this.state.menuOpen;
-    this.render();
-    this.attachEventListeners();
-  }
-  
-  closeMenu() {
-    this.state.menuOpen = false;
-    this.render();
-    this.attachEventListeners();
+    // Обработчики событий не требуются, так как мобильное меню удалено
   }
 }
 

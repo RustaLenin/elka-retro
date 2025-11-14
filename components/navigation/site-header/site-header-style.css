@@ -64,6 +64,13 @@ site-header .site_header-logo_icon {
   width: 2rem;
   height: 2rem;
   color: var(--color-accent);
+  transition: transform 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+site-header .site_header-logo_link:hover .site_header-logo_icon {
+  transform: scale(1.05);
+  color: var(--color-primary);
 }
 
 /* Desktop Navigation */
@@ -120,22 +127,7 @@ site-header .site_header-nav_link:hover ui-icon {
 site-header .site_header-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-
-site-header .site_header-action_button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 0.5rem;
-  color: rgba(245, 247, 250, 0.8);
-  transition: color 0.2s;
-}
-
-site-header .site_header-action_button:hover {
-  color: var(--color-chart-4);
+  gap: 0.75rem;
 }
 
 site-header .site_header-action_icon {
@@ -143,180 +135,71 @@ site-header .site_header-action_icon {
   height: 1.75rem;
 }
 
-site-header .site_header-cart_link {
+/* Стили для кнопок в хедере (единообразие) */
+site-header .site_header-actions ui-button,
+site-header .site_header-actions .ui-button {
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
   font-size: 1.125rem;
   color: rgba(245, 247, 250, 0.9);
-  transition: all 0.2s;
 }
 
-site-header .site_header-cart_link:hover {
-  color: var(--color-chart-3);
-  background-color: rgba(255, 255, 255, 0.05);
+/* Стили для кнопки корзины */
+site-header .site_header-cart_button {
+  position: relative;
 }
 
-site-header .site_header-cart_text {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  site-header .site_header-cart_text {
-    display: inline;
-  }
-}
-
-site-header .site_header-cart_badge {
+/* Badge для корзины через data-атрибут */
+site-header .site_header-cart_button[data-badge]::after {
+  content: attr(data-badge);
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 1.375rem;
   height: 1.375rem;
-  padding: 0 0.25rem;
-  margin-left: 0.25rem;
+  padding: 0 0.375rem;
   border-radius: 9999px;
   background-color: var(--color-primary);
   color: #0b0c10;
   font-size: 0.75rem;
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  z-index: 1;
+  line-height: 1;
+  box-sizing: border-box;
 }
 
-/* Mobile Menu Button */
-site-header .site_header-menu_button {
-  display: inline-flex;
-  width: 3rem;
-  height: 3rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.5rem;
-  color: rgba(245, 247, 250, 0.8);
-  transition: color 0.2s;
+/* Для одной цифры (1-9) делаем badge идеально круглым */
+site-header .site_header-cart_button[data-badge="1"]::after,
+site-header .site_header-cart_button[data-badge="2"]::after,
+site-header .site_header-cart_button[data-badge="3"]::after,
+site-header .site_header-cart_button[data-badge="4"]::after,
+site-header .site_header-cart_button[data-badge="5"]::after,
+site-header .site_header-cart_button[data-badge="6"]::after,
+site-header .site_header-cart_button[data-badge="7"]::after,
+site-header .site_header-cart_button[data-badge="8"]::after,
+site-header .site_header-cart_button[data-badge="9"]::after {
+  width: 1.375rem;
+  padding: 0;
 }
 
-@media (min-width: 768px) {
-  site-header .site_header-menu_button {
+/* Скрываем текст на мобильных, показываем только иконку */
+@media (max-width: 639px) {
+  site-header .site_header-actions ui-button .label,
+  site-header .site_header-actions .ui-button .label {
     display: none;
+  }
+  
+  /* Уменьшаем padding на мобильных */
+  site-header .site_header-actions ui-button,
+  site-header .site_header-actions .ui-button {
+    padding: 0.5rem !important;
   }
 }
 
-site-header .site_header-menu_button:hover {
-  color: var(--color-accent);
-}
-
-/* Mobile Menu */
-site-header .site_header-mobile_menu {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: var(--z-index-header-dropdown, 100);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-site-header .site_header-mobile_menu--open {
-  pointer-events: auto;
-  opacity: 1;
-}
-
-site-header .site_header-mobile_content {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 86%;
-  max-width: 360px;
-  height: 100%;
-  background-color: var(--color-secondary);
-  border-right: 1px solid var(--color-border);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  transform: translateX(-100%);
-  transition: transform 0.3s;
-}
-
-site-header .site_header-mobile_menu--open .site_header-mobile_content {
-  transform: translateX(0);
-}
-
-site-header .site_header-mobile_overlay {
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-site-header .site_header-mobile_header {
-  padding-top: 0.25rem;
-}
-
-site-header .site_header-mobile_logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-}
-
-site-header .site_header-mobile_logo .site_header-logo_icon {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-site-header .site_header-mobile_subtitle {
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  color: var(--color-muted-foreground);
-}
-
-site-header .site_header-mobile_nav {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-site-header .site_header-mobile_link {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  border: 1px solid transparent;
-  transition: all 0.2s;
-  color: rgba(245, 247, 250, 0.8);
-}
-
-site-header .site_header-mobile_link:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--color-accent);
-}
-
-site-header .site_header-mobile_link ui-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  opacity: 0.8;
-}
-
-site-header .site_header-mobile_link:hover ui-icon {
-  opacity: 1;
-}
-
-site-header .site_header-mobile_footer {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
 
 /* Accent Line */
 site-header .site_header-accent_line {

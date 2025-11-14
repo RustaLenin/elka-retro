@@ -1,33 +1,39 @@
 /* TODO: Align with final design tokens when available. */
 
-.ui-input-number__wrapper {
+/* Стили контейнера применяются к самому Web Component элементу */
+/* ⚠️ ВАЖНО: Web Component - это элемент, а не класс! Селектор БЕЗ точки */
+ui-input-number {
+  position: relative;
   display: inline-flex;
   align-items: center;
   width: 100%;
+  max-width: 600px; /* Ограничиваем максимальную ширину инпута */
   padding: 0 12px;
-  border: 1px solid var(--input-number-border, #d0d5dd);
+  border: 1px solid var(--input-number-border, var(--color-border, #2a2d31));
   border-radius: 8px;
-  background: var(--input-number-background, #ffffff);
+  background: var(--input-number-background, var(--color-card, #17181d));
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.ui-input-number__wrapper:focus-within {
-  border-color: var(--input-number-border-focus, #155eef);
-  box-shadow: 0 0 0 3px rgba(21, 94, 239, 0.1);
+ui-input-number:focus-within {
+  border-color: var(--input-number-border-focus, var(--color-primary, #9b8cff));
+  box-shadow: 0 0 0 3px rgba(155, 140, 255, 0.15);
 }
 
-.ui-input-number__wrapper[data-status="error"] {
+ui-input-number[data-status="error"] {
   border-color: var(--input-number-border-error, #d92d20);
 }
 
-.ui-input-number__wrapper[data-status="success"] {
+ui-input-number[data-status="success"] {
   border-color: var(--input-number-border-success, #039855);
 }
+
+/* Обёртка больше не используется - стили контейнера на самом элементе ui-input-number */
 
 .ui-input-number__prefix,
 .ui-input-number__suffix {
   font-size: 14px;
-  color: var(--input-number-adornment, #475467);
+  color: var(--input-number-adornment, var(--color-muted-foreground, #8a8f99));
   margin-right: 8px;
 }
 
@@ -43,7 +49,7 @@
   background: transparent;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--input-number-text, #101828);
+  color: var(--input-number-text, var(--color-foreground, #f5f7fa));
   padding: 10px 0;
   appearance: textfield;
 }
@@ -55,14 +61,14 @@
 }
 
 .ui-input-number__control::placeholder {
-  color: var(--input-number-placeholder, #98a2b3);
+  color: var(--input-number-placeholder, var(--color-muted-foreground, #8a8f99));
 }
 
 .ui-input-number__steppers {
   display: flex;
   flex-direction: column;
   margin-left: 8px;
-  border-left: 1px solid var(--input-number-separator, #e4e7ec);
+  border-left: 1px solid var(--input-number-separator, var(--color-border, #2a2d31));
 }
 
 .ui-input-number__stepper {
@@ -70,23 +76,23 @@
   background: transparent;
   padding: 4px;
   cursor: pointer;
-  color: var(--input-number-stepper, #667085);
+  color: var(--input-number-stepper, var(--color-muted-foreground, #8a8f99));
 }
 
 .ui-input-number__stepper:hover {
-  color: var(--input-number-stepper-hover, #344054);
+  color: var(--input-number-stepper-hover, var(--color-foreground, #f5f7fa));
 }
 
 .ui-input-number__stepper:focus {
-  outline: 2px solid var(--input-number-border-focus, #155eef);
+  outline: 2px solid var(--input-number-border-focus, var(--color-primary, #9b8cff));
   outline-offset: 2px;
 }
 
-.ui-input-number__wrapper[data-disabled="true"] .ui-input-number__control,
-.ui-input-number__wrapper[data-disabled="true"],
+ui-input-number[data-disabled="true"] .ui-input-number__control,
+ui-input-number[data-disabled="true"],
 .ui-input-number__control:disabled {
   cursor: not-allowed;
-  color: var(--input-number-disabled, #98a2b3);
+  color: var(--input-number-disabled, var(--color-muted-foreground, #8a8f99));
   opacity: 0.6;
 }
 

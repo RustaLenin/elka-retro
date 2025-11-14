@@ -65,3 +65,28 @@ This catalog experience brings together search, filtering, sorting, and infinite
 
 Refer to TODOs inside each placeholder file for implementation guidance.
 
+### Backlog (Catalog-specific features)
+
+#### Иерархический фильтр категорий (`category-of-toys`)
+
+**Контекст:**
+Таксономия `category-of-toys` иерархическая (родитель-потомок). Нужен кастомный компонент для отображения дерева категорий с возможностью:
+- Раскрытия/сворачивания подпунктов
+- Выбора отдельных категорий (родительских и дочерних)
+- Визуального отображения иерархии (отступы, индикаторы)
+
+**Это не универсальный компонент UI Kit**, а специфичный для каталога компонент, который:
+- Не является полем формы (не интегрируется в `ui-form-controller`)
+- Имеет собственную логику выбора и синхронизации с URL
+- Работает напрямую с `window.taxonomy_terms['category-of-toys']`
+
+**Планируемая реализация:**
+- Компонент: `components/catalog/sidebar/category-tree-filter.js`
+- Использование: в `shared-category-filter.js` для рендеринга дерева
+- Интеграция: синхронизация выбранных категорий с `catalog-url-state.js`
+- Визуал: дерево с чекбоксами, поддержка раскрытия/сворачивания веток
+
+**Зависимости:**
+- Данные доступны в `window.taxonomy_terms['category-of-toys']` (уже загружены)
+- Структура терминов содержит поле `parent` для построения дерева
+

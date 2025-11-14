@@ -92,11 +92,11 @@ export function error_page_template(state) {
       
       <div class="error-page_actions">
         <a href="/" class="error-page_home-link">
-          <ui-button type="primary" label="Вернуться на главную"></ui-button>
+          <ui-button type="primary" label="Вернуться на главную" icon="chevron_left" icon-position="left"></ui-button>
         </a>
         ${errorCode === '404' ? `
           <a href="/blog/" class="error-page_blog-link">
-            <ui-button type="secondary" label="Читать новости"></ui-button>
+            <ui-button type="secondary" label="Читать новости" icon="news" icon-position="left"></ui-button>
           </a>
         ` : ''}
       </div>

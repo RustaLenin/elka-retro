@@ -99,8 +99,7 @@ export function image_gallery_template(state) {
       ` : ''}
     </div>
     
-    ${fullscreen ? `
-      <div class="image-gallery_fullscreen-overlay">
+    <div class="image-gallery_fullscreen-overlay ${fullscreen ? 'image-gallery_fullscreen-overlay--visible' : ''}">
         <div class="image-gallery_fullscreen-container">
           <button class="image-gallery_fullscreen-close" aria-label="Закрыть полноэкранный режим">
             <ui-icon name="close" size="large"></ui-icon>
@@ -161,7 +160,6 @@ export function image_gallery_template(state) {
           ` : ''}
         </div>
       </div>
-    ` : ''}
   `;
 }
 

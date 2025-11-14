@@ -4,7 +4,7 @@
  */
 
 export function toy_type_card_template(state) {
-  const { id, title, year, factory, rarity, image, link, availableCount, minPrice, maxPrice } = state;
+  const { id, title, year, factory, rarity, rarityName, image, link, availableCount, minPrice, maxPrice } = state;
   
   // Экранируем HTML для безопасности
   function escapeHtml(text) {
@@ -27,7 +27,7 @@ export function toy_type_card_template(state) {
     'rarely': 'Редко встречается',
     'rare': 'Раритетный экземпляр'
   };
-  const rarityLabel = rarity ? (rarityLabels[rarity] || rarity) : '';
+  const rarityLabel = rarityName || (rarity ? (rarityLabels[rarity] || rarity) : '');
   
   // Формируем информацию о цене (если есть)
   let priceInfo = '';
@@ -38,47 +38,45 @@ export function toy_type_card_template(state) {
   }
   
   return `
-    <article class="toy-type-card" data-toy-type-id="${id || ''}">
-      <a href="${safeLink}" class="toy-type-card_link">
-        ${safeImage ? `
-          <div class="toy-type-card_image">
-            <img src="${safeImage}" alt="${safeTitle}" loading="lazy" />
-          </div>
+    <a href="${safeLink}" class="toy-type-card_link">
+      ${safeImage ? `
+        <div class="toy-type-card_image">
+          <img src="${safeImage}" alt="${safeTitle}" loading="lazy" />
+        </div>
+      ` : ''}
+      <div class="toy-type-card_content">
+        ${safeTitle ? `
+          <h3 class="toy-type-card_title">${safeTitle}</h3>
         ` : ''}
-        <div class="toy-type-card_content">
-          ${safeTitle ? `
-            <h3 class="toy-type-card_title">${safeTitle}</h3>
+        <div class="toy-type-card_meta">
+          ${safeYear ? `
+            <span class="toy-type-card_year">${safeYear}</span>
           ` : ''}
-          <div class="toy-type-card_meta">
-            ${safeYear ? `
-              <span class="toy-type-card_year">${safeYear}</span>
-            ` : ''}
-            ${safeFactory ? `
-              <span class="toy-type-card_factory" data-hint="${safeFactory}">${safeFactory}</span>
-            ` : ''}
-            ${rarityLabel ? `
-              <span class="toy-type-card_rarity rarity--${rarity || ''}">${rarityLabel}</span>
-            ` : ''}
-          </div>
-          ${priceInfo ? `
-            <div class="toy-type-card_price">${priceInfo}</div>
+          ${safeFactory ? `
+            <span class="toy-type-card_factory" data-hint="${safeFactory}">${safeFactory}</span>
+          ` : ''}
+          ${rarityLabel ? `
+            <span class="toy-type-card_rarity rarity--${rarity || ''}">${rarityLabel}</span>
           ` : ''}
         </div>
-      </a>
-      <div class="toy-type-card_actions">
-        <a href="${safeLink}" class="toy-type-card_view-link">
-          ${availableCount !== undefined && availableCount > 0 ? `
-            <span class="toy-type-card_availability-label">
-              Доступно экземпляров: <span class="toy-type-card_count-badge">${availableCount}</span>
-            </span>
-          ` : ''}
-          <span class="toy-type-card_view-text">
-            Смотреть
-            <ui-icon name="chevron_right" size="small"></ui-icon>
-          </span>
-        </a>
+        ${priceInfo ? `
+          <div class="toy-type-card_price">${priceInfo}</div>
+        ` : ''}
       </div>
-    </article>
+    </a>
+    <div class="toy-type-card_actions">
+      <a href="${safeLink}" class="toy-type-card_view-link">
+        ${availableCount !== undefined && availableCount > 0 ? `
+          <span class="toy-type-card_availability-label">
+            Доступно экземпляров: <span class="toy-type-card_count-badge">${availableCount}</span>
+          </span>
+        ` : ''}
+        <span class="toy-type-card_view-text">
+          Смотреть
+          <ui-icon name="chevron_right" size="small"></ui-icon>
+        </span>
+      </a>
+    </div>
   `;
 }
 

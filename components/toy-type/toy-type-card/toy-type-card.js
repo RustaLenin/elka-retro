@@ -12,6 +12,7 @@ export class ToyTypeCard extends BaseElement {
     title: { type: 'string', default: '', attribute: { name: 'title', observed: true, reflect: true } },
     year: { type: 'string', default: '', attribute: { name: 'year', observed: true, reflect: true } },
     factory: { type: 'string', default: '', attribute: { name: 'factory', observed: true, reflect: true } },
+    rarityName: { type: 'string', default: '', attribute: { name: 'rarity-name', observed: true, reflect: true } },
     rarity: { type: 'string', default: '', attribute: { name: 'rarity', observed: true, reflect: true } },
     image: { type: 'string', default: '', attribute: { name: 'image', observed: true, reflect: true } },
     link: { type: 'string', default: '', attribute: { name: 'link', observed: true, reflect: true } },
@@ -27,7 +28,23 @@ export class ToyTypeCard extends BaseElement {
   connectedCallback() {
     window.app.toolkit.loadCSSOnce(new URL('./toy-type-card-styles.css', import.meta.url));
     super.connectedCallback();
+    
+    // Устанавливаем data-toy-type-id на сам компонент (раньше было на article)
+    if (this.state.id) {
+      this.setAttribute('data-toy-type-id', String(this.state.id));
+    }
+    
     this.render();
+  }
+  
+  onStateChanged(key) {
+    if (key === 'id') {
+      if (this.state.id) {
+        this.setAttribute('data-toy-type-id', String(this.state.id));
+      } else {
+        this.removeAttribute('data-toy-type-id');
+      }
+    }
   }
 
   render() {

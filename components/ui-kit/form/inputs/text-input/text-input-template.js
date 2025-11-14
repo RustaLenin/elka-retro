@@ -38,20 +38,19 @@ export function renderTextInputTemplate(state) {
   const prefix = renderPrefix(state?.prefix);
   const suffix = renderSuffix(state?.suffix);
   const clearButton = renderClearButton(state);
-  const status = state?.status ? ` data-status="${escapeAttribute(state.status)}"` : '';
-  const disabledWrapper = state?.disabled ? ' data-disabled="true"' : '';
 
+  // Обёртка не нужна - стили контейнера на самом элементе ui-input-text
+  // Атрибуты status и disabled применяются к самому элементу через JS
+  // Просто возвращаем содержимое напрямую
   return `
-    <label class="ui-input-text__wrapper"${status}${disabledWrapper}>
-      ${prefix}
-      <input
-        class="ui-input-text__control"
-        type="${escapeAttribute(inputType)}"
-        value="${escapeAttribute(value)}"
-        placeholder="${escapeAttribute(placeholder)}"${disabled}${readonly}${maxlength}${autocomplete}${nameAttr}${inputMode}${pattern}
-      />
-      ${suffix}
-      ${clearButton}
-    </label>
+    ${prefix}
+    <input
+      class="ui-input-text__control"
+      type="${escapeAttribute(inputType)}"
+      value="${escapeAttribute(value)}"
+      placeholder="${escapeAttribute(placeholder)}"${disabled}${readonly}${maxlength}${autocomplete}${nameAttr}${inputMode}${pattern}
+    />
+    ${suffix}
+    ${clearButton}
   `;
 }

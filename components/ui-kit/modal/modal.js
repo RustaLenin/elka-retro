@@ -2,7 +2,7 @@ import { BaseElement } from '../../base-element.js';
 
 // Загружаем стили при импорте модуля (top-level)
 // Это гарантирует, что базовые стили всегда доступны для всех наследников
-if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
+if (window.app?.toolkit?.loadCSSOnce) {
   window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
 }
 
@@ -258,10 +258,37 @@ export class UIModal extends BaseElement {
 
   render() {
     const { title, size, closable, loading, visible } = this.state;
+    // Сохраняем дополнительные классы перед установкой базовых
+    const preservedClasses = Array.from(this.classList).filter(cls => 
+      cls !== 'modal' && 
+      !cls.startsWith('modal--') &&
+      cls !== 'modal--visible'
+    );
+    // Устанавливаем базовые классы
     this.className = `modal modal--${size} ${visible ? 'modal--visible' : ''}`;
+    // Восстанавливаем сохраненные дополнительные классы
+    preservedClasses.forEach(cls => {
+      if (cls) {
+        this.classList.add(cls);
+      }
+    });
     
     const existingBody = this._queryContainer('.modal_body') || this.querySelector('.modal_body');
-    const existingContent = existingBody ? existingBody.innerHTML : '';
+    let existingContent = existingBody ? existingBody.innerHTML : '';
+
+    // Проверяем, есть ли actions формы для перемещения в footer
+    let footerContent = '';
+    if (existingBody) {
+      const formActions = existingBody.querySelector('[data-form-actions]');
+      if (formActions) {
+        // Сохраняем содержимое actions
+        footerContent = formActions.outerHTML;
+        // Удаляем actions из body
+        formActions.remove();
+        // Обновляем existingContent без actions
+        existingContent = existingBody.innerHTML;
+      }
+    }
 
     this._removeOverlayFromBody();
 
@@ -279,6 +306,7 @@ export class UIModal extends BaseElement {
         <div class="modal_body">
           ${loading ? `<block-loader label="Загрузка..." spinduration="1200"></block-loader>` : existingContent}
         </div>
+        ${footerContent ? `<div class="modal_footer">${footerContent}</div>` : ''}
       </div>
     `;
     
@@ -304,6 +332,101 @@ export class UIModal extends BaseElement {
     if (body && element) {
       body.appendChild(element);
     }
+  }
+
+  // Публичный API
+
+  /**
+   * Проверить, видимо ли модальное окно
+   * @returns {boolean}
+   */
+  isVisible() {
+    return Boolean(this.state.visible);
+  }
+
+  /**
+   * Проверить, идет ли загрузка данных
+   * @returns {boolean}
+   */
+  isLoading() {
+    return Boolean(this.state.loading);
+  }
+
+  /**
+   * Получить заголовок
+   * @returns {string}
+   */
+  title() {
+    return this.state.title || '';
+  }
+
+  /**
+   * Установить заголовок
+   * @param {string} title - новый заголовок
+   * @returns {this}
+   */
+  setTitle(title) {
+    this.setState({ title: String(title || '') });
+    return this;
+  }
+
+  /**
+   * Получить размер
+   * @returns {string}
+   */
+  size() {
+    return this.state.size || 'medium';
+  }
+
+  /**
+   * Установить размер
+   * @param {string} size - новый размер (small, medium, large)
+   * @returns {this}
+   */
+  setSize(size) {
+    this.setState({ size: String(size || 'medium') });
+    return this;
+  }
+
+  /**
+   * Установить можно ли закрывать
+   * @param {boolean} closable - можно ли закрывать
+   * @returns {this}
+   */
+  setClosable(closable) {
+    this.setState({ closable: Boolean(closable) });
+    return this;
+  }
+
+  /**
+   * Установить URL для загрузки данных
+   * @param {string} apiUrl - URL для загрузки
+   * @returns {Promise}
+   */
+  setApiUrl(apiUrl) {
+    this.setState({ apiUrl: String(apiUrl || '') });
+    if (apiUrl && this.isConnected) {
+      return this.loadData();
+    }
+    return Promise.resolve();
+  }
+
+  /**
+   * Сбросить к дефолтным значениям
+   * @returns {this}
+   */
+  reset() {
+    this.setState({
+      title: '',
+      size: 'medium',
+      closable: true,
+      apiUrl: '',
+      loading: false,
+      visible: false
+    });
+    this.setBodyContent('');
+    this.hide();
+    return this;
   }
 }
 

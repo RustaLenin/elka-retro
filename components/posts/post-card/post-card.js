@@ -24,7 +24,23 @@ export class PostCard extends BaseElement {
   connectedCallback() {
     window.app.toolkit.loadCSSOnce(new URL('./post-card-styles.css', import.meta.url));
     super.connectedCallback();
+    
+    // Устанавливаем data-post-id на сам компонент (раньше было на article)
+    if (this.state.id) {
+      this.setAttribute('data-post-id', String(this.state.id));
+    }
+    
     this.render();
+  }
+  
+  onStateChanged(key) {
+    if (key === 'id') {
+      if (this.state.id) {
+        this.setAttribute('data-post-id', String(this.state.id));
+      } else {
+        this.removeAttribute('data-post-id');
+      }
+    }
   }
 
   render() {

@@ -6,6 +6,8 @@ if (window.app?.toolkit?.loadCSSOnce) {
 }
 
 export class UINumberInput extends BaseElement {
+  static autoRender = false; // Отключаем автоматический рендер - управляем вручную
+
   static stateSchema = {
     value:        { type: 'string',  default: '', attribute: { name: 'value', observed: true, reflect: true } },
     placeholder:  { type: 'string',  default: '', attribute: { name: 'placeholder', observed: true, reflect: true } },
@@ -48,36 +50,142 @@ export class UINumberInput extends BaseElement {
 
   connectedCallback() {
     super.connectedCallback();
+    
+    // Рендерим сначала
     this.render();
+    
+    // Затем инициализируем связь со стейтом родителя (поля)
+    // Ждем следующий кадр, чтобы убедиться, что поле уже инициализировало ссылку на форму
+    requestAnimationFrame(() => {
+      this._initStateLink();
+    });
+    
     this._emitLifecycleEvent('init');
   }
 
   disconnectedCallback() {
+    // Очищаем ссылку на стейт родителя
+    if (this.state._valueDescriptor) {
+      delete this.state.value;
+      delete this.state._valueDescriptor;
+    }
+    
     this._detachEvents();
+  }
+  
+  _initStateLink() {
+    // Находим родителя (поле)
+    const field = this.closest('ui-form-field');
+    if (!field || !field.state) {
+      // Если поля нет, работаем автономно (не в контексте формы)
+      return;
+    }
+    
+    // Если value еще не инициализирован (поле еще не создало ссылку на форму), ждем
+    if (field.state.value === undefined || !field.state._valueDescriptor) {
+      // Пытаемся еще раз через кадр
+      requestAnimationFrame(() => {
+        this._initStateLink();
+      });
+      return;
+    }
+    
+    // Если ссылка уже создана, не создаем повторно
+    if (this.state._valueDescriptor) return;
+    
+    // Создаем ссылку на значение в стейте поля
+    Object.defineProperty(this.state, 'value', {
+      get: () => field.state.value ?? '',
+      set: (val) => {
+        field.state.value = val ?? ''; // Используем setter поля (который синхронизируется с формой)
+        // Обновляем DOM напрямую
+        if (this._inputEl && this._inputEl.value !== String(val ?? '')) {
+          this._inputEl.value = val ?? '';
+        }
+        // Обновляем numericValue
+        const parsed = this._parseToNumber(val);
+        this._updatingInternally = true;
+        this.setState({ numericValue: parsed });
+        this._updatingInternally = false;
+      },
+      enumerable: true,
+      configurable: true
+    });
+    this.state._valueDescriptor = true;
+    
+    // Устанавливаем начальное значение в DOM
+    if (this._inputEl && field.state.value !== null && field.state.value !== undefined) {
+      this._inputEl.value = field.state.value ?? '';
+      const parsed = this._parseToNumber(field.state.value);
+      this._updatingInternally = true;
+      this.setState({ numericValue: parsed });
+      this._updatingInternally = false;
+    }
   }
 
   onStateChanged(_key) {
+    // value теперь обновляется автоматически через getter/setter
+    // Но нужно синхронизировать DOM при изменении извне (через setter поля)
     if (_key === 'value' && !this._updatingInternally) {
+      if (this._inputEl && this._inputEl.value !== String(this.state.value ?? '')) {
+        this._inputEl.value = this.state.value ?? '';
+      }
       const parsed = this._parseToNumber(this.state.value);
       this._updatingInternally = true;
       this.setState({ numericValue: parsed });
       this._updatingInternally = false;
-      if (this._inputEl && this._inputEl.value !== (this.state.value ?? '')) {
-        this._inputEl.value = this.state.value ?? '';
-      }
     }
 
     if (_key === 'numericValue' && !this._updatingInternally) {
       const formatted = this._formatValue(this.state.numericValue);
       if (formatted !== this.state.value) {
+        // Обновляем через setter (который синхронизируется с полем и формой)
+        this.state.value = formatted ?? '';
         this._updatingInternally = true;
-        this.setState({ value: formatted ?? '' });
+        // Не вызываем setState для value, так как setter уже обновил его
         this._updatingInternally = false;
       }
     }
 
+    // Обновляем статус (классы/атрибуты) без полной перерисовки
     if ((_key === 'status' || _key === 'messages') && !this._updatingInternally) {
+      this._updateStatus();
       this._emitValidation();
+    }
+
+    // Перерисовываем только при изменении структуры (disabled, readonly, clearable, prefix, suffix, stepper)
+    const structuralKeys = ['disabled', 'readonly', 'clearable', 'prefix', 'suffix', 'placeholder', 'min', 'max', 'step', 'precision', 'format', 'currency', 'inputMode', 'stepper'];
+    if (structuralKeys.includes(_key)) {
+      this.render();
+    }
+  }
+
+  _updateStatus() {
+    if (!this._inputEl) return;
+
+    // Обновляем классы и атрибуты для статуса напрямую на элементе
+    const status = this.state.status || 'default';
+    
+    // Удаляем все статусные классы
+    this.classList.remove('ui-input-number--default', 'ui-input-number--error', 'ui-input-number--success', 'ui-input-number--warning');
+    
+    // Добавляем класс текущего статуса
+    if (status !== 'default') {
+      this.classList.add(`ui-input-number--${status}`);
+    }
+
+    // Обновляем data-атрибут для стилизации
+    if (status !== 'default') {
+      this.setAttribute('data-status', status);
+    } else {
+      this.removeAttribute('data-status');
+    }
+
+    // Обновляем атрибут aria-invalid
+    if (status === 'error') {
+      this._inputEl.setAttribute('aria-invalid', 'true');
+    } else {
+      this._inputEl.removeAttribute('aria-invalid');
     }
   }
 
@@ -122,9 +230,16 @@ export class UINumberInput extends BaseElement {
   _onInput(event) {
     const raw = event.target.value ?? '';
     const numeric = this._parseToNumber(raw);
+    
+    // Обновляем через setter (который синхронизируется с полем и формой)
+    this.state.value = raw;
+    
+    // Обновляем numericValue и dirty
     this._updatingInternally = true;
-    this.setState({ value: raw, numericValue: numeric, dirty: true });
+    this.setState({ numericValue: numeric, dirty: true });
     this._updatingInternally = false;
+    
+    // Отправляем событие для других слушателей
     this._emitEvent('ui-input-number:input', {
       value: numeric,
       rawValue: raw,
@@ -171,9 +286,12 @@ export class UINumberInput extends BaseElement {
     const clamped = this._clamp(this._applyPrecision(next));
     const formatted = this._formatValue(clamped) ?? '';
 
+    // Обновляем через setter (который синхронизируется с полем и формой)
+    this.state.value = formatted;
+    
+    // Обновляем numericValue и dirty
     this._updatingInternally = true;
     this.setState({
-      value: formatted,
       numericValue: clamped,
       dirty: true
     });
@@ -210,8 +328,12 @@ export class UINumberInput extends BaseElement {
     const formatted = this._formatValue(clamped) ?? '';
 
     if (formatted !== this.state.value) {
+      // Обновляем через setter (который синхронизируется с полем и формой)
+      this.state.value = formatted;
+      
+      // Обновляем numericValue
       this._updatingInternally = true;
-      this.setState({ value: formatted, numericValue: clamped });
+      this.setState({ numericValue: clamped });
       this._updatingInternally = false;
       this._syncControl();
     }
@@ -286,6 +408,109 @@ export class UINumberInput extends BaseElement {
         ...detail
       }
     }));
+  }
+
+  // Публичный API
+
+  /**
+   * Получить текущее числовое значение
+   * @returns {number|null}
+   */
+  value() {
+    const val = this.state.numericValue;
+    if (val === null || val === undefined) return null;
+    return Number(val);
+  }
+
+  /**
+   * Установить значение
+   * @param {number|string|null} value - новое значение
+   * @returns {this}
+   */
+  setValue(value) {
+    let newValue = null;
+    
+    if (value !== null && value !== undefined && value !== '') {
+      newValue = Number(value);
+      
+      // Применяем min/max
+      newValue = this._clamp(newValue);
+      
+      // Применяем precision
+      if (this.state.precision !== null) {
+        newValue = this._applyPrecision(newValue);
+      }
+    }
+    
+    const previousValue = this.state.numericValue;
+    const formatted = this._formatValue(newValue) ?? '';
+    
+    // Обновляем через setter (если есть связь с полем)
+    if (this.state._valueDescriptor) {
+      this.state.value = formatted;
+    } else {
+      this.setState({ value: formatted, numericValue: newValue });
+    }
+    
+    // Обновляем DOM напрямую
+    if (this._inputEl) {
+      this._inputEl.value = formatted;
+    }
+    
+    if (previousValue !== newValue) {
+      this._updatingInternally = true;
+      this.setState({ numericValue: newValue, dirty: true });
+      this._updatingInternally = false;
+      this._emitEvent('ui-input-number:change', { 
+        value: newValue, 
+        rawValue: formatted,
+        formatted,
+        previousValue
+      });
+    }
+    
+    return this;
+  }
+
+  /**
+   * Сбросить к дефолтному значению
+   * @returns {this}
+   */
+  reset() {
+    this.setValue(null);
+    this.setState({ dirty: false, touched: false });
+    this._updateStatus();
+    return this;
+  }
+
+  /**
+   * Проверить валидность
+   * @returns {boolean}
+   */
+  isValid() {
+    return !this.state.status || this.state.status !== 'error';
+  }
+
+  /**
+   * Установить фокус на инпут
+   * @returns {this}
+   */
+  focus() {
+    if (this._inputEl) {
+      this._inputEl.focus();
+    }
+    return this;
+  }
+
+  /**
+   * Убрать фокус с инпута
+   * @returns {this}
+   */
+  blur() {
+    if (this._inputEl) {
+      this._inputEl.blur();
+    }
+    return this;
   }
 }
 

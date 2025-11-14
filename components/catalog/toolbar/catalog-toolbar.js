@@ -2,41 +2,118 @@
  * Catalog toolbar controller.
  *
  * Responsibilities:
- * - Mount search box, sort control, and active filter chips.
- * - Emit events when user changes search or sorting.
- * - Display applied filters summary with quick remove actions.
+ * - Оркестратор компонентов toolbar (поиск, сортировка)
+ * - Интеграция search-box и sort-control
+ * - Управление жизненным циклом компонентов
  *
- * TODO:
- * - Implement init({ container, initialState, onSearch, onSort, onChipRemove }).
- * - Implement renderActiveFilters(filters) to show chips.
- * - Implement setSearchValue(value) and setSortValue(value).
- * - Provide destroy() for cleanup.
+ * Dependencies:
+ * - search-box.js - компонент поиска
+ * - sort-control.js - компонент сортировки
  */
+
+import { createSearchBox } from './search-box.js';
+import { createSortControl } from './sort-control.js';
+import { createFiltersSummary } from './filters-summary.js';
+import { renderToolbarShell } from './toolbar-template.js';
+
+// Загружаем стили сразу при импорте модуля
+if (window.app?.toolkit?.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./toolbar-styles.css', import.meta.url));
+}
 
 export default class CatalogToolbar {
   constructor(options = {}) {
     this.options = options;
-    // TODO: store references to search-box and sort-control helpers.
+    this.container = null;
+    
+    // Ссылки на компоненты
+    this.searchBox = null;
+    this.sortControl = null;
+    this.filtersSummary = null;
+    
+    // Ссылки на DOM элементы
+    this.searchContainer = null;
+    this.sortContainer = null;
+    this.chipsContainer = null;
   }
 
-  init(/* config */) {
-    // TODO: mount template and instantiate subcomponents.
+  /**
+   * Инициализация toolbar
+   * @param {HTMLElement} container - Контейнер для рендеринга toolbar
+   */
+  init(container) {
+    if (!container) {
+      throw new Error('[catalog-toolbar] Container element is required');
+    }
+
+    this.container = container;
+
+    // Рендерим структуру toolbar
+    this.container.innerHTML = renderToolbarShell();
+
+    // Находим контейнеры для компонентов
+    this.searchContainer = this.container.querySelector('[data-toolbar-search]');
+    this.sortContainer = this.container.querySelector('[data-toolbar-sort]');
+    this.chipsContainer = this.container.querySelector('[data-toolbar-chips]');
+
+    if (!this.searchContainer || !this.sortContainer) {
+      console.error('[catalog-toolbar] Required containers not found after render');
+      return;
+    }
+
+    // Инициализируем компонент поиска
+    this.searchBox = createSearchBox({
+      container: this.searchContainer,
+      debounceMs: 10000,
+    });
+    this.searchBox.render();
+
+    // Инициализируем компонент сортировки
+    this.sortControl = createSortControl({
+      container: this.sortContainer,
+    });
+    this.sortControl.render();
+
+    // Инициализируем компонент фильтров-чипсов (если контейнер есть)
+    if (this.chipsContainer) {
+      // Находим контейнер сайдбара для скролла к фильтрам
+      const sidebarContainer = document.querySelector('[data-catalog-sidebar]');
+      
+      this.filtersSummary = createFiltersSummary({
+        container: this.chipsContainer,
+        sidebarContainer: sidebarContainer,
+      });
+      this.filtersSummary.render();
+    }
   }
 
-  renderActiveFilters(/* filters */) {
-    // TODO: render chips for currently applied filters.
-  }
-
-  setSearchValue(/* value */) {
-    // TODO: update search box without triggering change event.
-  }
-
-  setSortValue(/* value */) {
-    // TODO: update sort control selection.
-  }
-
+  /**
+   * Уничтожить компонент (очистка подписок и ссылок)
+   */
   destroy() {
-    // TODO: clean up event listeners and subcomponents.
+    if (this.searchBox && typeof this.searchBox.destroy === 'function') {
+      this.searchBox.destroy();
+      this.searchBox = null;
+    }
+
+    if (this.sortControl && typeof this.sortControl.destroy === 'function') {
+      this.sortControl.destroy();
+      this.sortControl = null;
+    }
+
+    if (this.filtersSummary && typeof this.filtersSummary.destroy === 'function') {
+      this.filtersSummary.destroy();
+      this.filtersSummary = null;
+    }
+
+    if (this.container) {
+      this.container.innerHTML = '';
+    }
+
+    this.searchContainer = null;
+    this.sortContainer = null;
+    this.chipsContainer = null;
+    this.container = null;
   }
 }
 

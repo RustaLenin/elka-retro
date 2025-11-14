@@ -1,0 +1,148 @@
+/* TODO: Align with final design tokens when available. */
+
+/* Стили контейнера применяются к самому Web Component элементу */
+/* ⚠️ ВАЖНО: Web Component - это элемент, а не класс! Селектор БЕЗ точки */
+ui-input-range {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 600px; /* Ограничиваем максимальную ширину инпута */
+}
+
+/* Обёртка wrapper больше не используется - стили контейнера на самом элементе ui-input-range */
+
+.ui-input-range__field {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ui-input-range__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--input-range-label, var(--color-foreground, #f5f7fa));
+  margin-bottom: 4px;
+}
+
+.ui-input-range__input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--input-range-border, var(--color-border, #2a2d31));
+  border-radius: 8px;
+  background: var(--input-range-background, var(--color-card, #17181d));
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.ui-input-range__input-wrapper:focus-within {
+  border-color: var(--input-range-border-focus, var(--color-primary, #9b8cff));
+  box-shadow: 0 0 0 3px rgba(155, 140, 255, 0.15);
+}
+
+ui-input-range[data-status="error"] .ui-input-range__input-wrapper {
+  border-color: var(--input-range-border-error, #d92d20);
+}
+
+ui-input-range[data-status="success"] .ui-input-range__input-wrapper {
+  border-color: var(--input-range-border-success, #039855);
+}
+
+.ui-input-range__prefix,
+.ui-input-range__suffix {
+  font-size: 14px;
+  color: var(--input-range-adornment, var(--color-muted-foreground, #8a8f99));
+  margin-right: 8px;
+}
+
+.ui-input-range__suffix {
+  margin-left: 8px;
+  margin-right: 0;
+}
+
+.ui-input-range__control {
+  flex: 1 1 auto;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--input-range-text, var(--color-foreground, #f5f7fa));
+  padding: 10px 0;
+  appearance: textfield;
+  width: 100%;
+}
+
+.ui-input-range__control::-webkit-outer-spin-button,
+.ui-input-range__control::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ui-input-range__control::placeholder {
+  color: var(--input-range-placeholder, var(--color-muted-foreground, #8a8f99));
+}
+
+.ui-input-range__clear {
+  border: none;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--input-range-clear, var(--color-muted-foreground, #8a8f99));
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ui-input-range__clear:hover {
+  color: var(--input-range-clear-hover, var(--color-foreground, #f5f7fa));
+}
+
+.ui-input-range__clear:focus {
+  outline: 2px solid var(--input-range-border-focus, var(--color-primary, #9b8cff));
+  outline-offset: 2px;
+}
+
+.ui-input-range__steppers {
+  display: flex;
+  flex-direction: column;
+  margin-left: 8px;
+  border-left: 1px solid var(--input-range-separator, var(--color-border, #2a2d31));
+}
+
+.ui-input-range__stepper {
+  border: none;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--input-range-stepper, var(--color-muted-foreground, #8a8f99));
+}
+
+.ui-input-range__stepper:hover {
+  color: var(--input-range-stepper-hover, var(--color-foreground, #f5f7fa));
+}
+
+.ui-input-range__stepper:focus {
+  outline: 2px solid var(--input-range-border-focus, var(--color-primary, #9b8cff));
+  outline-offset: 2px;
+}
+
+ui-input-range[data-disabled="true"] .ui-input-range__control,
+ui-input-range[data-disabled="true"] .ui-input-range__input-wrapper,
+.ui-input-range__control:disabled {
+  cursor: not-allowed;
+  color: var(--input-range-disabled, var(--color-muted-foreground, #8a8f99));
+  opacity: 0.6;
+}
+
+/* Responsive: stack fields vertically on small screens */
+@media (max-width: 640px) {
+  ui-input-range {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+

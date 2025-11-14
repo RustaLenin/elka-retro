@@ -1,6 +1,11 @@
 import { BaseElement } from '../../base-element.js';
 import { icons } from './icon-set.js';
 
+// Загружаем стили сразу при импорте модуля
+if (window.app?.toolkit?.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./icon-styles.css', import.meta.url));
+}
+
 export class UiIcon extends BaseElement {
   static stateSchema = {
     name: { type: 'string', default: '', attribute: { name: 'name', observed: true, reflect: true } },
@@ -13,7 +18,6 @@ export class UiIcon extends BaseElement {
   }
 
   connectedCallback() {
-    window.app.toolkit.loadCSSOnce(new URL('./icon-styles.css', import.meta.url));
     super.connectedCallback();
     this.render();
   }
@@ -38,6 +42,70 @@ export class UiIcon extends BaseElement {
     // size устанавливается автоматически через reflect: true в BaseElement
     // не нужно вызывать setAttribute здесь, чтобы избежать рекурсии
   }
+
+  // Публичный API
+
+  /**
+   * Получить имя иконки
+   * @returns {string}
+   */
+  name() {
+    return this.state.name || '';
+  }
+
+  /**
+   * Установить имя иконки
+   * @param {string} name - имя иконки
+   * @returns {this}
+   */
+  setName(name) {
+    this.setState({ name: String(name || '') });
+    return this;
+  }
+
+  /**
+   * Установить размер
+   * @param {string} size - размер (small, medium, large)
+   * @returns {this}
+   */
+  setSize(size) {
+    this.setState({ size: String(size || 'medium') });
+    return this;
+  }
+
+  /**
+   * Установить/убрать анимацию вращения
+   * @param {boolean} spin - включить/выключить вращение
+   * @returns {this}
+   */
+  setSpin(spin) {
+    this.setState({ spin: Boolean(spin) });
+    return this;
+  }
+
+  /**
+   * Переключить анимацию вращения
+   * @returns {this}
+   */
+  toggleSpin() {
+    return this.setSpin(!this.state.spin);
+  }
+
+  /**
+   * Сбросить к дефолтным значениям
+   * @returns {this}
+   */
+  reset() {
+    this.setState({ 
+      name: '', 
+      size: 'medium', 
+      spin: false 
+    });
+    return this;
+  }
+
+  // Оставить для обратной совместимости
+  // changeIcon(newName) уже определен выше
 }
 
 customElements.define('ui-icon', UiIcon);

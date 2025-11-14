@@ -1,6 +1,11 @@
 import { BaseElement } from '../../base-element.js';
 import { component_template } from './loader-template.js';
 
+// Загружаем стили сразу при импорте модуля
+if (window.app?.toolkit?.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./loader-styles.css', import.meta.url));
+}
+
 export class BlockLoader extends BaseElement {
   static stateSchema = {
     label:          { type: 'string',  default: 'Загрузка...', attribute: { name: 'label', observed: true, reflect: true } },
@@ -14,7 +19,6 @@ export class BlockLoader extends BaseElement {
   }
 
   connectedCallback() {
-    window.app.toolkit.loadCSSOnce(new URL('./loader-styles.css', import.meta.url));
     super.connectedCallback();
     this.render();
     this.classList.remove('hiding');
@@ -42,6 +46,61 @@ export class BlockLoader extends BaseElement {
       html = html.replaceAll(`{{${key}}}`, String(val));
     });
     this.innerHTML = html;
+  }
+
+  // Публичный API (дополнить существующие методы)
+
+  /**
+   * Проверить, видим ли лоадер
+   * @returns {boolean}
+   */
+  isVisible() {
+    return !this.classList.contains('hiding') && this.isConnected;
+  }
+
+  /**
+   * Получить текущую метку
+   * @returns {string}
+   */
+  label() {
+    return this.state.label || '';
+  }
+
+  /**
+   * Получить текущую длительность вращения
+   * @returns {number}
+   */
+  spinDuration() {
+    return this.state.spinduration || 1200;
+  }
+
+  /**
+   * Получить текущую длительность появления
+   * @returns {number}
+   */
+  fadeInDuration() {
+    return this.state.fadeinduration || 400;
+  }
+
+  /**
+   * Получить текущую длительность исчезновения
+   * @returns {number}
+   */
+  fadeOutDuration() {
+    return this.state.fadeoutduration || 400;
+  }
+
+  /**
+   * Сбросить к дефолтным значениям
+   * @returns {this}
+   */
+  reset() {
+    this.setLabel('Загрузка...');
+    this.setSpinDuration(1200);
+    this.setFadeInDuration(400);
+    this.setFadeOutDuration(400);
+    this.show();
+    return this;
   }
 }
 

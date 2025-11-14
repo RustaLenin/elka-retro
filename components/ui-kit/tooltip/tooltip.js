@@ -1,5 +1,10 @@
 // Lightweight tooltip manager using event delegation
 
+// Загружаем стили сразу при импорте модуля
+if (window.app?.toolkit?.loadCSSOnce) {
+  window.app.toolkit.loadCSSOnce(new URL('./tooltip-styles.css', import.meta.url));
+}
+
 const DEFAULTS = {
   placement: 'top', // top|right|bottom|left
   trigger: 'hover', // hover|click|focus
@@ -21,7 +26,6 @@ class TooltipManager {
   }
 
   ensureDom() {
-    window.app.toolkit.loadCSSOnce(new URL('./tooltip-styles.css', import.meta.url));
     const el = document.createElement('div');
     el.className = 'ui-tooltip';
     el.setAttribute('role', 'tooltip');

@@ -1,0 +1,70 @@
+/* TODO: Align with final design tokens when available. */
+
+/* Стили контейнера применяются к самому Web Component элементу */
+/* ⚠️ ВАЖНО: Web Component - это элемент, а не класс! Селектор БЕЗ точки */
+ui-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--filter-chip-border, var(--color-border, #2a2d31));
+  border-radius: 16px;
+  background: var(--filter-chip-background, var(--color-card, #17181d));
+  color: var(--filter-chip-text, var(--color-foreground, #f5f7fa));
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+ui-filter-chip:hover {
+  background: var(--filter-chip-hover, var(--color-secondary, #202227));
+  border-color: var(--filter-chip-border-hover, var(--color-border, #2a2d31));
+}
+
+ui-filter-chip:focus {
+  outline: 2px solid var(--filter-chip-border-focus, var(--color-primary, #9b8cff));
+  outline-offset: 2px;
+}
+
+/* Обёртка wrapper больше не используется - стили контейнера на самом элементе ui-filter-chip */
+
+.ui-filter-chip__label {
+  font-weight: 500;
+  color: var(--filter-chip-label, var(--color-muted-foreground, #8a8f99));
+}
+
+.ui-filter-chip__separator {
+  color: var(--filter-chip-separator, var(--color-muted-foreground, #8a8f99));
+}
+
+.ui-filter-chip__value {
+  color: var(--filter-chip-value, var(--color-foreground, #f5f7fa));
+  font-weight: 600;
+}
+
+.ui-filter-chip__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 2px;
+  margin-left: 4px;
+  cursor: pointer;
+  color: var(--filter-chip-remove, var(--color-muted-foreground, #8a8f99));
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ui-filter-chip__remove:hover {
+  background: var(--filter-chip-remove-hover-bg, rgba(217, 45, 32, 0.1));
+  color: var(--filter-chip-remove-hover, #d92d20);
+}
+
+.ui-filter-chip__remove:focus {
+  outline: 2px solid var(--filter-chip-border-focus, var(--color-primary, #9b8cff));
+  outline-offset: 2px;
+}
+

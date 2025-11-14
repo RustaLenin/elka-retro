@@ -72,6 +72,33 @@
   font-size: 1rem;
 }
 
+.catalog-results__empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.catalog-results__empty-icon {
+  opacity: 0.5;
+  margin-bottom: 0.5rem;
+}
+
+.catalog-results__empty-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+.catalog-results__empty-text {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.7));
+}
+
 .catalog-results__empty[hidden],
 .catalog-results__error[hidden] {
   display: none !important;

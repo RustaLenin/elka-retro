@@ -1,34 +1,39 @@
 /* TODO: Harmonize with global tokens once design system is finalized. */
 
-.ui-input-text__wrapper {
+/* Стили контейнера применяются к самому Web Component элементу */
+/* ⚠️ ВАЖНО: Web Component - это элемент, а не класс! Селектор БЕЗ точки */
+ui-input-text {
   position: relative;
   display: inline-flex;
   align-items: center;
   width: 100%;
+  max-width: 600px; /* Ограничиваем максимальную ширину инпута */
   padding: 0 12px;
-  border: 1px solid var(--input-border-color, #d0d5dd);
+  border: 1px solid var(--input-border-color, var(--color-border, #2a2d31));
   border-radius: 8px;
-  background: var(--input-background, #ffffff);
+  background: var(--input-background, var(--color-card, #17181d));
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.ui-input-text__wrapper:focus-within {
-  border-color: var(--input-border-focus, #155eef);
-  box-shadow: 0 0 0 3px rgba(21, 94, 239, 0.15);
+ui-input-text:focus-within {
+  border-color: var(--input-border-focus, var(--color-primary, #9b8cff));
+  box-shadow: 0 0 0 3px rgba(155, 140, 255, 0.15);
 }
 
-.ui-input-text__wrapper[data-status="error"] {
+ui-input-text[data-status="error"] {
   border-color: var(--input-border-error, #d92d20);
 }
 
-.ui-input-text__wrapper[data-status="success"] {
+ui-input-text[data-status="success"] {
   border-color: var(--input-border-success, #039855);
 }
+
+/* Обёртка больше не используется - стили контейнера на самом элементе ui-input-text */
 
 .ui-input-text__prefix,
 .ui-input-text__suffix {
   font-size: 14px;
-  color: var(--input-adornment-color, #475467);
+  color: var(--input-adornment-color, var(--color-muted-foreground, #8a8f99));
   margin-right: 8px;
 }
 
@@ -44,19 +49,19 @@
   background: transparent;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--input-text-color, #101828);
+  color: var(--input-text-color, var(--color-foreground, #f5f7fa));
   padding: 10px 0;
 }
 
 .ui-input-text__control::placeholder {
-  color: var(--input-placeholder-color, #98a2b3);
+  color: var(--input-placeholder-color, var(--color-muted-foreground, #8a8f99));
 }
 
 .ui-input-text__control:disabled {
-  color: var(--input-disabled-color, #98a2b3);
+  color: var(--input-disabled-color, var(--color-muted-foreground, #8a8f99));
 }
 
-.ui-input-text__wrapper[data-disabled="true"],
+ui-input-text[data-disabled="true"],
 .ui-input-text__control:disabled {
   cursor: not-allowed;
 }
@@ -74,15 +79,15 @@
   background: none;
   padding: 4px;
   cursor: pointer;
-  color: var(--input-clear-color, #667085);
+  color: var(--input-clear-color, var(--color-muted-foreground, #8a8f99));
 }
 
 .ui-input-text__clear:hover {
-  color: var(--input-clear-hover, #344054);
+  color: var(--input-clear-hover, var(--color-foreground, #f5f7fa));
 }
 
 .ui-input-text__clear:focus {
-  outline: 2px solid var(--input-border-focus, #155eef);
+  outline: 2px solid var(--input-border-focus, var(--color-primary, #9b8cff));
   outline-offset: 2px;
 }
 

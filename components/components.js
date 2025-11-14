@@ -2,7 +2,6 @@
 
 import "./navigation/site-header/site-header.js";
 import "./navigation/site-footer/site-footer.js";
-import "./navigation/main-sidebar/main-sidebar.js";
 import "./navigation/nav-link/nav-link.js";
 // UI-Kit components (load on all pages)
 import "./ui-kit/icon/icon.js";
@@ -16,9 +15,13 @@ import "./ui-kit/form/controller/form-controller.js";
 import "./ui-kit/form/field/form-field.js";
 import "./ui-kit/form/inputs/text-input/text-input.js";
 import "./ui-kit/form/inputs/number-input/number-input.js";
+import "./ui-kit/form/inputs/range-input/range-input.js";
+import "./ui-kit/form/inputs/segmented-toggle/segmented-toggle.js";
 import "./ui-kit/form/selects/select-single/select-single.js";
 import "./ui-kit/form/selects/select-multi/select-multi.js";
 import "./ui-kit/form/checkbox/form-checkbox.js";
+import "./ui-kit/form/chips/filter-chip/filter-chip.js";
+import "./ui-kit/form/chips/filters-summary/filters-summary.js";
 
 // Registry for page-specific components (extend as components are added)
 const registry = {
@@ -48,6 +51,25 @@ const registry = {
   // Category
   'category-breadcrumbs': () => import('./category-breadcrumbs/category-breadcrumbs.js'),
   'category-catalog': () => import('./category-catalog/category-catalog.js'),
+  
+  // User Profile
+  'auth-modal': () => import('./user-profile/modals/auth-modal/auth-modal.js'),
+  'register-modal': () => import('./user-profile/modals/register-modal/register-modal.js'),
+  'password-reset-modal': () => import('./user-profile/modals/password-reset-modal/password-reset-modal.js'),
+  'user-menu': () => import('./user-profile/user-menu/user-menu.js'),
+  'profile-page': () => import('./user-profile/profile-page/profile-page.js'),
+  'tab-navigation': () => import('./user-profile/profile-page/tab-navigation/tab-navigation.js'),
+  
+  // Cart
+  'cart-page': () => import('./cart/index.js'),
+  'cart-item': () => import('./cart/cart-item/cart-item.js'),
+  'cart-summary': () => import('./cart/cart-summary/cart-summary.js'),
+  'order-wizard': () => import('./cart/order-wizard/order-wizard.js'),
+  'step-auth': () => import('./cart/order-wizard/steps/step-auth.js'),
+  'step-personal': () => import('./cart/order-wizard/steps/step-personal.js'),
+  'step-logistics': () => import('./cart/order-wizard/steps/step-logistics.js'),
+  'step-payment': () => import('./cart/order-wizard/steps/step-payment.js'),
+  'step-confirmation': () => import('./cart/order-wizard/steps/step-confirmation.js'),
 };
 
 function loadRequiredComponentsFromJSON() {

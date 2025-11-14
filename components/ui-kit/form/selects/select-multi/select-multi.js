@@ -36,7 +36,7 @@ export class UISelectMulti extends BaseElement {
 
   constructor() {
     super();
-    this._onTriggerClick = this._onTriggerClick.bind(this);
+    this._onComponentClick = this._onComponentClick.bind(this);
     this._onSearchInput = this._onSearchInput.bind(this);
     this._onOptionClick = this._onOptionClick.bind(this);
     this._onChipRemove = this._onChipRemove.bind(this);
@@ -52,22 +52,106 @@ export class UISelectMulti extends BaseElement {
 
   connectedCallback() {
     super.connectedCallback();
+    
+    // Рендерим сначала
     this._deriveState();
     this.render();
+    
+    // Затем инициализируем связь со стейтом родителя (поля)
+    requestAnimationFrame(() => {
+      this._initStateLink();
+    });
   }
 
   disconnectedCallback() {
+    // Очищаем ссылку на стейт родителя
+    if (this.state._valuesDescriptor) {
+      delete this.state.values;
+      delete this.state._valuesDescriptor;
+    }
+    
     this._detachEvents();
     this._removeDocumentListener();
+  }
+  
+  _initStateLink() {
+    // Находим родителя (поле)
+    const field = this.closest('ui-form-field');
+    if (!field || !field.state) {
+      // Если поля нет, работаем автономно (не в контексте формы)
+      return;
+    }
+    
+    // Если value еще не инициализирован (поле еще не создало ссылку на форму), ждем
+    if (field.state.value === undefined || !field.state._valueDescriptor) {
+      // Пытаемся еще раз через кадр
+      requestAnimationFrame(() => {
+        this._initStateLink();
+      });
+      return;
+    }
+    
+    // Если ссылка уже создана, не создаем повторно
+    if (this.state._valuesDescriptor) {
+      // Обновляем derived state при изменении значения извне
+      this._syncFromFieldValue();
+      this._deriveState();
+      this.render();
+      return;
+    }
+    
+    // Создаем массив-обертку для синхронизации с полем
+    // field.state.value должен быть массивом
+    if (!Array.isArray(field.state.value)) {
+      field.state.value = [];
+    }
+    
+    // Создаем ссылку на массив в стейте поля
+    this.state.values = field.state.value;
+    this.state._valuesDescriptor = true;
+    
+    // Обновляем derived state с начальным значением
+    this._deriveState();
+    this.render();
+  }
+  
+  _syncFromFieldValue() {
+    // values уже ссылается на field.state.value, просто обновляем derived state
+    // Массив обновляется автоматически, так как это ссылка
   }
 
   onStateChanged(key) {
     if (['options', 'values', 'searchQuery', 'filterFn'].includes(key)) {
       this._deriveState();
+      this.render();
     }
     if (key === 'dropdownOpen') {
-      if (this.state.dropdownOpen) this._addDocumentListener();
-      else this._removeDocumentListener();
+      // Применяем классы напрямую к самому элементу
+      if (this.state.dropdownOpen) {
+        this.classList.add('is-open');
+        this.setAttribute('data-open', 'true');
+        this._addDocumentListener();
+      } else {
+        this.classList.remove('is-open');
+        this.removeAttribute('data-open');
+        this._removeDocumentListener();
+      }
+    }
+    if (key === 'disabled') {
+      // Применяем классы напрямую к самому элементу
+      if (this.state.disabled) {
+        this.classList.add('is-disabled');
+      } else {
+        this.classList.remove('is-disabled');
+      }
+    }
+    if (key === 'status') {
+      const status = this.state.status || 'default';
+      if (status !== 'default') {
+        this.setAttribute('data-status', status);
+      } else {
+        this.removeAttribute('data-status');
+      }
     }
   }
 
@@ -86,8 +170,11 @@ export class UISelectMulti extends BaseElement {
   }
 
   _attachEvents() {
+    // Основной обработчик клика на сам ui-select-multi - клик по любой области открывает dropdown
+    // (кроме кнопки удаления и чипса "+N", которые обрабатываются отдельно)
+    this.addEventListener('click', this._onComponentClick);
+    
     if (this._triggerEl) {
-      this._triggerEl.addEventListener('click', this._onTriggerClick);
       this._triggerEl.addEventListener('keydown', this._onKeyDown);
     }
     if (this._searchEl) {
@@ -102,11 +189,27 @@ export class UISelectMulti extends BaseElement {
     const toggleAll = this.querySelector('.ui-select-multi__select-all');
     if (toggleAll) toggleAll.addEventListener('click', this._onToggleAll);
     this.addEventListener('keydown', this._onKeyDown);
+    
+    // Обработчик клика на родительский ui-form-field__control для кликабельности padding
+    const fieldControl = this.closest('.ui-form-field__control');
+    if (fieldControl && !fieldControl._selectMultiClickHandler) {
+      const self = this;
+      fieldControl._selectMultiClickHandler = (event) => {
+        // Если клик был по самому fieldControl (padding/gap область), открываем dropdown
+        if (event.target === fieldControl && !self.state.disabled && !self.state.dropdownOpen) {
+          event.preventDefault();
+          event.stopPropagation();
+          self._toggleDropdown(true);
+        }
+      };
+      fieldControl.addEventListener('click', fieldControl._selectMultiClickHandler);
+    }
   }
 
   _detachEvents() {
+    this.removeEventListener('click', this._onComponentClick);
+    
     if (this._triggerEl) {
-      this._triggerEl.removeEventListener('click', this._onTriggerClick);
       this._triggerEl.removeEventListener('keydown', this._onKeyDown);
     }
     if (this._searchEl) {
@@ -121,6 +224,13 @@ export class UISelectMulti extends BaseElement {
     if (toggleAll) toggleAll.removeEventListener('click', this._onToggleAll);
     this.removeEventListener('click', this._onChipRemove);
     this.removeEventListener('keydown', this._onKeyDown);
+    
+    // Удаляем обработчик клика с родительского ui-form-field__control
+    const fieldControl = this.closest('.ui-form-field__control');
+    if (fieldControl && fieldControl._selectMultiClickHandler) {
+      fieldControl.removeEventListener('click', fieldControl._selectMultiClickHandler);
+      delete fieldControl._selectMultiClickHandler;
+    }
   }
 
   _deriveState() {
@@ -139,7 +249,23 @@ export class UISelectMulti extends BaseElement {
     });
   }
 
-  _onTriggerClick(event) {
+  _onComponentClick(event) {
+    // Игнорируем клики по кнопке удаления чипса (обрабатываются в _onChipRemove)
+    if (event.target.closest('.ui-select-multi__chip-remove')) {
+      return;
+    }
+    
+    // Игнорируем клики по чипсу "+N"
+    if (event.target.closest('.ui-select-multi__chip--more')) {
+      return;
+    }
+    
+    // Игнорируем клики по dropdown (обрабатываются в _onOptionClick)
+    if (event.target.closest('.ui-select-multi__dropdown')) {
+      return;
+    }
+    
+    // Все остальные клики по компоненту открывают/закрывают dropdown
     event.preventDefault();
     this._toggleDropdown();
   }
@@ -174,8 +300,25 @@ export class UISelectMulti extends BaseElement {
   _onChipRemove(event) {
     const removeBtn = event.target.closest('.ui-select-multi__chip-remove');
     if (!removeBtn || this.state.disabled) return;
+    
+    // Предотвращаем всплытие события, чтобы не открывался dropdown
     event.preventDefault();
+    event.stopPropagation();
+    
+    // Игнорируем чипс "+N" - он не должен быть закрываемым
     const chip = removeBtn.closest('.ui-select-multi__chip');
+    if (chip?.classList.contains('ui-select-multi__chip--more')) {
+      return;
+    }
+    
+    // Получаем value из data-value или из label
+    const value = chip?.dataset.value;
+    if (value) {
+      this._toggleValue(value, true);
+      return;
+    }
+    
+    // Fallback: ищем по label (старая логика для обратной совместимости)
     const labels = Array.isArray(this.state.options) ? this.state.options : [];
     const label = chip?.querySelector('.ui-select-multi__chip-label')?.textContent;
     if (!label) return;
@@ -281,7 +424,23 @@ export class UISelectMulti extends BaseElement {
   }
 
   _commitValues(nextValues, meta = {}) {
-    this.setState({ values: nextValues, dirty: true, touched: true });
+    // Обновляем массив напрямую (так как это ссылка на field.state.value)
+    if (this.state._valuesDescriptor && Array.isArray(this.state.values)) {
+      // Очищаем массив и добавляем новые значения
+      this.state.values.length = 0;
+      this.state.values.push(...nextValues);
+    } else {
+      // Если ссылка еще не создана, используем setState
+      this.setState({ values: nextValues });
+    }
+    
+    // Обновляем флаги
+    this.setState({ dirty: true, touched: true });
+    
+    // Обновляем derived state и UI
+    this._deriveState();
+    this.render();
+    
     this._emit(EVENT_PREFIX + ':change', { values: nextValues, ...meta });
   }
 
@@ -308,6 +467,140 @@ export class UISelectMulti extends BaseElement {
         ...detail
       }
     }));
+  }
+
+  // Публичный API
+
+  /**
+   * Получить текущие значения (копия массива)
+   * @returns {string[]}
+   */
+  value() {
+    const values = this.state.values || [];
+    return [...values];
+  }
+
+  /**
+   * Установить значения
+   * @param {string[]|string|null} value - новые значения (массив или одиночное значение)
+   * @returns {this}
+   */
+  setValue(value) {
+    let newValues = [];
+    
+    if (Array.isArray(value)) {
+      // Фильтруем только валидные значения из опций
+      const options = this.state.options || [];
+      const optionValues = options.map(opt => String(opt.value));
+      newValues = value
+        .map(v => String(v))
+        .filter(v => optionValues.includes(v));
+    } else if (value !== null && value !== undefined && value !== '') {
+      // Одиночное значение превращаем в массив
+      const options = this.state.options || [];
+      const optionValues = options.map(opt => String(opt.value));
+      const strValue = String(value);
+      if (optionValues.includes(strValue)) {
+        newValues = [strValue];
+      }
+    }
+    
+    const previousValues = [...(this.state.values || [])];
+    
+    // Обновляем массив напрямую (если есть связь с полем)
+    if (this.state._valuesDescriptor && Array.isArray(this.state.values)) {
+      // Очищаем массив и добавляем новые значения
+      this.state.values.length = 0;
+      this.state.values.push(...newValues);
+    } else {
+      this.setState({ values: newValues });
+    }
+    
+    // Обновляем derived state и UI
+    this._deriveState();
+    this.render();
+    
+    const valuesChanged = 
+      previousValues.length !== newValues.length ||
+      previousValues.some(v => !newValues.includes(v)) ||
+      newValues.some(v => !previousValues.includes(v));
+    
+    if (valuesChanged) {
+      this.setState({ dirty: true });
+      this._emit(EVENT_PREFIX + ':change', { 
+        values: [...newValues], 
+        previousValues 
+      });
+    }
+    
+    return this;
+  }
+
+  /**
+   * Сбросить к дефолтным значениям
+   * @returns {this}
+   */
+  reset() {
+    this.setValue([]);
+    this.setState({ dirty: false, touched: false });
+    return this;
+  }
+
+  /**
+   * Проверить валидность
+   * @returns {boolean}
+   */
+  isValid() {
+    return !this.state.status || this.state.status !== 'error';
+  }
+
+  /**
+   * Открыть выпадающий список
+   * @returns {this}
+   */
+  open() {
+    if (!this.state.disabled) {
+      this._toggleDropdown(true);
+    }
+    return this;
+  }
+
+  /**
+   * Закрыть выпадающий список
+   * @returns {this}
+   */
+  close() {
+    if (this.state.dropdownOpen) {
+      this._toggleDropdown(false);
+    }
+    return this;
+  }
+
+  /**
+   * Выбрать все доступные опции
+   * @returns {this}
+   */
+  selectAll() {
+    const options = this.state.options || [];
+    const allValues = options
+      .filter(opt => !opt.disabled)
+      .map(opt => String(opt.value));
+    
+    if (this.state.maxSelections && allValues.length > this.state.maxSelections) {
+      this.setValue(allValues.slice(0, this.state.maxSelections));
+    } else {
+      this.setValue(allValues);
+    }
+    
+    return this;
+  }
+
+  /**
+   * Очистить все выбранные значения
+   * @returns {this}
+   */
+  clear() {
+    return this.setValue([]);
   }
 }
 

@@ -15,6 +15,10 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="<?php echo get_template_directory_uri() . '/favicon.svg'; ?>">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?php echo get_template_directory_uri() . '/favicon.svg'; ?>">
+    <link rel="shortcut icon" href="<?php echo get_template_directory_uri() . '/favicon.svg'; ?>">
+    <link rel="apple-touch-icon" href="<?php echo get_template_directory_uri() . '/favicon.svg'; ?>">
     <link rel="profile" href="http://gmpg.org/xfn/11">
     <link rel="pingback" href="<?php bloginfo( 'pingback_url' ); ?>">
     <link rel="canonical" href="<?php echo get_site_url(); ?>"/>

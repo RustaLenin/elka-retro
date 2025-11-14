@@ -1,0 +1,65 @@
+/**
+ * Profile Page Styles
+ */
+
+profile-page {
+  display: block;
+  min-height: 60vh;
+}
+
+.profile-page--loading,
+.profile-page--error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.profile-page__error {
+  text-align: center;
+  padding: 2rem;
+}
+
+.profile-page__error p {
+  color: var(--color-error, #ef4444);
+  font-size: 1.125rem;
+}
+
+.profile-page__header {
+  padding: 2rem 0 1.5rem;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  margin-bottom: 2rem;
+}
+
+.profile-page__title {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-text, #333);
+}
+
+.profile-page__subtitle {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-secondary, #666);
+}
+
+.profile-page__content {
+  padding: 1.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .profile-page__header {
+    padding: 1.5rem 0 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .profile-page__title {
+    font-size: 1.5rem;
+  }
+
+  .profile-page__content {
+    padding: 1rem 0;
+  }
+}
+

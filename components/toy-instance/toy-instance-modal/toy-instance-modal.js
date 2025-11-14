@@ -23,11 +23,11 @@ export class ToyInstanceModal extends UIModal {
     loading: UIModal.stateSchema.loading,
     visible: UIModal.stateSchema.visible,
     instanceId: { type: 'number', default: null, attribute: { name: 'instance-id', observed: true, reflect: true } },
-    data: { type: 'json', default: null, attribute: null, internal: true },
   };
 
   constructor() {
     super();
+    this._instanceData = null;
   }
 
   connectedCallback() {
@@ -62,7 +62,7 @@ export class ToyInstanceModal extends UIModal {
       const res = await fetch(`/wp-json/wp/v2/toy_instance/${instanceId}?_embed=1`, { credentials: 'same-origin' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      this.setState({ data: json });
+      this._instanceData = json;
       
       if (window.app && window.app.state) {
         const photosRaw = json.photos_of_the_toy_instance || json.meta?.photos_of_the_toy_instance || [];
@@ -201,7 +201,6 @@ export class ToyInstanceModal extends UIModal {
       }
     }
   }
-
   setupBuyButton() {
     // Подключаем обработчик кнопки "Купить" после рендера
     setTimeout(() => {

@@ -1,0 +1,204 @@
+/**
+ * User Menu Styles
+ */
+
+user-menu {
+  display: inline-flex;
+  position: relative;
+}
+
+/* Стили для ui-button в виде кнопки с аватаром */
+.user-menu__button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  padding: 0 !important;
+  min-width: 2.5rem !important;
+  min-height: 2.5rem !important;
+}
+
+/* Стили для кнопки "Войти" - единообразие с кнопкой корзины */
+.user-menu__button--login {
+  width: auto !important;
+  min-width: auto !important;
+  height: auto !important;
+  min-height: auto !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.5rem !important;
+  font-size: 1.125rem !important;
+  color: rgba(245, 247, 250, 0.9) !important;
+}
+
+/* Отображаем аватар вместо иконки */
+.user-menu__button[data-avatar] .content {
+  display: none;
+}
+
+.user-menu__button[data-avatar]::before {
+  content: attr(data-avatar);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--color-primary, #0055FF);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.user-menu__button:hover {
+  background-color: var(--color-hover, rgba(0, 0, 0, 0.05));
+}
+
+.user-menu__button:active {
+  transform: scale(0.95);
+}
+
+.user-menu__button--login {
+  /* Убираем border для единообразия с кнопкой корзины */
+}
+
+.user-menu__icon {
+  color: var(--color-text, #333);
+}
+
+.user-menu__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--color-primary, #0055FF);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.user-menu__avatar--large {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.125rem;
+}
+
+.user-menu__dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 240px;
+  background: white;
+  border: 1px solid var(--color-border, #e0e0e0);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-0.5rem);
+  transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+  z-index: 1000;
+}
+
+.user-menu__dropdown--open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.user-menu__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+}
+
+.user-menu__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-menu__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text, #333);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu__email {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #666);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu__nav {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+}
+
+.user-menu__link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text, #333);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: background-color 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.user-menu__link:hover {
+  background-color: var(--color-hover, rgba(0, 0, 0, 0.05));
+}
+
+.user-menu__link--logout {
+  color: var(--color-error, #ef4444);
+  border-top: 1px solid var(--color-border, #e0e0e0);
+  margin-top: 0.25rem;
+  padding-top: 0.875rem;
+}
+
+.user-menu__link--logout:hover {
+  background-color: var(--color-error-light, rgba(239, 68, 68, 0.1));
+}
+
+@media (max-width: 768px) {
+  .user-menu__dropdown {
+    right: -0.5rem;
+    min-width: 220px;
+  }
+  
+  .user-menu__button {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  
+  .user-menu__avatar {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 0.8125rem;
+  }
+}
+

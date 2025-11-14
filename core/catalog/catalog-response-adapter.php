@@ -76,9 +76,23 @@ class Catalog_Response_Adapter {
 		$manufacturer_tax    = self::get_related_taxonomy_slug( 'toy_type', 'manufacturer_field', 'manufacturer' );
 		$occurrence_taxonomy = self::get_related_taxonomy_slug( 'toy_type', 'occurrence_field', 'occurrence' );
 
-		$year     = self::get_first_term_name( $post_id, $year_taxonomy );
-		$factory  = self::get_first_term_name( $post_id, $manufacturer_tax );
-		$rarity   = self::get_first_term_slug( $post_id, $occurrence_taxonomy );
+		$year        = self::get_first_term_name( $post_id, $year_taxonomy );
+		$factory     = self::get_first_term_name( $post_id, $manufacturer_tax );
+		$rarity      = self::get_first_term_slug( $post_id, $occurrence_taxonomy );
+		$rarity_name = self::get_first_term_name( $post_id, $occurrence_taxonomy );
+
+		if ( ( '' === $rarity || '' === $rarity_name ) && function_exists( 'pods' ) ) {
+			$pods_tax_data = self::get_pods_taxonomy_data( $post_id, 'occurrence_field' );
+			if ( $pods_tax_data ) {
+				if ( '' === $rarity && ! empty( $pods_tax_data['slug'] ) ) {
+					$rarity = $pods_tax_data['slug'];
+				}
+				if ( '' === $rarity_name && ! empty( $pods_tax_data['name'] ) ) {
+					$rarity_name = $pods_tax_data['name'];
+				}
+			}
+		}
+
 		$available_count = (int) get_post_meta( $post_id, 'available_instances_count', true );
 
 		return array(
@@ -89,6 +103,7 @@ class Catalog_Response_Adapter {
 			'year'           => $year,
 			'factory'        => $factory,
 			'rarity'         => $rarity,
+			'rarityName'     => $rarity_name,
 			'availableCount' => max( 0, $available_count ),
 			'minPrice'       => null,
 			'maxPrice'       => null,
@@ -255,6 +270,65 @@ class Catalog_Response_Adapter {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Fallback for retrieving taxonomy value via Pods.
+	 *
+	 * @param int    $post_id
+	 * @param string $field_slug
+	 * @return array|null
+	 */
+	protected static function get_pods_taxonomy_data( $post_id, $field_slug ) {
+		static $cache = array();
+
+		if ( isset( $cache[ $post_id ][ $field_slug ] ) ) {
+			return $cache[ $post_id ][ $field_slug ];
+		}
+
+		if ( ! function_exists( 'pods' ) ) {
+			return null;
+		}
+
+		$pod = pods( 'toy_type', $post_id );
+
+		if ( ! $pod || ! $pod->exists() ) {
+			$cache[ $post_id ][ $field_slug ] = null;
+			return null;
+		}
+
+		$value = $pod->field( $field_slug );
+
+		if ( empty( $value ) ) {
+			$cache[ $post_id ][ $field_slug ] = null;
+			return null;
+		}
+
+		$data = null;
+
+		if ( is_array( $value ) ) {
+			$first = reset( $value );
+			if ( is_array( $first ) ) {
+				$data = array(
+					'slug' => $first['slug'] ?? '',
+					'name' => $first['name'] ?? '',
+				);
+			} elseif ( is_object( $first ) ) {
+				$data = array(
+					'slug' => $first->slug ?? '',
+					'name' => $first->name ?? '',
+				);
+			}
+		} elseif ( is_object( $value ) ) {
+			$data = array(
+				'slug' => $value->slug ?? '',
+				'name' => $value->name ?? '',
+			);
+		}
+
+		$cache[ $post_id ][ $field_slug ] = $data;
+
+		return $data;
 	}
 }
 

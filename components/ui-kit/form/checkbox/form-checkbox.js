@@ -36,15 +36,79 @@ export class UIFormCheckbox extends BaseElement {
 
   connectedCallback() {
     super.connectedCallback();
+    
+    // Рендерим сначала
     this.render();
+    
+    // Затем инициализируем связь со стейтом родителя (поля)
+    // Ждем следующий кадр, чтобы убедиться, что поле уже инициализировало ссылку на форму
+    requestAnimationFrame(() => {
+      this._initStateLink();
+    });
   }
 
   disconnectedCallback() {
+    // Очищаем ссылку на стейт родителя
+    if (this.state._checkedDescriptor) {
+      delete this.state.checked;
+      delete this.state._checkedDescriptor;
+    }
+    
     this._detachEvents();
+  }
+  
+  _initStateLink() {
+    // Находим родителя (поле)
+    const field = this.closest('ui-form-field');
+    if (!field || !field.state) {
+      // Если поля нет, работаем автономно (не в контексте формы)
+      return;
+    }
+    
+    // Если value еще не инициализирован (поле еще не создало ссылку на форму), ждем
+    if (field.state.value === undefined || !field.state._valueDescriptor) {
+      // Пытаемся еще раз через кадр
+      requestAnimationFrame(() => {
+        this._initStateLink();
+      });
+      return;
+    }
+    
+    // Если ссылка уже создана, не создаем повторно
+    if (this.state._checkedDescriptor) return;
+    
+    // Создаем ссылку на значение в стейте поля (boolean для checkbox)
+    Object.defineProperty(this.state, 'checked', {
+      get: () => Boolean(field.state.value),
+      set: (val) => {
+        field.state.value = Boolean(val); // Используем setter поля (который синхронизируется с формой)
+        // Обновляем DOM напрямую
+        if (this._inputEl) {
+          this._inputEl.checked = Boolean(val);
+        }
+      },
+      enumerable: true,
+      configurable: true
+    });
+    this.state._checkedDescriptor = true;
+    
+    // Устанавливаем начальное значение в DOM
+    if (this._inputEl && field.state.value !== null && field.state.value !== undefined) {
+      this._inputEl.checked = Boolean(field.state.value);
+    }
   }
 
   onStateChanged(key) {
-    if (['checked', 'indeterminate', 'disabled', 'required', 'value'].includes(key)) {
+    // checked теперь обновляется автоматически через getter/setter
+    // Но нужно синхронизировать DOM при изменении извне (через setter поля)
+    if (key === 'checked' && this._inputEl) {
+      const currentChecked = Boolean(this.state.checked);
+      if (this._inputEl.checked !== currentChecked) {
+        this._inputEl.checked = currentChecked;
+      }
+    }
+    
+    if (['indeterminate', 'disabled', 'required', 'value'].includes(key)) {
       this._syncControl();
     }
   }
@@ -85,12 +149,18 @@ export class UIFormCheckbox extends BaseElement {
   _onChange(event) {
     const checked = event.target.checked;
     const indeterminate = event.target.indeterminate;
+    
+    // Обновляем через setter (который синхронизируется с полем и формой)
+    this.state.checked = checked;
+    
+    // Обновляем indeterminate и флаги
     this.setState({
-      checked,
       indeterminate,
       dirty: true,
       touched: true
     });
+    
+    // Отправляем события для других слушателей
     this._emit(EVENT_PREFIX + ':input', { checked });
     this._emit(EVENT_PREFIX + ':change', { checked });
   }
@@ -114,6 +184,88 @@ export class UIFormCheckbox extends BaseElement {
         ...detail
       }
     }));
+  }
+
+  // Публичный API
+
+  /**
+   * Получить текущее значение (checked)
+   * @returns {boolean}
+   */
+  value() {
+    return Boolean(this.state.checked);
+  }
+
+  /**
+   * Установить значение
+   * @param {boolean} value - новое значение
+   * @returns {this}
+   */
+  setValue(value) {
+    const newValue = Boolean(value);
+    const previousValue = Boolean(this.state.checked);
+    
+    // Обновляем через setter (если есть связь с полем)
+    if (this.state._checkedDescriptor) {
+      this.state.checked = newValue;
+    } else {
+      this.setState({ checked: newValue });
+    }
+    
+    // Обновляем DOM напрямую
+    if (this._inputEl) {
+      this._inputEl.checked = newValue;
+    }
+    
+    if (previousValue !== newValue) {
+      this.setState({ dirty: true });
+      this._emit(EVENT_PREFIX + ':change', { checked: newValue, previousChecked: previousValue });
+    }
+    
+    return this;
+  }
+
+  /**
+   * Сбросить к дефолтному значению
+   * @returns {this}
+   */
+  reset() {
+    this.setValue(false);
+    this.setState({ dirty: false, touched: false, indeterminate: false });
+    this._syncControl();
+    return this;
+  }
+
+  /**
+   * Проверить валидность
+   * @returns {boolean}
+   */
+  isValid() {
+    return !this.state.status || this.state.status !== 'error';
+  }
+
+  /**
+   * Переключить состояние
+   * @returns {this}
+   */
+  toggle() {
+    return this.setValue(!this.value());
+  }
+
+  /**
+   * Установить в состояние "отмечено"
+   * @returns {this}
+   */
+  check() {
+    return this.setValue(true);
+  }
+
+  /**
+   * Установить в состояние "не отмечено"
+   * @returns {this}
+   */
+  uncheck() {
+    return this.setValue(false);
   }
 }
 

@@ -3,11 +3,12 @@
   flex-direction: column;
   align-items: center;
   position: fixed;
-  top: 0;
+  top: 100px; /* Опускаем ниже хедера (высота хедера ~80-100px) */
   right: 0;
   max-width: 25vw;
-  max-height: 75vh;
+  max-height: calc(100vh - 120px);
   z-index: var(--z-index-notification, 99999);
+  pointer-events: none; /* Позволяет кликать сквозь область уведомлений */
 }
 
 ui-notification {
@@ -25,9 +26,10 @@ ui-notification {
   opacity: 1;
   transform: translateY(0) scale(1);
   border: 2px solid var(--color-border);
+  pointer-events: auto; /* Уведомления сами по себе кликабельны */
 }
 
-ui-notification:first-of-type { margin-top: 7.5vh; }
+ui-notification:first-of-type { margin-top: 0; }
 ui-notification ui-icon { margin-right: 12px; }
 ui-notification .notify_message { font-size: 15px; }
 

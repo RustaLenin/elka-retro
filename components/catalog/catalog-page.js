@@ -18,14 +18,17 @@
 import { renderCatalogPage } from './catalog-page-template.js';
 import CatalogResults from './results/catalog-results.js';
 import { renderLoadingSkeleton } from './results/results-template.js';
-import {
-  parse as parseUrlState,
-  subscribe as subscribeToUrlState,
-  applyStateToUrl,
-} from './catalog-url-state.js';
+import CatalogSidebar from './sidebar/catalog-sidebar.js';
+import CatalogToolbar from './toolbar/catalog-toolbar.js';
 
 const SCROLL_PREFETCH_OFFSET = 0.6;
 
+/**
+ * Catalog Page Orchestrator
+ * 
+ * Компонент использует публичный API window.app.catalog вместо прямого доступа к стору
+ * Слушает события elkaretro:catalog:updated для реактивного обновления данных
+ */
 export default class CatalogPage {
   constructor(options = {}) {
     const globalSettings = typeof window !== 'undefined' && window.catalogSettings ? window.catalogSettings : {};
@@ -46,18 +49,33 @@ export default class CatalogPage {
       ...options,
     };
 
-    this.state = parseUrlState();
-    this.state.mode = this.state.mode === 'instance' ? 'instance' : 'type';
-    this.state.perPage = this.normalizePerPage(this.state.perPage);
-    this.state.sort = this.state.sort || this.settings.defaultSort;
+    // Нормализуем начальное состояние через API с учётом настроек
+    const initialState = window.app?.catalog?.getState();
+    if (initialState) {
+      if (!initialState.sort && window.app?.catalog) {
+        window.app.catalog.setSort(this.settings.defaultSort);
+      }
+      // perPage пока не поддерживается в API, но можно добавить позже
+    }
+
+    // Обработчик событий каталога
+    this._handleCatalogUpdate = (event) => {
+      this._onCatalogStateChange(event.detail);
+    };
 
     this.root = null;
     this.loaderEl = null;
     this.resultsComponent = null;
-    this.unsubscribeUrl = null;
+    this.sidebarComponent = null;
+    this.toolbarComponent = null;
+    this.unsubscribeStore = null;
+    this.unsubscribeMeta = null;
     this.sentinel = null;
     this.observer = null;
     this.pendingRequest = null;
+    
+    // Отслеживание предыдущего состояния для предотвращения лишних запросов
+    this._previousState = null;
   }
 
   init(rootElement) {
@@ -69,64 +87,105 @@ export default class CatalogPage {
     this.root.innerHTML = renderCatalogPage();
 
     this.loaderEl = this.root.querySelector('[data-catalog-loader]');
+    const sidebarContainer = this.root.querySelector('[data-catalog-sidebar]');
+    const toolbarContainer = this.root.querySelector('[data-catalog-toolbar]');
     const resultsContainer = this.root.querySelector('[data-catalog-results]');
     const emptyStateEl = this.root.querySelector('[data-catalog-empty]');
     const errorEl = this.root.querySelector('[data-catalog-error]');
     this.sentinel = this.root.querySelector('[data-catalog-sentinel]');
 
+    // Инициализируем сайдбар с фильтрами
+    if (sidebarContainer) {
+      this.sidebarComponent = new CatalogSidebar();
+      this.sidebarComponent.init(sidebarContainer);
+    }
+
+    // Инициализируем toolbar (поиск, сортировка)
+    if (toolbarContainer) {
+      this.toolbarComponent = new CatalogToolbar();
+      this.toolbarComponent.init(toolbarContainer);
+    }
+
+    // Инициализируем компонент результатов
     this.resultsComponent = new CatalogResults({
       container: resultsContainer,
       emptyElement: emptyStateEl,
       errorElement: errorEl,
     });
 
+    // Подписываемся на события каталога для реактивного обновления
+    window.addEventListener('elkaretro:catalog:updated', this._handleCatalogUpdate);
+    this.unsubscribeStore = () => {
+      window.removeEventListener('elkaretro:catalog:updated', this._handleCatalogUpdate);
+    };
+
+    // Также подписываемся на изменения стора для метаданных (loading, error, meta)
+    // Это нужно, т.к. метаданные обновляются через store.updateMeta() в fetchAndRender
+    if (window.app?.catalogStore) {
+      this.unsubscribeMeta = window.app.catalogStore.subscribe((storeState, prevStoreState) => {
+        // Обновляем индикатор загрузки
+        this.setLoading(storeState.isLoading);
+        
+        // Обновляем ошибки
+        if (storeState.error && !prevStoreState.error) {
+          this.resultsComponent.showError(storeState.error.message || 'Не удалось загрузить каталог.');
+        } else if (!storeState.error && prevStoreState.error) {
+          this.resultsComponent.hideError();
+        }
+
+        // Обновляем метаданные в компоненте результатов
+        if (storeState.meta && storeState.meta !== prevStoreState.meta) {
+          this.resultsComponent.updateMeta(storeState.meta);
+        }
+      });
+    }
+
+    // Первоначальная загрузка данных
+    this._previousState = window.app?.catalog?.getState();
     this.fetchAndRender();
 
     this.setupObserver();
-
-    this.unsubscribeUrl = subscribeToUrlState((nextState) => {
-      const next = {
-        ...this.state,
-        ...nextState,
-      };
-
-      const changed =
-        next.mode !== this.state.mode ||
-        next.page !== this.state.page ||
-        next.perPage !== this.state.perPage ||
-        next.search !== this.state.search ||
-        next.sort !== this.state.sort ||
-        JSON.stringify(next.filters) !== JSON.stringify(this.state.filters);
-
-      if (!changed) {
-        return;
-      }
-
-      this.state = next;
-      this.fetchAndRender();
-    });
   }
 
   async fetchAndRender() {
-    this.setLoading(true);
+    const catalogState = window.app?.catalog?.getState();
+    if (!catalogState) {
+      return;
+    }
+    
+    // Устанавливаем флаг загрузки через стор (т.к. setLoading - метод стора, не API)
+    if (window.app?.catalogStore) {
+      window.app.catalogStore.setLoading(true);
+    }
     this.resultsComponent.showSkeleton(renderLoadingSkeleton());
 
     try {
-      const payload = await this.fetchData({ append: false, page: this.state.page });
+      const payload = await this.fetchData({ append: false, page: catalogState.page });
 
       this.resultsComponent.hideSkeleton();
-      this.setLoading(false);
+      if (window.app?.catalogStore) {
+        window.app.catalogStore.setLoading(false);
+      }
 
       const items = Array.isArray(payload.items) ? payload.items : [];
-      this.resultsComponent.renderInitial(items, this.state.mode);
-      this.resultsComponent.updateMeta(payload.meta || {});
-
-      this.totalPages = payload.meta?.total_pages || 1;
+      this.resultsComponent.renderInitial(items, catalogState.mode);
+      
+      // Обновляем метаданные в сторе (updateMeta - метод стора, не API)
+      if (window.app?.catalogStore) {
+        window.app.catalogStore.updateMeta({
+          total: payload.meta?.total || 0,
+          totalPages: payload.meta?.total_pages || 1,
+          availableFilters: payload.meta?.available_filters || {},
+          facetCounts: payload.meta?.facet_counts || {},
+        });
+      }
     } catch (error) {
       console.error('[catalog] Failed to fetch data', error);
       this.resultsComponent.hideSkeleton();
-      this.setLoading(false);
-      this.resultsComponent.showError('Не удалось загрузить каталог. Попробуйте обновить страницу позже.');
+      if (window.app?.catalogStore) {
+        window.app.catalogStore.setLoading(false);
+        window.app.catalogStore.setError(error);
+      }
     }
   }
 
@@ -139,30 +198,34 @@ export default class CatalogPage {
     const controller = new AbortController();
     this.pendingRequest = controller;
 
+    const catalogState = window.app?.catalog?.getState();
+    if (!catalogState) {
+      return { items: [], meta: {} };
+    }
     const endpointBase = (this.options.endpoint || '').replace(/\/$/, '');
-    const modePath = this.state.mode === 'instance' ? 'instances' : 'types';
+    const modePath = catalogState.mode === 'instance' ? 'instances' : 'types';
     const params = new URLSearchParams();
 
-    const perPage = this.normalizePerPage(this.state.perPage);
+    const perPage = this.normalizePerPage(catalogState.perPage);
 
     params.set('per_page', perPage);
-    params.set('page', page || this.state.page);
+    params.set('page', page || catalogState.page);
 
-    if (this.state.search) {
-      params.set('search', this.state.search);
+    if (catalogState.search) {
+      params.set('search', catalogState.search);
     }
 
-    if (this.state.sort) {
-      params.set('sort', this.state.sort);
+    if (catalogState.sort) {
+      params.set('sort', catalogState.sort);
     }
 
-    Object.keys(this.state.filters || {}).forEach((key) => {
-      const values = this.state.filters[key];
+    Object.keys(catalogState.filters || {}).forEach((key) => {
+      const values = catalogState.filters[key];
       if (!Array.isArray(values)) {
         return;
       }
       values.forEach((value) => {
-        params.append(`filters[${key}]`, value);
+        params.append(`filters[${key}][]`, value);
       });
     });
 
@@ -189,13 +252,24 @@ export default class CatalogPage {
   }
 
   destroy() {
-    if (typeof this.unsubscribeUrl === 'function') {
-      this.unsubscribeUrl();
+    if (typeof this.unsubscribeStore === 'function') {
+      this.unsubscribeStore();
+    }
+    if (typeof this.unsubscribeMeta === 'function') {
+      this.unsubscribeMeta();
+    }
+    if (this.sidebarComponent) {
+      this.sidebarComponent.destroy();
+    }
+    if (this.toolbarComponent) {
+      this.toolbarComponent.destroy();
     }
     if (this.resultsComponent) {
       this.resultsComponent.destroy();
     }
 
+    this.sidebarComponent = null;
+    this.toolbarComponent = null;
     this.resultsComponent = null;
     this.root = null;
     this.loaderEl = null;
@@ -207,18 +281,82 @@ export default class CatalogPage {
     }
   }
 
+  /**
+   * Обработчик изменений состояния каталога через события
+   * @param {Object} detail - Детали события elkaretro:catalog:updated
+   * @private
+   */
+  _onCatalogStateChange(detail) {
+    if (!detail || !detail.state) {
+      return;
+    }
+
+    const catalogState = detail.state;
+
+    // Проверяем, изменилось ли состояние каталога (filters, search, sort, mode, page)
+    const currentStateStr = JSON.stringify({
+      mode: catalogState.mode,
+      page: catalogState.page,
+      search: catalogState.search,
+      sort: catalogState.sort,
+      filters: catalogState.filters,
+    });
+
+    const previousStateStr = this._previousState
+      ? JSON.stringify({
+          mode: this._previousState.mode,
+          page: this._previousState.page,
+          search: this._previousState.search,
+          sort: this._previousState.sort,
+          filters: this._previousState.filters,
+        })
+      : null;
+
+    // Если состояние изменилось, загружаем новые данные
+    if (currentStateStr !== previousStateStr) {
+      this._previousState = { ...catalogState };
+      this.fetchAndRender();
+    }
+  }
+
+  /**
+   * Обновить состояние каталога (делегирует в API)
+   * Использует публичный API window.app.catalog
+   * @param {Partial<CatalogState>} partial
+   * @param {Object} options
+   * @param {boolean} options.replace
+   */
   updateState(partial, { replace = false } = {}) {
-    this.state = {
-      ...this.state,
-      ...partial,
-      filters: {
-        ...this.state.filters,
-        ...(partial.filters || {}),
-      },
-    };
-    this.state.perPage = this.normalizePerPage(this.state.perPage);
-    this.state.sort = this.state.sort || this.settings.defaultSort;
-    applyStateToUrl(this.state, { replace });
+    if (!window.app || !window.app.catalog) {
+      return;
+    }
+
+    // Нормализуем perPage если передан (пока не поддерживается в API)
+    if (partial.perPage !== undefined) {
+      partial.perPage = this.normalizePerPage(partial.perPage);
+    }
+    
+    // Нормализуем sort если передан
+    if (partial.sort !== undefined && !partial.sort) {
+      partial.sort = this.settings.defaultSort;
+    }
+
+    // Обновляем состояние через API
+    if (partial.mode) {
+      window.app.catalog.setMode(partial.mode);
+    }
+    if (partial.search !== undefined) {
+      window.app.catalog.setSearch(partial.search);
+    }
+    if (partial.sort) {
+      window.app.catalog.setSort(partial.sort);
+    }
+    if (partial.filters !== undefined) {
+      window.app.catalog.setFilters(partial.filters);
+    }
+    if (partial.page !== undefined) {
+      window.app.catalog.setPage(partial.page);
+    }
   }
 
   normalizePerPage(value) {
@@ -265,8 +403,15 @@ export default class CatalogPage {
   }
 
   shouldLoadMore() {
-    const totalPages = this.totalPages || 1;
-    return this.state.page < totalPages && !this.pendingAppend;
+    const meta = window.app?.catalogStore?.getMeta();
+    const catalogState = window.app?.catalog?.getState();
+    
+    if (!meta || !catalogState) {
+      return false;
+    }
+    
+    const totalPages = meta.totalPages || 1;
+    return catalogState.page < totalPages && !this.pendingAppend;
   }
 
   async loadNextPage() {
@@ -275,20 +420,43 @@ export default class CatalogPage {
     }
 
     this.pendingAppend = true;
-    const nextPage = this.state.page + 1;
+    const catalogState = window.app?.catalog?.getState();
+    if (!catalogState) {
+      this.pendingAppend = false;
+      return;
+    }
+
+    const nextPage = catalogState.page + 1;
 
     try {
-      const payload = await this.fetchData({
-        append: true,
-        page: nextPage,
-      });
+      const payload = await this.fetchData({ page: nextPage });
 
-      this.state.page = nextPage;
-      this.totalPages = payload.meta?.total_pages || this.totalPages;
-      applyStateToUrl(this.state, { replace: true });
+      const items = Array.isArray(payload.items) ? payload.items : [];
+      if (items.length) {
+        this.resultsComponent.appendItems(items, catalogState.mode);
+      }
+
+      // Обновляем метаданные в сторе (updateMeta - метод стора, не API)
+      if (window.app?.catalogStore) {
+        const currentMeta = window.app.catalogStore.getMeta();
+        window.app.catalogStore.updateMeta({
+          total: payload.meta?.total || currentMeta.total,
+          totalPages: payload.meta?.total_pages || currentMeta.totalPages,
+          availableFilters: payload.meta?.available_filters || currentMeta.availableFilters,
+          facetCounts: payload.meta?.facet_counts || currentMeta.facetCounts,
+        });
+      }
+
+      // Обновляем страницу через API (replace: true не поддерживается, но это не критично)
+      if (window.app?.catalog) {
+        window.app.catalog.setPage(nextPage);
+      }
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error('[catalog] Failed to load next page', error);
+        if (window.app?.catalogStore) {
+          window.app.catalogStore.setError(error);
+        }
       }
     } finally {
       this.pendingAppend = false;

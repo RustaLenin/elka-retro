@@ -6,8 +6,6 @@
  */
 
 get_header(); ?>
-
-	<main-sidebar></main-sidebar>
   
 	<!-- Main Content -->
 	<main id="main" class="site_main">
@@ -40,6 +38,8 @@ get_header(); ?>
             <ui-button
               label="Смотреть"
               type="primary"
+              icon="chevron_right"
+              icon-position="right"
               action="link"
               href="<?php echo esc_url($toy_catalog_link); ?>"
             ></ui-button>
@@ -59,6 +59,8 @@ get_header(); ?>
             <ui-button
               label="Смотреть"
               type="primary"
+              icon="chevron_right"
+              icon-position="right"
               action="link"
               href="<?php echo esc_url($ny_accessory_link); ?>"
             ></ui-button>
@@ -251,6 +253,80 @@ get_header(); ?>
       sections.forEach(function (section) {
         observer.observe(section);
       });
+    });
+  })();
+
+  // Обработка якорных ссылок из футера
+  (function() {
+    // Обрабатываем клики на якорные ссылки, которые ведут к site-info-anchor
+    document.addEventListener('click', function(event) {
+      var link = event.target.closest('a[href^="#site-info-anchor-"]');
+      if (!link) {
+        return;
+      }
+
+      // Проверяем, что это ссылка из футера (не из навигации табов)
+      if (link.closest('[data-site-info]')) {
+        return; // Это ссылка из навигации табов, её обрабатывает другой скрипт
+      }
+
+      event.preventDefault();
+      var hash = link.getAttribute('href');
+      var targetId = hash.replace('#site-info-anchor-', '');
+      
+      // Находим секцию site-info-tabs
+      var infoTabsSection = document.querySelector('.site-info-tabs-section');
+      if (!infoTabsSection) {
+        return;
+      }
+
+      // Находим контейнер с контентом
+      var content = infoTabsSection.querySelector('[data-site-info-content]');
+      if (!content) {
+        return;
+      }
+
+      // Находим целевую секцию по id (якорь в формате #site-info-anchor-xxx)
+      var targetSection = content.querySelector('#' + hash.substring(1));
+      if (!targetSection) {
+        // Если не нашли по id, пробуем найти по data-site-info-anchor
+        targetSection = content.querySelector('[data-site-info-anchor="' + targetId + '"]');
+      }
+      if (!targetSection) {
+        return;
+      }
+
+      // Сначала скроллим к секции site-info-tabs на странице с отступом сверху
+      var headerHeight = 120; // Высота хедера с запасом
+      var sectionTop = infoTabsSection.getBoundingClientRect().top + window.pageYOffset - headerHeight;
+      window.scrollTo({ top: Math.max(0, sectionTop), behavior: 'smooth' });
+      
+      // Затем скроллим к нужной секции внутри контейнера
+      setTimeout(function() {
+        var scrollTop = targetSection.getBoundingClientRect().top - content.getBoundingClientRect().top + content.scrollTop - 20; // Отступ 20px сверху
+        content.scrollTo({ top: Math.max(0, scrollTop), behavior: 'smooth' });
+        
+        // Активируем соответствующую ссылку в навигации
+        // Сначала пробуем найти по data-target (используя значение из data-site-info-anchor)
+        var dataTarget = targetSection.getAttribute('data-site-info-anchor');
+        var navLink = null;
+        if (dataTarget) {
+          navLink = infoTabsSection.querySelector('[data-site-info-link][data-target="' + dataTarget + '"]');
+        }
+        // Если не нашли, пробуем по targetId (из якоря)
+        if (!navLink && targetId) {
+          navLink = infoTabsSection.querySelector('[data-site-info-link][data-target="' + targetId + '"]');
+        }
+        if (navLink) {
+          var navLinks = Array.prototype.slice.call(infoTabsSection.querySelectorAll('[data-site-info-link]'));
+          navLinks.forEach(function(link) {
+            link.classList.remove('is-active');
+            link.removeAttribute('aria-current');
+          });
+          navLink.classList.add('is-active');
+          navLink.setAttribute('aria-current', 'true');
+        }
+      }, 300); // Небольшая задержка для завершения первого скролла
     });
   })();
 </script>

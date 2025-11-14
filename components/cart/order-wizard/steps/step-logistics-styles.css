@@ -1,0 +1,32 @@
+/**
+ * Step Logistics Styles
+ * Стили для шага доставки
+ */
+
+.step-logistics {
+  width: 100%;
+}
+
+.step-logistics_content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.step-logistics_notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--color-background-secondary, #f3f4f6);
+  border-left: 3px solid var(--color-primary, #2563eb);
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.step-logistics_notice ui-icon {
+  flex-shrink: 0;
+  color: var(--color-primary, #2563eb);
+}
+

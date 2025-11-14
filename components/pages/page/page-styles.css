@@ -5,9 +5,6 @@ wp-page {
   width: 80%;
   max-width: 1200px;
   margin: 4rem auto 2rem auto;
-}
-
-wp-page .wp-page_content {
   position: relative;
   background: var(--color-card, rgba(32, 34, 39, 0.95));
   border: 1px solid var(--color-border-accent);
@@ -168,7 +165,7 @@ wp-page .wp-page_error {
 }
 
 /* Loader внутри контента */
-wp-page .wp-page_content block-loader {
+wp-page block-loader {
   position: relative;
   display: flex;
   align-items: center;
@@ -181,9 +178,6 @@ wp-page .wp-page_content block-loader {
   wp-page {
     width: 95%;
     margin: 2rem auto 1rem auto;
-  }
-  
-  wp-page .wp-page_content {
     padding: 1.5rem;
   }
   

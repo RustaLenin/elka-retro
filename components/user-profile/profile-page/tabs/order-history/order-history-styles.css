@@ -1,0 +1,26 @@
+/**
+ * Order History Tab Styles
+ */
+
+order-history-tab {
+  display: block;
+}
+
+.order-history-tab__content {
+  padding: 2rem 0;
+}
+
+.order-history-tab__placeholder {
+  text-align: center;
+  color: var(--color-text-secondary, #666);
+  font-size: 1rem;
+  padding: 2rem;
+}
+
+.order-history-tab__note {
+  text-align: center;
+  color: var(--color-text-secondary, #999);
+  font-size: 0.875rem;
+  margin-top: 1rem;
+}
+

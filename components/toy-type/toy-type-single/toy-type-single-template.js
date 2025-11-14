@@ -293,19 +293,15 @@ export function toy_type_single_template(state) {
   // Если загрузка - показываем loader
   if (loading) {
     return `
-      <div class="toy-type-single_content">
-        <block-loader></block-loader>
-      </div>
+      <block-loader></block-loader>
     `;
   }
   
   // Если ошибка
   if (error) {
     return `
-      <div class="toy-type-single_content">
-        <div class="toy-type-single_error">
-          <p>Ошибка загрузки типа игрушки: ${escapeHtml(error)}</p>
-        </div>
+      <div class="toy-type-single_error">
+        <p>Ошибка загрузки типа игрушки: ${escapeHtml(error)}</p>
       </div>
     `;
   }
@@ -313,10 +309,8 @@ export function toy_type_single_template(state) {
   // Если данных нет
   if (!data) {
     return `
-      <div class="toy-type-single_content">
-        <div class="toy-type-single_empty">
-          <p>Тип игрушки не найден</p>
-        </div>
+      <div class="toy-type-single_empty">
+        <p>Тип игрушки не найден</p>
       </div>
     `;
   }
@@ -484,61 +478,59 @@ export function toy_type_single_template(state) {
   const raritySearchUrl = raritySlug ? `/?search=1&occurrence=${encodeURIComponent(raritySlug)}` : '/?search=1';
   
   return `
-    <div class="toy-type-single_content">
-      ${categoryId ? `
-        <category-breadcrumbs category-id="${categoryId}"></category-breadcrumbs>
-      ` : ''}
-      
-      ${title ? `
-        <header class="toy-type-single_header">
-          <h1 class="toy-type-single_title">${title}</h1>
-          ${rarityLabel ? `
-            <a href="${raritySearchUrl}" class="toy-type-single_rarity rarity--${raritySlug}">
-              ${escapeHtml(rarityLabel)}
-            </a>
-          ` : ''}
-        </header>
-      ` : ''}
-      
-      <div class="toy-type-single_main">
-        <div class="toy-type-single_main-left">
-          <div class="toy-type-single_image">
-            <ui-image-gallery state-path="toyType.featured_image"></ui-image-gallery>
-          </div>
-        </div>
-        
-        <div class="toy-type-single_main-right">
-          ${hasTechnicalInfo ? `
-            <div class="toy-type-single_technical">
-              <h2 class="toy-type-single_section-title">Технические характеристики:</h2>
-              <table class="toy-type-single_properties">
-                <tbody>
-                  ${technicalFields.map(field => `
-                    <tr>
-                      <td class="property-label">${escapeHtml(field.label)}</td>
-                      <td class="property-value">${renderTerms(field.values)}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          ` : ''}
+    ${categoryId ? `
+      <category-breadcrumbs category-id="${categoryId}"></category-breadcrumbs>
+    ` : ''}
+    
+    ${title ? `
+      <header class="toy-type-single_header">
+        <h1 class="toy-type-single_title">${title}</h1>
+        ${rarityLabel ? `
+          <a href="${raritySearchUrl}" class="toy-type-single_rarity rarity--${raritySlug}">
+            ${escapeHtml(rarityLabel)}
+          </a>
+        ` : ''}
+      </header>
+    ` : ''}
+    
+    <div class="toy-type-single_main">
+      <div class="toy-type-single_main-left">
+        <div class="toy-type-single_image">
+          <ui-image-gallery state-path="toyType.featured_image"></ui-image-gallery>
         </div>
       </div>
       
-      ${content ? `
-        <div class="toy-type-single_body toy-type-single_body--full">
-          <section class="toy-type-single_description">
-            <h2 class="toy-type-single_section-title">Описание:</h2>
-            <div class="toy-type-single_description-content">
-              ${content}
-            </div>
-          </section>
-        </div>
-      ` : ''}
-      
-      ${renderInstancesSection(data, instancesByStatus)}
+      <div class="toy-type-single_main-right">
+        ${hasTechnicalInfo ? `
+          <div class="toy-type-single_technical">
+            <h2 class="toy-type-single_section-title">Технические характеристики:</h2>
+            <table class="toy-type-single_properties">
+              <tbody>
+                ${technicalFields.map(field => `
+                  <tr>
+                    <td class="property-label">${escapeHtml(field.label)}</td>
+                    <td class="property-value">${renderTerms(field.values)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
+      </div>
     </div>
+    
+    ${content ? `
+      <div class="toy-type-single_body toy-type-single_body--full">
+        <section class="toy-type-single_description">
+          <h2 class="toy-type-single_section-title">Описание:</h2>
+          <div class="toy-type-single_description-content">
+            ${content}
+          </div>
+        </section>
+      </div>
+    ` : ''}
+    
+    ${renderInstancesSection(data, instancesByStatus)}
   `;
 }
 

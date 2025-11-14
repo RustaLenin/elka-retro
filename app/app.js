@@ -1,5 +1,7 @@
 // Global App State and Utilities
 window.app = {
+  // Services registry
+  services: {},
   // Toolkit utilities
   toolkit: {
     // Ensure a stylesheet is added to <head> only once
@@ -13,33 +15,216 @@ window.app = {
       }
     }
   },
-  // Cart Management
-  cart: {
-    items: [],
-    
-    add: function(itemId) {
-      console.log('Adding item to cart:', itemId);
-      const existingItem = this.items.find(item => item.id === itemId);
+  // Catalog Management - Публичный API для работы с каталогом
+  // Все операции с каталогом выполняются через этот API
+  // Компоненты слушают события elkaretro:catalog:updated для обновления
+  catalog: {
+    /**
+     * Получить текущее состояние каталога
+     * @returns {Object} Состояние каталога
+     */
+    getState: function() {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return null;
+      }
+      return window.app.catalogStore.getCatalogState();
+    },
+
+    /**
+     * Получить метаданные каталога
+     * @returns {Object} Метаданные
+     */
+    getMeta: function() {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return null;
+      }
+      return window.app.catalogStore.getMeta();
+    },
+
+    /**
+     * Обновить режим каталога (type | instance)
+     * @param {string} mode - 'type' | 'instance'
+     */
+    setMode: function(mode) {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return;
+      }
+      window.app.catalogStore.updateState({ mode, page: 1, filters: {} });
+    },
+
+    /**
+     * Установить поисковый запрос
+     * @param {string} search - Поисковый запрос
+     */
+    setSearch: function(search) {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return;
+      }
+      window.app.catalogStore.updateState({ search: search.trim(), page: 1 });
+    },
+
+    /**
+     * Установить сортировку
+     * @param {string} sort - Значение сортировки (например, 'newest', 'oldest')
+     */
+    setSort: function(sort) {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return;
+      }
+      window.app.catalogStore.updateState({ sort, page: 1 });
+    },
+
+    /**
+     * Установить фильтры
+     * @param {Object<string, string[]>} filters - Объект с фильтрами { filterKey: [values] }
+     */
+    setFilters: function(filters) {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return;
+      }
+      window.app.catalogStore.updateState({ filters, page: 1 });
+    },
+
+    /**
+     * Обновить фильтр
+     * @param {string} filterKey - Ключ фильтра
+     * @param {string[]|null} values - Значения фильтра (null для удаления)
+     */
+    updateFilter: function(filterKey, values) {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return;
+      }
+      const currentState = window.app.catalogStore.getCatalogState();
+      const filters = { ...currentState.filters };
       
-      if (existingItem) {
-        existingItem.quantity += 1;
+      if (values === null || (Array.isArray(values) && values.length === 0)) {
+        delete filters[filterKey];
       } else {
-        this.items.push({ id: itemId, quantity: 1 });
+        filters[filterKey] = Array.isArray(values) ? values : [values];
       }
       
-      this.updateCount();
-      this.showNotification('Item added to cart');
+      window.app.catalogStore.updateState({ filters, page: 1 });
+    },
+
+    /**
+     * Перейти на страницу
+     * @param {number} page - Номер страницы
+     */
+    setPage: function(page) {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return;
+      }
+      window.app.catalogStore.updateState({ page });
+    },
+
+    /**
+     * Сбросить фильтры
+     */
+    resetFilters: function() {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return;
+      }
+      const currentState = window.app.catalogStore.getCatalogState();
+      window.app.catalogStore.updateState({
+        filters: {},
+        search: '',
+        page: 1,
+      });
+    },
+
+    /**
+     * Сбросить состояние каталога
+     * @param {Object} options
+     * @param {boolean} options.keepMode - Сохранить текущий режим (default: false)
+     */
+    reset: function(options = {}) {
+      if (!window.app.catalogStore) {
+        console.warn('[app.catalog] catalogStore not initialized yet');
+        return;
+      }
+      window.app.catalogStore.reset(options);
+    },
+  },
+
+  // Cart Management - Публичный API для работы с корзиной
+  // Все операции с корзиной выполняются через этот API
+  // Компоненты слушают события elkaretro:cart:updated для обновления
+  cart: {
+    items: [], // Для обратной совместимости, будет удалено позже
+    
+    /**
+     * Добавить товар в корзину
+     * @param {number} itemId - ID товара
+     * @param {string} itemType - тип товара ('toy_instance' | 'ny_accessory')
+     * @param {number} price - цена товара
+     */
+    add: function(itemId, itemType, price) {
+      if (!window.app.cartStore) {
+        console.warn('[app.cart] cartStore not initialized yet');
+        return;
+      }
+      window.app.cartStore.addItem({ id: itemId, type: itemType, price });
     },
     
-    remove: function(itemId) {
-      this.items = this.items.filter(item => item.id !== itemId);
-      this.updateCount();
+    /**
+     * Удалить товар из корзины
+     * @param {number} itemId - ID товара
+     * @param {string} itemType - тип товара ('toy_instance' | 'ny_accessory')
+     */
+    remove: function(itemId, itemType) {
+      if (!window.app.cartStore) {
+        console.warn('[app.cart] cartStore not initialized yet');
+        return;
+      }
+      window.app.cartStore.removeItem(itemId, itemType);
     },
     
+    /**
+     * Получить количество товаров в корзине
+     * @returns {number}
+     */
     getCount: function() {
-      return this.items.reduce((sum, item) => sum + item.quantity, 0);
+      if (!window.app.cartStore) {
+        return 0;
+      }
+      return window.app.cartStore.getCount();
     },
     
+    /**
+     * Получить все товары из корзины
+     * @returns {Array}
+     */
+    getItems: function() {
+      if (!window.app.cartStore) {
+        return [];
+      }
+      return window.app.cartStore.getItems();
+    },
+    
+    /**
+     * Очистить корзину
+     */
+    clear: function() {
+      if (!window.app.cartStore) {
+        console.warn('[app.cart] cartStore not initialized yet');
+        return;
+      }
+      window.app.cartStore.clearCart();
+    },
+    
+    /**
+     * Обновить счетчик (для обратной совместимости)
+     * @deprecated Используйте события elkaretro:cart:updated
+     */
     updateCount: function() {
       const event = new CustomEvent('cart-updated', { 
         detail: { count: this.getCount() } 
@@ -47,9 +232,16 @@ window.app = {
       window.dispatchEvent(event);
     },
     
+    /**
+     * Показать уведомление (для обратной совместимости)
+     * @deprecated Используйте window.app.ui.showNotification
+     */
     showNotification: function(message) {
-      // Simple notification (can be enhanced)
-      console.log('Notification:', message);
+      if (window.app.ui && window.app.ui.showNotification) {
+        window.app.ui.showNotification(message, 'info');
+      } else {
+        console.log('Notification:', message);
+      }
     }
   },
   
@@ -80,12 +272,6 @@ window.app = {
       }
     },
     
-    toggleSidebar: function() {
-      const sidebar = document.querySelector('main-sidebar');
-      if (sidebar) {
-        sidebar.toggle();
-      }
-    },
     
     showModal: function(options = {}) {
       // Динамически импортируем функцию показа модалки
@@ -94,9 +280,26 @@ window.app = {
       }).catch(err => {
         console.error('[app.ui] Failed to load modal:', err);
       });
+    },
+    
+    showNotification: function(message, type = 'info', duration = 5000) {
+      // Динамически импортируем функцию показа уведомления
+      return import('../components/ui-kit/notification/notification.js').then(module => {
+        return module.notify(type, message, duration);
+      }).catch(err => {
+        console.error('[app.ui] Failed to load notification:', err);
+        // Fallback: просто в консоль
+        console.log(`[Notification] ${type}: ${message}`);
+      });
     }
   },
   
+  // Authentication State
+  auth: {
+    user: null,           // Текущий авторизованный пользователь
+    authenticated: false, // Статус авторизации
+  },
+
   // Global State Management
   state: {
     // Текущие данные страницы (обновляются компонентами при загрузке)
@@ -166,20 +369,142 @@ window.app = {
   }
 };
 
-// Initialize cart count from localStorage
+// Инициализация данных авторизации из PHP (выполняется синхронно до DOMContentLoaded)
+// Доверяем PHP - если он вернул данные пользователя, используем их
+// Если вернул null, значит пользователь не авторизован - не делаем дополнительных запросов
+if (window.wpApiSettings?.currentUser) {
+  window.app.auth.user = window.wpApiSettings.currentUser;
+  window.app.auth.authenticated = true;
+} else {
+  // PHP явно вернул null - пользователь не авторизован
+  window.app.auth.user = null;
+  window.app.auth.authenticated = false;
+}
+
+// Initialize cart store (async)
 document.addEventListener('DOMContentLoaded', function() {
-  const savedCart = localStorage.getItem('cart');
-  if (savedCart) {
-    try {
-      app.cart.items = JSON.parse(savedCart);
+  // Загружаем catalog-store асинхронно
+  import('../components/catalog/catalog-store.js').then(module => {
+    const { getCatalogStore } = module;
+    const catalogStore = getCatalogStore();
+    
+    // Делаем catalogStore доступным глобально
+    window.app.catalogStore = catalogStore;
+  }).catch(err => {
+    console.error('[app] Failed to load catalog-store:', err);
+  });
+
+  // Загружаем новый cart-store асинхронно
+  import('../components/cart/cart-store.js').then(module => {
+    const { getCartStore } = module;
+    const cartStore = getCartStore();
+    
+    // Делаем cartStore доступным глобально
+    window.app.cartStore = cartStore;
+    
+    // Обновляем счетчик корзины при изменениях
+    cartStore.subscribe((nextState) => {
+      const count = cartStore.getCount();
+      app.cart.items = nextState.cart.items;
       app.cart.updateCount();
+      
+      // Отправляем событие для обновления счетчика в header
+      const event = new CustomEvent('elkaretro:cart:updated', {
+        detail: { count }
+      });
+      window.dispatchEvent(event);
+    });
+    
+    // Инициализируем счетчик из текущего состояния
+    const count = cartStore.getCount();
+    app.cart.items = cartStore.getItems();
+    app.cart.updateCount();
+    
+    // Отправляем событие для инициализации счетчика в header
+    const event = new CustomEvent('elkaretro:cart:updated', {
+      detail: { count }
+    });
+    window.dispatchEvent(event);
+  }).catch(err => {
+    console.error('[app] Failed to load cart-store:', err);
+  });
+
+  // Миграция старой корзины (если есть) в новый формат
+  // Старый ключ 'cart' может содержать полные объекты товаров, что приводит к переполнению localStorage
+  const oldCart = localStorage.getItem('cart');
+  if (oldCart) {
+    try {
+      const parsed = JSON.parse(oldCart);
+      // Если это массив (старый формат), пытаемся мигрировать
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        console.warn('[app] Found old cart format, migrating...');
+        // Удаляем старую корзину, чтобы освободить место
+        localStorage.removeItem('cart');
+        // cart-store сам загрузит данные из нового ключа 'elkaretro_cart'
+      }
     } catch (e) {
-      console.error('Error loading cart:', e);
+      console.error('[app] Error migrating old cart:', e);
+      // Удаляем поврежденные данные
+      localStorage.removeItem('cart');
     }
   }
+
+  // Инициализация авторизации
+  // Загружаем только auth-service, менеджер модальных окон будет инициализирован лениво при первом использовании
+  import('../components/user-profile/services/auth-service.js').then((authModule) => {
+    const { authService } = authModule;
+    
+    // Регистрируем сервисы глобально для использования в формах
+    window.app.services = window.app.services || {};
+    window.app.services.authService = authService;
+    
+    // Обновляем состояние при изменении авторизации
+    window.addEventListener('elkaretro:auth:login', (e) => {
+      app.auth.user = e.detail.user;
+      app.auth.authenticated = true;
+    });
+
+    window.addEventListener('elkaretro:auth:register', (e) => {
+      app.auth.user = e.detail.user;
+      app.auth.authenticated = true;
+    });
+
+    window.addEventListener('elkaretro:auth:logout', () => {
+      app.auth.user = null;
+      app.auth.authenticated = false;
+    });
+
+    window.addEventListener('elkaretro:auth:error', (e) => {
+      console.error('[app.auth] Auth error:', e.detail.error);
+    });
+
+    // Доверяем данным из PHP - если они есть, используем их, если нет - значит не авторизован
+    if (app.auth.user && app.auth.authenticated) {
+      // Обновляем сервис данными из PHP
+      authService.currentUser = app.auth.user;
+    } else {
+      // PHP вернул null или пользователь не авторизован - не делаем лишних запросов
+      // Убедимся, что состояние корректное
+      app.auth.user = null;
+      app.auth.authenticated = false;
+      authService.currentUser = null;
+    }
+
+    // Менеджер модальных окон инициализируется лениво при первом вызове showAuth() через site-header
+    // Не загружаем его здесь, чтобы не создавать модальные окна на всех страницах
+  }).catch(err => {
+    console.error('[app] Failed to load auth service:', err);
+  });
+  
+  // Загружаем user-service для использования в формах профиля
+  import('../components/user-profile/services/user-service.js').then((userModule) => {
+    const { userService } = userModule;
+    window.app.services = window.app.services || {};
+    window.app.services.userService = userService;
+  }).catch(err => {
+    console.error('[app] Failed to load user service:', err);
+  });
 });
 
-// Save cart to localStorage on changes
-window.addEventListener('cart-updated', function() {
-  localStorage.setItem('cart', JSON.stringify(app.cart.items));
-});
+// Удалено: сохранение корзины теперь происходит через cart-store.js
+// Старый код сохранял полные объекты товаров, что приводило к переполнению localStorage

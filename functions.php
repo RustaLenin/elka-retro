@@ -231,6 +231,52 @@ if ( ! function_exists( 'elkaretro_get_catalog_page_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'elkaretro_get_cart_page_id' ) ) {
+	/**
+	 * Возвращает ID страницы корзины, если она существует.
+	 *
+	 * @return int
+	 */
+	function elkaretro_get_cart_page_id() {
+		// Сначала ищем страницу, привязанную к шаблону page-cart.php.
+		$pages = get_pages(
+			array(
+				'post_type'   => 'page',
+				'post_status' => array( 'publish', 'draft', 'pending' ),
+				'meta_key'    => '_wp_page_template',
+				'meta_value'  => 'page-cart.php',
+				'number'      => 1,
+			)
+		);
+
+		if ( ! empty( $pages ) ) {
+			return (int) $pages[0]->ID;
+		}
+
+		// Фолбэк: ищем страницу по slug 'cart'.
+		$page = get_page_by_path( 'cart' );
+
+		return $page ? (int) $page->ID : 0;
+	}
+}
+
+if ( ! function_exists( 'elkaretro_get_cart_page_url' ) ) {
+	/**
+	 * Возвращает ссылку на страницу корзины.
+	 *
+	 * @return string
+	 */
+	function elkaretro_get_cart_page_url() {
+		$page_id = elkaretro_get_cart_page_id();
+
+		if ( $page_id ) {
+			return get_permalink( $page_id );
+		}
+
+		return home_url( '/cart/' );
+	}
+}
+
 require_once( THEME_COR . 'setup.php' );
 
 // Theme Settings (управление настройками темы)
@@ -266,6 +312,15 @@ require_once( THEME_COR . 'catalog/catalog-toy-type-service.php' );
 require_once( THEME_COR . 'catalog/catalog-toy-instance-service.php' );
 require_once( THEME_COR . 'catalog/catalog-rest-controller.php' );
 require_once( THEME_COR . 'catalog/catalog-loader.php' );
+require_once( THEME_COR . 'user-profile/user-profile-rest-controller.php' );
+require_once( THEME_COR . 'user-profile/user-profile-loader.php' );
+require_once( THEME_COR . 'cart/cart-rest-controller.php' );
+require_once( THEME_COR . 'cart/cart-service.php' );
+require_once( THEME_COR . 'cart/cart-loader.php' );
+require_once( THEME_COR . 'orders/order-rest-controller.php' );
+require_once( THEME_COR . 'orders/order-service.php' );
+require_once( THEME_COR . 'orders/order-email-templates.php' );
+require_once( THEME_COR . 'orders/order-loader.php' );
 
 @ini_set( 'upload_max_size' , '500M' );
 
@@ -347,6 +402,10 @@ add_action('wp_head', function () {
 
 \Elkaretro\Core\Catalog\Catalog_Loader::init();
 
+\Elkaretro\Core\Cart\Cart_Loader::init();
+
+\Elkaretro\Core\Orders\Order_Loader::init();
+
 /**
  * Emit a JSON list of required web components for the current page.
  * Extend via the 'elkaretro_required_components' filter in templates or modules.
@@ -357,6 +416,40 @@ add_action('wp_head', function () {
         return;
     }
     echo '<script id="elkaretro-required-components" type="application/json">' . wp_json_encode(array_values(array_unique($required))) . '</script>';
+    
+    // Передаём настройки WordPress REST API в JavaScript
+    echo '<script>';
+    echo 'window.wpApiSettings = window.wpApiSettings || {};';
+    echo 'window.wpApiSettings.root = ' . wp_json_encode(esc_url_raw(rest_url())) . ';';
+    echo 'window.wpApiSettings.nonce = ' . wp_json_encode(wp_create_nonce('wp_rest')) . ';';
+    
+    // Передаём данные текущего пользователя (если авторизован)
+    $current_user = wp_get_current_user();
+    if ($current_user && $current_user->ID > 0) {
+        // Получаем данные пользователя через REST API для консистентности
+        $user_data = array(
+            'id' => $current_user->ID,
+            'name' => $current_user->display_name,
+            'email' => $current_user->user_email,
+            'username' => $current_user->user_login,
+            'slug' => $current_user->user_nicename,
+            'avatar_urls' => array(
+                '24' => get_avatar_url($current_user->ID, array('size' => 24)),
+                '48' => get_avatar_url($current_user->ID, array('size' => 48)),
+                '96' => get_avatar_url($current_user->ID, array('size' => 96)),
+            ),
+        );
+        
+        // Добавляем мета-поля, если нужно
+        $user_data['first_name'] = get_user_meta($current_user->ID, 'first_name', true);
+        $user_data['last_name'] = get_user_meta($current_user->ID, 'last_name', true);
+        $user_data['phone'] = get_user_meta($current_user->ID, 'phone', true);
+        
+        echo 'window.wpApiSettings.currentUser = ' . wp_json_encode($user_data) . ';';
+    } else {
+        echo 'window.wpApiSettings.currentUser = null;';
+    }
+    echo '</script>';
 });
 
 /**
@@ -474,6 +567,27 @@ add_action('after_setup_theme', function() {
 
         if (!is_wp_error($catalog_page_id)) {
             update_post_meta($catalog_page_id, '_wp_page_template', 'page-catalog.php');
+        }
+    }
+
+    // Проверяем, существует ли уже страница с slug 'cart'
+    if (!get_page_by_path('cart')) {
+        $cart_page = array(
+            'post_title'   => 'Корзина',
+            'post_name'    => 'cart',
+            'post_content' => '',
+            'post_status'  => 'publish',
+            'post_type'    => 'page',
+            'post_author'  => 1,
+            'meta_input'   => array(
+                '_wp_page_template' => 'page-cart.php',
+            ),
+        );
+
+        $cart_page_id = wp_insert_post($cart_page);
+
+        if (!is_wp_error($cart_page_id)) {
+            update_post_meta($cart_page_id, '_wp_page_template', 'page-cart.php');
         }
     }
 });

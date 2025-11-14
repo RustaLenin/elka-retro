@@ -36,11 +36,19 @@ function renderOption(option, isSelected, highlighted, decorators) {
 }
 
 export function renderSelectSingleTemplate(state) {
+  // Стили контейнера применяются к самому элементу, здесь только структура содержимого
   const placeholder = state?.placeholder ?? 'Выберите значение';
   const current = state?.selectedOption;
   const triggerLabel = current ? escapeHTML(current.label) : escapeHTML(placeholder);
-  const triggerClass = `ui-select-single__trigger${state?.dropdownOpen ? ' is-open' : ''}${state?.disabled ? ' is-disabled' : ''}`;
   const caret = `<span class="ui-select-single__caret"${state?.disabled ? ' aria-hidden="true"' : ''}></span>`;
+  const triggerAttrs = [
+    'class="ui-select-single__trigger"',
+    'role="combobox"',
+    'aria-haspopup="listbox"',
+    `aria-expanded="${state?.dropdownOpen ? 'true' : 'false'}"`,
+    state?.disabled ? 'aria-disabled="true"' : '',
+    state?.disabled ? 'tabindex="-1"' : 'tabindex="0"'
+  ].filter(Boolean).join(' ');
 
   const decorators = state?.decorators || {};
   const filtered = Array.isArray(state?.filteredOptions) ? state.filteredOptions : Array.isArray(state?.options) ? state.options : [];
@@ -61,18 +69,18 @@ export function renderSelectSingleTemplate(state) {
        </div>`
     : '';
 
+  // Стили контейнера применяются к самому элементу, здесь только структура содержимого
+  // Классы is-open и is-disabled будут применяться к самому элементу в JS
   return `
-    <div class="ui-select-single" data-open="${state?.dropdownOpen ? 'true' : 'false'}" data-status="${escapeHTML(state?.status || 'default')}">
-      <button class="${triggerClass}" type="button" ${state?.disabled ? 'disabled' : ''} aria-haspopup="listbox" aria-expanded="${state?.dropdownOpen ? 'true' : 'false'}">
-        <span class="ui-select-single__trigger-label">${triggerLabel}</span>
-        ${caret}
-      </button>
-      <div class="ui-select-single__dropdown"${state?.dropdownOpen ? '' : ' hidden'}>
-        ${searchMarkup}
-        <ul class="ui-select-single__options" role="listbox">
-          ${optionsMarkup}
-        </ul>
-      </div>
+    <div ${triggerAttrs}>
+      <span class="ui-select-single__trigger-label">${triggerLabel}</span>
+      ${caret}
+    </div>
+    <div class="ui-select-single__dropdown"${state?.dropdownOpen ? '' : ' hidden'}>
+      ${searchMarkup}
+      <ul class="ui-select-single__options" role="listbox">
+        ${optionsMarkup}
+      </ul>
     </div>
   `;
 }

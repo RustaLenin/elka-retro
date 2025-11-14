@@ -1,0 +1,213 @@
+/**
+ * Cart Page Styles
+ * Стили для страницы корзины
+ */
+
+.cart-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.cart-page_header {
+  margin-bottom: 2rem;
+}
+
+.cart-page_title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+.cart-page_content {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.cart-page_main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cart-page_items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border: 1px solid var(--color-border-accent);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.cart-page_items-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  margin-top: 1rem;
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border: 1px solid var(--color-border-accent);
+  border-radius: 1rem;
+  border-top: 2px solid var(--color-border-accent);
+}
+
+.cart-page_items-total-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+.cart-page_items-total-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-primary, rgba(155, 140, 255, 1));
+}
+
+.cart-page_sidebar {
+  position: sticky;
+  top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cart-page_sidebar > * {
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border: 1px solid var(--color-border-accent);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.cart-page_actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Стили для ui-button - только специфичные размеры */
+.cart-page_checkout-btn {
+  width: 100%;
+}
+
+/* Состояния загрузки и пустой корзины */
+.cart-page_loading,
+.cart-page_empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  padding: 2rem;
+}
+
+.cart-page_loading p {
+  margin-top: 1rem;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.8));
+}
+
+/* Empty State - стилизация по аналогии с error-page */
+.cart-page_empty {
+  width: 80%;
+  max-width: 600px;
+  margin: 4rem auto 2rem auto;
+}
+
+.cart-page_empty-content {
+  position: relative;
+  background: var(--color-card, rgba(32, 34, 39, 0.95));
+  border: 1px solid var(--color-border-accent);
+  border-radius: 1rem;
+  padding: 3rem;
+  min-height: 200px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cart-page_empty-icon {
+  opacity: 0.5;
+  margin-bottom: 1rem;
+}
+
+.cart-page_empty-title {
+  margin: 0 0 1rem 0;
+  font-family: var(--font-heading, inherit);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+.cart-page_empty-text {
+  margin: 0 0 2rem 0;
+  font-family: var(--font-sans, inherit);
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.8));
+}
+
+.cart-page_empty-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.cart-page_empty-button {
+  margin-top: 0.5rem;
+}
+
+/* Адаптивность */
+@media (max-width: 968px) {
+  .cart-page_content {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-page_sidebar {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .cart-page_empty {
+    width: 95%;
+    margin: 2rem auto 1rem auto;
+  }
+
+  .cart-page_empty-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .cart-page_empty-title {
+    font-size: 1.75rem;
+  }
+
+  .cart-page_empty-text {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .cart-page {
+    padding: 1rem 0.5rem;
+  }
+
+  .cart-page_title {
+    font-size: 1.5rem;
+  }
+
+
+  .cart-page_empty-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .cart-page_empty-title {
+    font-size: 1.5rem;
+  }
+}
+

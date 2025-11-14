@@ -37,10 +37,12 @@ export const icons = {
       </svg>
     `,
     logo: `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z" fill="none"/>
-        <path d="M12 12v10" fill="none"/>
-        <path d="M4 7l8 5 8-5" fill="none"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L8 8h8L12 2z" fill="none"/>
+        <path d="M10 8L7 13h6L10 8z" fill="none"/>
+        <path d="M9 13L6 18h12L9 13z" fill="none"/>
+        <path d="M12 18v4" fill="none"/>
+        <path d="M9 22h6" fill="none"/>
       </svg>
     `,
     account: `
@@ -78,6 +80,16 @@ export const icons = {
     twitter: `
       <svg viewBox="0 0 24 24" fill="currentColor">
         <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/>
+      </svg>
+    `,
+    telegram: `
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+      </svg>
+    `,
+    vk: `
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.58-1.58-2.294 0-2.294 0s-.33.209-.66.209c-.66 0-1.32-.525-1.32-1.727v-2.94c0-.66.33-1.32 1.32-1.32h1.32c.66 0 .99.66.99 1.32v.66s.99-1.32 2.31-1.32h1.98c.66 0 1.155.33 1.155 1.155 0 .66-.33 1.32-1.32 1.32h-1.32c-.66 0-.99.33-.99.99v2.31c0 .66.33 1.32 1.32 1.32h1.32c.66 0 1.32-.66 1.32-1.32v-1.32c0-.66-.66-1.32-1.32-1.32z"/>
       </svg>
     `,
     chevron_left: `
@@ -155,6 +167,27 @@ export const icons = {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="6" x2="6" y2="18" fill="none"/>
         <line x1="6" y1="6" x2="18" y2="18" fill="none"/>
+      </svg>
+    `,
+    x: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" fill="none"/>
+        <line x1="6" y1="6" x2="18" y2="18" fill="none"/>
+      </svg>
+    `,
+    login: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" fill="none"/>
+        <polyline points="10 17 15 12 10 7" fill="none"/>
+        <line x1="15" y1="12" x2="3" y2="12" fill="none"/>
+      </svg>
+    `,
+    trash: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6" fill="none"/>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none"/>
+        <line x1="10" y1="11" x2="10" y2="17" fill="none"/>
+        <line x1="14" y1="11" x2="14" y2="17" fill="none"/>
       </svg>
     `,
 };

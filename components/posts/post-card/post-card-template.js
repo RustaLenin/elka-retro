@@ -57,40 +57,38 @@ export function post_card_template(state) {
   }
   
   return `
-    <article class="post-card" data-post-id="${id || ''}">
-      ${link ? `
-        <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="post-card_link">
+    ${link ? `
+      <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="post-card_link">
+    ` : ''}
+      ${image ? `
+        <div class="post-card_image">
+          <img src="${escapeHtml(image)}" alt="${safeTitle}" loading="lazy" />
+        </div>
       ` : ''}
-        ${image ? `
-          <div class="post-card_image">
-            <img src="${escapeHtml(image)}" alt="${safeTitle}" loading="lazy" />
-          </div>
+      <div class="post-card_content">
+        ${safeTitle ? `
+          <h3 class="post-card_title">${safeTitle}</h3>
         ` : ''}
-        <div class="post-card_content">
-          ${safeTitle ? `
-            <h3 class="post-card_title">${safeTitle}</h3>
-          ` : ''}
-          ${formattedDate ? `
-            <time class="post-card_date" datetime="${date || ''}">${escapeHtml(formattedDate)}</time>
-          ` : ''}
-          ${safeDescription ? `
-            <p class="post-card_excerpt">${safeDescription}</p>
-          ` : ''}
-        </div>
-      ${link ? `
-        </a>
-      ` : ''}
-      ${link ? `
-        <div class="post-card_actions">
-            <ui-button 
-              type="secondary" 
-              action="link_blank"
-              href="${escapeHtml(link)}"
-              label="Читать целиком">
-            </ui-button>
-        </div>
-      ` : ''}
-    </article>
+        ${formattedDate ? `
+          <time class="post-card_date" datetime="${date || ''}">${escapeHtml(formattedDate)}</time>
+        ` : ''}
+        ${safeDescription ? `
+          <p class="post-card_excerpt">${safeDescription}</p>
+        ` : ''}
+      </div>
+    ${link ? `
+      </a>
+    ` : ''}
+    ${link ? `
+      <div class="post-card_actions">
+          <ui-button 
+            type="secondary" 
+            action="link_blank"
+            href="${escapeHtml(link)}"
+            label="Читать целиком">
+          </ui-button>
+      </div>
+    ` : ''}
   `;
 }
 

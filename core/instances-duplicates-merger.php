@@ -2,7 +2,7 @@
 /**
  * Instances Duplicates Merger
  *
- * Скрипт для поиска дублей экземпляров игрушек и объединения данных
+ * Скрипт для поиска дублей экземпляров игрушек и типов игрушек, и объединения данных
  * между записями со статусами «На спецификации» и «На оформлении».
  *
  * @package ElkaRetro
@@ -16,14 +16,22 @@ class ELKARETRO_INSTANCE_DUPLICATES_MERGER {
     const DECOR_STATUS = 'decoration';
 
     /**
-     * Поля Pods, которые мы не должны перезаписывать при копировании
+     * Поля Pods, которые мы не должны перезаписывать при копировании (по типу поста)
      */
-    private const SKIP_META_FIELDS = array(
-        'photos_of_the_toy_instance', // сохраняем фотографии из записи на спецификации
-    );
+    private static function get_skip_meta_fields($post_type) {
+        $skip_fields = array();
+        
+        if ($post_type === 'toy_instance') {
+            $skip_fields[] = 'photos_of_the_toy_instance'; // сохраняем фотографии из записи на спецификации
+        } elseif ($post_type === 'toy_type') {
+            $skip_fields[] = 'toy_type_photos'; // сохраняем фотографии из записи на спецификации
+        }
+        
+        return $skip_fields;
+    }
 
     /**
-     * Выполняет поиск дублей и объединяет данные
+     * Выполняет поиск дублей и объединяет данные для всех типов постов
      *
      * @param int|null $limit Максимальное количество обработанных наборов (null = без ограничений)
      * @return array Итоги выполнения
@@ -41,8 +49,64 @@ class ELKARETRO_INSTANCE_DUPLICATES_MERGER {
             );
         }
 
+        // Обрабатываем оба типа постов
+        $post_types = array('toy_instance', 'toy_type');
+        
+        $totals = array(
+            'duplicates_found' => 0,
+            'merged' => 0,
+            'deleted' => 0,
+            'skipped' => 0,
+            'errors' => array(),
+        );
+        
+        $results_by_type = array();
+        
+        foreach ($post_types as $post_type) {
+            $result = self::process_post_type($post_type, $limit);
+            
+            $results_by_type[$post_type] = $result;
+            
+            $totals['duplicates_found'] += $result['duplicates_found'];
+            $totals['merged'] += $result['merged'];
+            $totals['deleted'] += $result['deleted'];
+            $totals['skipped'] += $result['skipped'];
+            $totals['errors'] = array_merge($totals['errors'], $result['errors']);
+        }
+
+        $message = sprintf(
+            'Processed duplicate sets: toy_instance (%d), toy_type (%d). Найдено дублей: %d, объединено: %d, удалено дублей: %d, пропущено: %d',
+            $results_by_type['toy_instance']['processed_sets'],
+            $results_by_type['toy_type']['processed_sets'],
+            $totals['duplicates_found'],
+            $totals['merged'],
+            $totals['deleted'],
+            $totals['skipped']
+        );
+
+        if (!empty($totals['errors'])) {
+            $message .= '. Ошибки: ' . implode('; ', array_slice($totals['errors'], 0, 5));
+            if (count($totals['errors']) > 5) {
+                $message .= '...';
+            }
+        }
+
+        return array_merge(
+            array('success' => true, 'message' => $message),
+            $totals
+        );
+    }
+    
+    /**
+     * Обрабатывает дубли для одного типа поста
+     *
+     * @param string $post_type Тип поста (toy_instance или toy_type)
+     * @param int|null $limit Максимальное количество обработанных наборов
+     * @return array Результаты обработки
+     */
+    private static function process_post_type($post_type, $limit = null) {
         $query_args = array(
-            'post_type'      => 'toy_instance',
+            'post_type'      => $post_type,
             'post_status'    => array(self::SPEC_STATUS, self::DECOR_STATUS),
             'posts_per_page' => -1,
             'orderby'        => 'title',
@@ -52,8 +116,7 @@ class ELKARETRO_INSTANCE_DUPLICATES_MERGER {
         $query = new WP_Query($query_args);
         if (!$query->have_posts()) {
             return array(
-                'success' => true,
-                'message' => 'Дубликаты не найдены',
+                'processed_sets' => 0,
                 'duplicates_found' => 0,
                 'merged' => 0,
                 'deleted' => 0,
@@ -105,7 +168,7 @@ class ELKARETRO_INSTANCE_DUPLICATES_MERGER {
             foreach ($decor_posts as $source_post) {
                 $totals['duplicates_found']++;
 
-                $merge_result = self::merge_pair($target_id, $source_post->ID);
+                $merge_result = self::merge_pair($target_id, $source_post->ID, $post_type);
 
                 if ($merge_result['success']) {
                     $totals['merged']++;
@@ -121,24 +184,8 @@ class ELKARETRO_INSTANCE_DUPLICATES_MERGER {
             }
         }
 
-        $message = sprintf(
-            'Processed duplicate sets: %d. Найдено дублей: %d, объединено: %d, удалено дублей: %d, пропущено: %d',
-            $processed_sets,
-            $totals['duplicates_found'],
-            $totals['merged'],
-            $totals['deleted'],
-            $totals['skipped']
-        );
-
-        if (!empty($totals['errors'])) {
-            $message .= '. Ошибки: ' . implode('; ', array_slice($totals['errors'], 0, 5));
-            if (count($totals['errors']) > 5) {
-                $message .= '...';
-            }
-        }
-
         return array_merge(
-            array('success' => true, 'message' => $message),
+            array('processed_sets' => $processed_sets),
             $totals
         );
     }
@@ -148,9 +195,10 @@ class ELKARETRO_INSTANCE_DUPLICATES_MERGER {
      *
      * @param int $target_id ID записи «На спецификации»
      * @param int $source_id ID записи «На оформлении»
+     * @param string $post_type Тип поста (toy_instance или toy_type)
      * @return array
      */
-    private static function merge_pair($target_id, $source_id) {
+    private static function merge_pair($target_id, $source_id, $post_type) {
         $target_post = get_post($target_id);
         $source_post = get_post($source_id);
 
@@ -180,7 +228,7 @@ class ELKARETRO_INSTANCE_DUPLICATES_MERGER {
             );
         }
 
-        $meta_copied = self::copy_meta_fields($target_post, $source_post);
+        $meta_copied = self::copy_meta_fields($target_post, $source_post, $post_type);
 
         // Обновляем статус: после объединения переводим в базовый статус «На утверждении» (pending)
         if ($target_post->post_status === self::SPEC_STATUS) {
@@ -254,26 +302,33 @@ class ELKARETRO_INSTANCE_DUPLICATES_MERGER {
 
     /**
      * Копирует данные Pods/мета поля
+     *
+     * @param WP_Post $target_post Целевая запись
+     * @param WP_Post $source_post Исходная запись
+     * @param string $post_type Тип поста (toy_instance или toy_type)
+     * @return array Массив скопированных полей
      */
-    private static function copy_meta_fields(WP_Post $target_post, WP_Post $source_post) {
+    private static function copy_meta_fields(WP_Post $target_post, WP_Post $source_post, $post_type) {
         $copied = array();
 
-        $target_pod = pods('toy_instance', $target_post->ID);
-        $source_pod = pods('toy_instance', $source_post->ID);
+        $target_pod = pods($post_type, $target_post->ID);
+        $source_pod = pods($post_type, $source_post->ID);
 
         if (!$target_pod || !$target_pod->exists() || !$source_pod || !$source_pod->exists()) {
             return $copied;
         }
 
-        $fields = elkaretro_get_data_model('post_types.toy_instance.fields');
+        $fields = elkaretro_get_data_model("post_types.{$post_type}.fields");
         if (!$fields || !is_array($fields)) {
             return $copied;
         }
 
+        $skip_fields = self::get_skip_meta_fields($post_type);
+
         foreach ($fields as $field_slug => $config) {
             $meta_field = isset($config['meta_field']) ? $config['meta_field'] : $field_slug;
 
-            if (in_array($meta_field, self::SKIP_META_FIELDS, true)) {
+            if (in_array($meta_field, $skip_fields, true)) {
                 continue;
             }
 

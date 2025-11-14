@@ -1,0 +1,99 @@
+/**
+ * Cart Summary Styles
+ * Стили для итоговой информации о корзине
+ */
+
+.cart-summary {
+  padding: 1.5rem;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--color-background, #ffffff);
+}
+
+.cart-summary_title {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+.cart-summary_items-count {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.1));
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.8));
+}
+
+.cart-summary_items-count strong {
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  font-weight: 600;
+}
+
+.cart-summary_details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cart-summary_row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9375rem;
+}
+
+.cart-summary_label {
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.8));
+}
+
+.cart-summary_value {
+  font-weight: 500;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+.cart-summary_row--discount .cart-summary_value {
+  color: var(--color-success, #22c55e);
+}
+
+.cart-summary_row--fee .cart-summary_value {
+  color: var(--color-warning, #f59e0b);
+}
+
+.cart-summary_row--total {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--color-border-accent, rgba(255, 255, 255, 0.1));
+  font-size: 1.125rem;
+}
+
+.cart-summary_row--total .cart-summary_label {
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+.cart-summary_row--total .cart-summary_value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary, rgba(155, 140, 255, 1));
+}
+
+/* Адаптивность */
+@media (max-width: 640px) {
+  .cart-summary {
+    padding: 1rem;
+  }
+
+  .cart-summary_title {
+    font-size: 1.125rem;
+  }
+
+  .cart-summary_row--total {
+    font-size: 1rem;
+  }
+
+  .cart-summary_row--total .cart-summary_value {
+    font-size: 1.125rem;
+  }
+}
+

@@ -1,7 +1,7 @@
 /* Base layout */
 .catalog-page {
   --catalog-gap: 32px;
-  --catalog-sidebar-width: 280px;
+  --catalog-sidebar-width: 310px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--catalog-gap);

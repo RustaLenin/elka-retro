@@ -1,0 +1,79 @@
+/* TODO: Align with final design tokens when available. */
+
+/* Стили контейнера применяются к самому Web Component элементу */
+/* ⚠️ ВАЖНО: Web Component - это элемент, а не класс! Селектор БЕЗ точки */
+ui-segmented-toggle {
+  display: inline-flex;
+  gap: 0;
+  width: 100%;
+  max-width: 600px; /* Ограничиваем максимальную ширину */
+  border: 1px solid var(--segmented-toggle-border, var(--color-border, #2a2d31));
+  border-radius: 8px;
+  background: var(--segmented-toggle-background, var(--color-card, #17181d));
+  padding: 2px;
+  overflow: hidden;
+}
+
+ui-segmented-toggle[data-status="error"] {
+  border-color: var(--segmented-toggle-border-error, #d92d20);
+}
+
+ui-segmented-toggle[data-status="success"] {
+  border-color: var(--segmented-toggle-border-success, #039855);
+}
+
+/* Обёртка wrapper больше не используется - стили контейнера на самом элементе ui-segmented-toggle */
+
+.ui-segmented-toggle__option {
+  flex: 1 1 0;
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--segmented-toggle-text, var(--color-muted-foreground, #8a8f99));
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  border-radius: 6px;
+  outline: none;
+  position: relative;
+  text-align: center;
+}
+
+.ui-segmented-toggle__option:hover:not(:disabled) {
+  background: var(--segmented-toggle-hover, var(--color-secondary, #202227));
+  color: var(--segmented-toggle-text-hover, var(--color-foreground, #f5f7fa));
+}
+
+.ui-segmented-toggle__option:focus {
+  outline: 2px solid var(--segmented-toggle-border-focus, var(--color-primary, #9b8cff));
+  outline-offset: 2px;
+}
+
+.ui-segmented-toggle__option--active {
+  background: var(--segmented-toggle-active-background, var(--color-secondary, #202227));
+  color: var(--segmented-toggle-active-text, var(--color-foreground, #f5f7fa));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+}
+
+.ui-segmented-toggle__option:disabled,
+ui-segmented-toggle[data-disabled="true"] .ui-segmented-toggle__option {
+  cursor: not-allowed;
+  color: var(--segmented-toggle-disabled, var(--color-muted-foreground, #8a8f99));
+  opacity: 0.6;
+}
+
+/* Responsive: stack options vertically on very small screens */
+@media (max-width: 480px) {
+  ui-segmented-toggle {
+    flex-direction: column;
+    padding: 4px;
+  }
+  
+  .ui-segmented-toggle__option {
+    width: 100%;
+  }
+}
+

@@ -1,0 +1,56 @@
+/**
+ * Tab Navigation Styles
+ */
+
+tab-navigation {
+  display: block;
+  margin-bottom: 2rem;
+}
+
+.tab-navigation {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--color-border, #e0e0e0);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tab-navigation::-webkit-scrollbar {
+  display: none;
+}
+
+/* Стили для ui-button в виде табов */
+.tab-navigation__button {
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  background: transparent !important;
+  border-radius: 0 !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  white-space: nowrap;
+  position: relative;
+}
+
+.tab-navigation__button:hover {
+  background-color: var(--color-hover, rgba(0, 0, 0, 0.02)) !important;
+}
+
+.tab-navigation__button--active {
+  border-bottom-color: var(--color-primary, #0055FF) !important;
+  color: var(--color-primary, #0055FF) !important;
+}
+
+@media (max-width: 768px) {
+  .tab-navigation {
+    gap: 0.25rem;
+  }
+
+  .tab-navigation__button {
+    padding: 0.875rem 1rem;
+  }
+}
+

@@ -17,19 +17,15 @@ export function page_template(state) {
   // Если загрузка - показываем loader поверх контента
   if (loading) {
     return `
-      <div class="wp-page_content">
-        <block-loader></block-loader>
-      </div>
+      <block-loader></block-loader>
     `;
   }
   
   // Если ошибка
   if (error) {
     return `
-      <div class="wp-page_content">
-        <div class="wp-page_error">
-          <p>Ошибка загрузки страницы: ${escapeHtml(error)}</p>
-        </div>
+      <div class="wp-page_error">
+        <p>Ошибка загрузки страницы: ${escapeHtml(error)}</p>
       </div>
     `;
   }
@@ -37,10 +33,8 @@ export function page_template(state) {
   // Если данных нет
   if (!data) {
     return `
-      <div class="wp-page_content">
-        <div class="wp-page_empty">
-          <p>Страница не найдена</p>
-        </div>
+      <div class="wp-page_empty">
+        <p>Страница не найдена</p>
       </div>
     `;
   }
@@ -89,26 +83,24 @@ export function page_template(state) {
   }
   
   return `
-    <article class="wp-page_content">
-      ${featuredImageUrl ? `
-        <div class="wp-page_featured-image">
-          <img src="${escapeHtml(featuredImageUrl)}" alt="${escapeHtml(featuredImageAlt)}" loading="eager" />
-        </div>
-      ` : ''}
-      ${title ? `
-        <header class="wp-page_header">
-          <h1 class="wp-page_title">${title}</h1>
-          ${formattedDate ? `
-            <time class="wp-page_date" datetime="${escapeHtml(date)}">${escapeHtml(formattedDate)}</time>
-          ` : ''}
-        </header>
-      ` : ''}
-      ${content ? `
-        <div class="wp-page_body">
-          ${content}
-        </div>
-      ` : ''}
-    </article>
+    ${featuredImageUrl ? `
+      <div class="wp-page_featured-image">
+        <img src="${escapeHtml(featuredImageUrl)}" alt="${escapeHtml(featuredImageAlt)}" loading="eager" />
+      </div>
+    ` : ''}
+    ${title ? `
+      <header class="wp-page_header">
+        <h1 class="wp-page_title">${title}</h1>
+        ${formattedDate ? `
+          <time class="wp-page_date" datetime="${escapeHtml(date)}">${escapeHtml(formattedDate)}</time>
+        ` : ''}
+      </header>
+    ` : ''}
+    ${content ? `
+      <div class="wp-page_body">
+        ${content}
+      </div>
+    ` : ''}
   `;
 }
 

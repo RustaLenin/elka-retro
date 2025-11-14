@@ -61,30 +61,22 @@ export function ny_accessory_single_template(state) {
 
   if (loading) {
     return `
-      <div class="ny-accessory-single">
-        <div class="ny-accessory-single__content">
-          <block-loader></block-loader>
-        </div>
-      </div>
+      <block-loader></block-loader>
     `;
   }
 
   if (error) {
     return `
-      <div class="ny-accessory-single">
-        <div class="ny-accessory-single__content ny-accessory-single__content--error">
-          <p>${escapeHtml(error)}</p>
-        </div>
+      <div class="ny-accessory-single__error">
+        <p>${escapeHtml(error)}</p>
       </div>
     `;
   }
 
   if (!data) {
     return `
-      <div class="ny-accessory-single">
-        <div class="ny-accessory-single__content ny-accessory-single__content--empty">
-          <p>Аксессуар не найден</p>
-        </div>
+      <div class="ny-accessory-single__empty">
+        <p>Аксессуар не найден</p>
       </div>
     `;
   }
@@ -136,59 +128,55 @@ export function ny_accessory_single_template(state) {
   }
 
   return `
-    <div class="ny-accessory-single">
-      <div class="ny-accessory-single__content">
-        <header class="ny-accessory-single__header">
-          <div class="ny-accessory-single__headline">
-            <h1 class="ny-accessory-single__title">${escapeHtml(title)}</h1>
-            ${excerpt ? `<p class="ny-accessory-single__excerpt">${escapeHtml(excerpt)}</p>` : ''}
-          </div>
-        </header>
+    <header class="ny-accessory-single__header">
+      <div class="ny-accessory-single__headline">
+        <h1 class="ny-accessory-single__title">${escapeHtml(title)}</h1>
+        ${excerpt ? `<p class="ny-accessory-single__excerpt">${escapeHtml(excerpt)}</p>` : ''}
+      </div>
+    </header>
 
-        <div class="ny-accessory-single__main">
-          <div class="ny-accessory-single__main-left">
-            <div class="ny-accessory-single__media">
-              <ui-image-gallery images="${galleryAttr}"></ui-image-gallery>
-            </div>
-          </div>
-
-          <div class="ny-accessory-single__main-right">
-            ${tableRows.length > 0 ? `
-            <section class="ny-accessory-single__technical">
-              <h2 class="ny-accessory-single__section-title">Технические характеристики</h2>
-              <table class="ny-accessory-single__properties">
-                <tbody>
-                  ${tableRows.map(row => `
-                    <tr>
-                      <td class="ny-accessory-single__property-label">${row.label}</td>
-                      <td class="ny-accessory-single__property-value">${row.value}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </section>
-            ` : ''}
-
-            <div class="ny-accessory-single__purchase">
-              ${priceLabel ? `<span class="ny-accessory-single__purchase-price">${priceLabel}</span>` : ''}
-              <button class="ny-accessory-single__add-to-cart" type="button">
-                <ui-icon name="cart" size="small"></ui-icon>
-                <span>В корзину</span>
-              </button>
-            </div>
-          </div>
+    <div class="ny-accessory-single__main">
+      <div class="ny-accessory-single__main-left">
+        <div class="ny-accessory-single__media">
+          <ui-image-gallery images="${galleryAttr}"></ui-image-gallery>
         </div>
+      </div>
 
-        ${content ? `
-          <section class="ny-accessory-single__description">
-            <h2 class="ny-accessory-single__section-title">Описание</h2>
-            <div class="ny-accessory-single__description-content">
-              ${content}
-            </div>
-          </section>
+      <div class="ny-accessory-single__main-right">
+        ${tableRows.length > 0 ? `
+        <section class="ny-accessory-single__technical">
+          <h2 class="ny-accessory-single__section-title">Технические характеристики</h2>
+          <table class="ny-accessory-single__properties">
+            <tbody>
+              ${tableRows.map(row => `
+                <tr>
+                  <td class="ny-accessory-single__property-label">${row.label}</td>
+                  <td class="ny-accessory-single__property-value">${row.value}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </section>
         ` : ''}
+
+        <div class="ny-accessory-single__purchase">
+          ${priceLabel ? `<span class="ny-accessory-single__purchase-price">${priceLabel}</span>` : ''}
+          <button class="ny-accessory-single__add-to-cart" type="button">
+            <ui-icon name="cart" size="small"></ui-icon>
+            <span>В корзину</span>
+          </button>
+        </div>
       </div>
     </div>
+
+    ${content ? `
+      <section class="ny-accessory-single__description">
+        <h2 class="ny-accessory-single__section-title">Описание</h2>
+        <div class="ny-accessory-single__description-content">
+          ${content}
+        </div>
+      </section>
+    ` : ''}
   `;
 }
 

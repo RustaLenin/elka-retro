@@ -1,7 +1,8 @@
 import { image_gallery_template } from './image-gallery-template.js';
 
 // Загружаем стили на верхнем уровне модуля (не в connectedCallback)
-if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
+// Загружаем стили сразу при импорте модуля
+if (window.app?.toolkit?.loadCSSOnce) {
   window.app.toolkit.loadCSSOnce(new URL('./image-gallery-styles.css', import.meta.url));
 }
 
@@ -99,25 +100,8 @@ export class ImageGallery extends HTMLElement {
     return window.app.state.get(path);
   }
 
-  _removeOverlayFromBody() {
-    if (this._overlayElement && this._overlayElement.parentNode) {
-      this._overlayElement.remove();
-    }
-    this._overlayElement = null;
-  }
-
   _mountOverlayToBody() {
-    if (!this._data.fullscreen) {
-      this._removeOverlayFromBody();
-      return;
-    }
-    
-    // Удаляем предыдущий overlay (если он ещё присутствует в области)
-    if (this._overlayElement && this._overlayElement.isConnected) {
-      this._overlayElement.remove();
-      this._overlayElement = null;
-    }
-    
+    this._removeOverlayFromBody();
     const overlayInComponent = this.querySelector('.image-gallery_fullscreen-overlay');
     if (!overlayInComponent) {
       return;
@@ -127,6 +111,13 @@ export class ImageGallery extends HTMLElement {
     const host = ensureImageGalleryOverlayArea();
     host.appendChild(overlayInComponent);
     this._overlayElement = overlayInComponent;
+  }
+
+  _removeOverlayFromBody() {
+    if (this._overlayElement && this._overlayElement.parentNode) {
+      this._overlayElement.remove();
+    }
+    this._overlayElement = null;
   }
 
   _getOverlayElement() {
@@ -183,7 +174,6 @@ export class ImageGallery extends HTMLElement {
     if (this._data.fullscreen) {
       document.body.style.overflow = '';
     }
-    this._removeOverlayFromBody();
     
     // Удаляем слушатели событий стейта
     window.removeEventListener('app-state-changed', this._handleStateChanged);
@@ -278,6 +268,16 @@ export class ImageGallery extends HTMLElement {
     if (path && path.startsWith(this._data.statePath)) {
       const stateImages = this._getStateValue(this._data.statePath);
       if (Array.isArray(stateImages) && stateImages.length > 0) {
+        // Проверяем, изменились ли изображения (сравниваем по количеству и URL первого изображения)
+        const imagesChanged = this._data.images.length !== stateImages.length ||
+          (this._data.images.length > 0 && stateImages.length > 0 && 
+           this._data.images[0]?.url !== stateImages[0]?.url);
+        
+        if (!imagesChanged) {
+          // Изображения не изменились, не перерисовываем
+          return;
+        }
+        
         // Сохраняем текущий индекс, если он валидный
         const oldIndex = this._data.currentIndex;
         this._data.images = stateImages;
@@ -297,8 +297,25 @@ export class ImageGallery extends HTMLElement {
     
     const { images } = e.detail || {};
     if (Array.isArray(images) && images.length > 0) {
+      // Проверяем, изменились ли изображения (сравниваем по количеству и URL первого изображения)
+      const imagesChanged = this._data.images.length !== images.length ||
+        (this._data.images.length > 0 && images.length > 0 && 
+         this._data.images[0]?.url !== images[0]?.url);
+      
+      if (!imagesChanged) {
+        // Изображения не изменились, не перерисовываем
+        return;
+      }
+      
+      // Сохраняем текущий индекс, если он валидный
+      const oldIndex = this._data.currentIndex;
       this._data.images = images;
-      this._data.currentIndex = 0;
+      // Если старый индекс валиден для новых изображений, сохраняем его
+      if (oldIndex >= 0 && oldIndex < images.length) {
+        this._data.currentIndex = oldIndex;
+      } else {
+        this._data.currentIndex = 0;
+      }
       this._render();
     }
   }
@@ -762,7 +779,7 @@ export class ImageGallery extends HTMLElement {
   _render() {
     this.innerHTML = image_gallery_template(this._data);
     
-    // Если fullscreen активен, переносим overlay в глобальную область (в конец DOM)
+    // Переносим overlay в глобальную область (в конец DOM)
     this._mountOverlayToBody();
     
     this._setupEventListeners();
@@ -796,6 +813,145 @@ export class ImageGallery extends HTMLElement {
         overlay.style.display = 'none';
       }
     }
+  }
+
+  // Публичный API
+
+  /**
+   * Получить текущее изображение
+   * @returns {Object|null} {url, thumbnail, alt, caption} или null
+   */
+  getCurrentImage() {
+    const index = this._data.currentIndex;
+    return this._data.images && this._data.images[index] ? { ...this._data.images[index] } : null;
+  }
+
+  /**
+   * Получить текущий индекс
+   * @returns {number}
+   */
+  getCurrentIndex() {
+    return this._data.currentIndex || 0;
+  }
+
+  /**
+   * Получить все изображения
+   * @returns {Array}
+   */
+  getImages() {
+    return this._data.images ? [...this._data.images] : [];
+  }
+
+  /**
+   * Получить количество изображений
+   * @returns {number}
+   */
+  getImageCount() {
+    return this._data.images ? this._data.images.length : 0;
+  }
+
+  /**
+   * Перейти к следующему изображению
+   * @returns {this}
+   */
+  next() {
+    const { currentIndex, images } = this._data;
+    if (images && images.length > 0) {
+      const newIndex = currentIndex < images.length - 1 ? currentIndex + 1 : 0;
+      this._changeImageWithFade(newIndex);
+    }
+    return this;
+  }
+
+  /**
+   * Перейти к предыдущему изображению
+   * @returns {this}
+   */
+  prev() {
+    const { currentIndex, images } = this._data;
+    if (images && images.length > 0) {
+      const newIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
+      this._changeImageWithFade(newIndex);
+    }
+    return this;
+  }
+
+  /**
+   * Перейти к изображению по индексу
+   * @param {number} index - индекс изображения
+   * @returns {this}
+   */
+  goTo(index) {
+    const numIndex = Number(index);
+    if (numIndex >= 0 && numIndex < (this._data.images?.length || 0)) {
+      this._changeImageWithFade(numIndex);
+    }
+    return this;
+  }
+
+  /**
+   * Открыть полноэкранный режим
+   * @returns {this}
+   */
+  openFullscreen() {
+    if (!this._data.fullscreen && this._data.images && this._data.images.length > 0) {
+      this._data.fullscreen = true;
+      this._render();
+      document.body.style.overflow = 'hidden';
+    }
+    return this;
+  }
+
+  /**
+   * Закрыть полноэкранный режим
+   * @returns {this}
+   */
+  closeFullscreen() {
+    if (this._data.fullscreen) {
+      this._data.fullscreen = false;
+      this._render();
+      document.body.style.overflow = '';
+    }
+    return this;
+  }
+
+  /**
+   * Переключить полноэкранный режим
+   * @returns {this}
+   */
+  toggleFullscreen() {
+    return this._data.fullscreen ? this.closeFullscreen() : this.openFullscreen();
+  }
+
+  /**
+   * Проверить, открыт ли полноэкранный режим
+   * @returns {boolean}
+   */
+  isFullscreen() {
+    return Boolean(this._data.fullscreen);
+  }
+
+  /**
+   * Проверить, идет ли загрузка изображений
+   * @returns {boolean}
+   */
+  isLoading() {
+    return Boolean(this._data.loading);
+  }
+
+  /**
+   * Сбросить к дефолтным значениям
+   * @returns {this}
+   */
+  reset() {
+    this._data.currentIndex = 0;
+    this._data.images = [];
+    this._data.loading = false;
+    if (this._data.fullscreen) {
+      this.closeFullscreen();
+    }
+    this._render();
+    return this;
   }
 }
 

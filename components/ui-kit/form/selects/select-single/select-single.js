@@ -49,22 +49,104 @@ export class UISelectSingle extends BaseElement {
 
   connectedCallback() {
     super.connectedCallback();
+    
+    // Рендерим сначала
     this._deriveState();
     this.render();
+    
+    // Затем инициализируем связь со стейтом родителя (поля)
+    requestAnimationFrame(() => {
+      this._initStateLink();
+    });
   }
 
   disconnectedCallback() {
+    // Очищаем ссылку на стейт родителя
+    if (this.state._valueDescriptor) {
+      delete this.state.value;
+      delete this.state._valueDescriptor;
+    }
+    
     this._detachEvents();
     this._removeDocumentListener();
+  }
+  
+  _initStateLink() {
+    // Находим родителя (поле)
+    const field = this.closest('ui-form-field');
+    if (!field || !field.state) {
+      // Если поля нет, работаем автономно (не в контексте формы)
+      return;
+    }
+    
+    // Если value еще не инициализирован (поле еще не создало ссылку на форму), ждем
+    if (field.state.value === undefined || !field.state._valueDescriptor) {
+      // Пытаемся еще раз через кадр
+      requestAnimationFrame(() => {
+        this._initStateLink();
+      });
+      return;
+    }
+    
+    // Если ссылка уже создана, не создаем повторно
+    if (this.state._valueDescriptor) {
+      // Обновляем derived state при изменении значения извне
+      this._deriveState();
+      this.render();
+      return;
+    }
+    
+    // Создаем ссылку на значение в стейте поля
+    Object.defineProperty(this.state, 'value', {
+      get: () => field.state.value ?? '',
+      set: (val) => {
+        field.state.value = val ?? ''; // Используем setter поля (который синхронизируется с формой)
+        // Обновляем derived state и UI
+        this._deriveState();
+        this.render();
+      },
+      enumerable: true,
+      configurable: true
+    });
+    this.state._valueDescriptor = true;
+    
+    // Обновляем derived state с начальным значением
+    this._deriveState();
+    this.render();
   }
 
   onStateChanged(key) {
     if (['options', 'value', 'searchQuery', 'filterFn'].includes(key)) {
       this._deriveState();
+      this.render();
     }
     if (key === 'dropdownOpen') {
-      if (this.state.dropdownOpen) this._addDocumentListener();
-      else this._removeDocumentListener();
+      // Применяем классы напрямую к самому элементу
+      if (this.state.dropdownOpen) {
+        this.classList.add('is-open');
+        this.setAttribute('data-open', 'true');
+        this._addDocumentListener();
+      } else {
+        this.classList.remove('is-open');
+        this.removeAttribute('data-open');
+        this._removeDocumentListener();
+      }
+    }
+    if (key === 'disabled') {
+      // Применяем классы напрямую к самому элементу
+      if (this.state.disabled) {
+        this.classList.add('is-disabled');
+      } else {
+        this.classList.remove('is-disabled');
+      }
+    }
+    if (key === 'status') {
+      const status = this.state.status || 'default';
+      if (status !== 'default') {
+        this.setAttribute('data-status', status);
+      } else {
+        this.removeAttribute('data-status');
+      }
     }
   }
 
@@ -220,7 +302,13 @@ export class UISelectSingle extends BaseElement {
       this._toggleDropdown(false);
       return;
     }
-    this.setState({ value, dropdownOpen: false, searchQuery: '', dirty: true, touched: true });
+    
+    // Обновляем через setter (который синхронизируется с полем и формой)
+    this.state.value = value;
+    
+    // Обновляем остальные флаги
+    this.setState({ dropdownOpen: false, searchQuery: '', dirty: true, touched: true });
+    
     const option = (this.state.options || []).find(opt => opt.value === value) || null;
     this._emit(EVENT_PREFIX + ':select', { value, option });
     this._emit(EVENT_PREFIX + ':change', { value, option });
@@ -250,6 +338,99 @@ export class UISelectSingle extends BaseElement {
         ...detail
       }
     }));
+  }
+
+  // Публичный API
+
+  /**
+   * Получить текущее значение
+   * @returns {string|null}
+   */
+  value() {
+    return this.state.value ?? null;
+  }
+
+  /**
+   * Установить значение
+   * @param {string|null} value - новое значение
+   * @returns {this}
+   */
+  setValue(value) {
+    // Проверяем, что значение есть в опциях
+    const options = this.state.options || [];
+    const option = options.find(opt => 
+      opt.value === value || String(opt.value) === String(value)
+    );
+    
+    if (value !== null && value !== undefined && value !== '' && !option) {
+      console.warn(`[ui-select-single] Value "${value}" not found in options`);
+      return this;
+    }
+    
+    const previousValue = this.state.value;
+    const newValue = value ?? null;
+    
+    // Обновляем через setter (если есть связь с полем)
+    if (this.state._valueDescriptor) {
+      this.state.value = newValue;
+    } else {
+      this.setState({ value: newValue });
+      this._deriveState();
+      this.render();
+    }
+    
+    // Если связь есть, обновляем derived state и UI
+    if (this.state._valueDescriptor) {
+      this._deriveState();
+      this.render();
+    }
+    
+    if (previousValue !== newValue) {
+      this.setState({ dirty: true });
+      this._emit(EVENT_PREFIX + ':change', { value: newValue, previousValue, option });
+    }
+    
+    return this;
+  }
+
+  /**
+   * Сбросить к дефолтному значению
+   * @returns {this}
+   */
+  reset() {
+    this.setValue(null);
+    this.setState({ dirty: false, touched: false });
+    return this;
+  }
+
+  /**
+   * Проверить валидность
+   * @returns {boolean}
+   */
+  isValid() {
+    return !this.state.status || this.state.status !== 'error';
+  }
+
+  /**
+   * Открыть выпадающий список
+   * @returns {this}
+   */
+  open() {
+    if (!this.state.disabled) {
+      this._toggleDropdown(true);
+    }
+    return this;
+  }
+
+  /**
+   * Закрыть выпадающий список
+   * @returns {this}
+   */
+  close() {
+    if (this.state.dropdownOpen) {
+      this._toggleDropdown(false);
+    }
+    return this;
   }
 }
 

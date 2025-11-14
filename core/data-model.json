@@ -998,6 +998,81 @@
       "show_in_admin_dropdown": false,
       "post_types": ["toy_instance", "ny_accessory"],
       "description": "Экземпляр продан после закрытия заказа"
+    },
+    "awaiting_payment": {
+      "display_name": "На оплате",
+      "label": "На оплате",
+      "label_count": {
+        "singular": "На оплате (%s)",
+        "plural": "На оплате (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": true,
+      "post_types": ["elkaretro_order"],
+      "description": "Заказ ожидает оплаты"
+    },
+    "collecting": {
+      "display_name": "Собирается",
+      "label": "Собирается",
+      "label_count": {
+        "singular": "Собирается (%s)",
+        "plural": "Собираются (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": true,
+      "post_types": ["elkaretro_order"],
+      "description": "Заказ собирается для отправки"
+    },
+    "shipped": {
+      "display_name": "Отправлен",
+      "label": "Отправлен",
+      "label_count": {
+        "singular": "Отправлен (%s)",
+        "plural": "Отправлены (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": true,
+      "post_types": ["elkaretro_order"],
+      "description": "Заказ отправлен клиенту"
+    },
+    "closed": {
+      "display_name": "Закрыт",
+      "label": "Закрыт",
+      "label_count": {
+        "singular": "Закрыт (%s)",
+        "plural": "Закрыты (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": true,
+      "post_types": ["elkaretro_order"],
+      "description": "Заказ закрыт (выполнен)"
+    },
+    "clarification": {
+      "display_name": "Уточнение у клиента",
+      "label": "Уточнение у клиента",
+      "label_count": {
+        "singular": "Уточнение у клиента (%s)",
+        "plural": "Уточнение у клиента (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": true,
+      "post_types": ["elkaretro_order"],
+      "description": "Требуется уточнение информации у клиента"
     }
   },
   "field_mappings": {

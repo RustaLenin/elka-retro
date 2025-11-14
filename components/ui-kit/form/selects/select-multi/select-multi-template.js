@@ -12,16 +12,47 @@ function renderSelectedChips(state) {
   if (!labels.length) {
     return `<span class="ui-select-multi__placeholder">${escapeHTML(state?.placeholder || 'Выберите значения')}</span>`;
   }
-  return `
-    <span class="ui-select-multi__chips">
-      ${labels.map((label, idx) => `
-        <span class="ui-select-multi__chip" data-index="${idx}">
+
+  // Ограничиваем отображение: максимум 2 чипса + чипс "+N" если больше 2
+  const MAX_VISIBLE_CHIPS = 2;
+  const visibleLabels = labels.slice(0, MAX_VISIBLE_CHIPS);
+  const remainingCount = labels.length > MAX_VISIBLE_CHIPS ? labels.length - MAX_VISIBLE_CHIPS : 0;
+
+  const chipMarkup = visibleLabels.map((label, idx) => {
+    // Получаем реальный индекс для правильной идентификации
+    const realIndex = idx;
+    const option = Array.isArray(state?.options) 
+      ? state.options.find(opt => opt.label === label)
+      : null;
+    const value = option ? option.value : label;
+
+    return `
+      <span class="ui-select-multi__chip" data-value="${escapeHTML(String(value))}" data-label="${escapeHTML(label)}">
+        <span class="ui-select-multi__chip-inner">
           <span class="ui-select-multi__chip-label">${escapeHTML(label)}</span>
-          <button type="button" class="ui-select-multi__chip-remove" data-action="remove">
+          <button type="button" class="ui-select-multi__chip-remove" data-action="remove" aria-label="Удалить ${escapeHTML(label)}">
             <ui-icon name="close" size="xsmall"></ui-icon>
           </button>
         </span>
-      `).join('')}
+      </span>
+    `;
+  }).join('');
+
+  // Добавляем чипс "+N" если есть еще выбранные элементы
+  const moreChipMarkup = remainingCount > 0
+    ? `
+      <span class="ui-select-multi__chip ui-select-multi__chip--more" data-action="more">
+        <span class="ui-select-multi__chip-inner">
+          <span class="ui-select-multi__chip-label">+${remainingCount}</span>
+        </span>
+      </span>
+    `
+    : '';
+
+  return `
+    <span class="ui-select-multi__chips">
+      ${chipMarkup}
+      ${moreChipMarkup}
     </span>
   `;
 }
@@ -57,7 +88,7 @@ function renderOption(option, selected, highlighted, decorators) {
 }
 
 export function renderSelectMultiTemplate(state) {
-  const triggerClass = `ui-select-multi__trigger${state?.dropdownOpen ? ' is-open' : ''}${state?.disabled ? ' is-disabled' : ''}`;
+  // Стили контейнера применяются к самому элементу, здесь только структура содержимого
   const caret = `<span class="ui-select-multi__caret"${state?.disabled ? ' aria-hidden="true"' : ''}></span>`;
   const decorators = state?.decorators || {};
 
@@ -90,20 +121,30 @@ export function renderSelectMultiTemplate(state) {
     ? `<div class="ui-select-multi__counter">Выбрано ${valueSet.size} из ${state.maxSelections}</div>`
     : '';
 
+  // Стили контейнера применяются к самому элементу, здесь только структура содержимого
+  // Классы is-open и is-disabled будут применяться к самому элементу в JS
+  const triggerAttrs = [
+    'class="ui-select-multi__trigger"',
+    'role="combobox"',
+    'aria-haspopup="listbox"',
+    'aria-multiselectable="true"',
+    `aria-expanded="${state?.dropdownOpen ? 'true' : 'false'}"`,
+    state?.disabled ? 'aria-disabled="true"' : '',
+    state?.disabled ? 'tabindex="-1"' : 'tabindex="0"'
+  ].filter(Boolean).join(' ');
+
   return `
-    <div class="ui-select-multi" data-open="${state?.dropdownOpen ? 'true' : 'false'}" data-status="${escapeHTML(state?.status || 'default')}">
-      <button class="${triggerClass}" type="button" ${state?.disabled ? 'disabled' : ''} aria-haspopup="listbox" aria-expanded="${state?.dropdownOpen ? 'true' : 'false'}">
-        ${renderSelectedChips(state)}
-        ${caret}
-      </button>
-      <div class="ui-select-multi__dropdown"${state?.dropdownOpen ? '' : ' hidden'}>
-        ${searchMarkup}
-        ${selectAllMarkup}
-        <ul class="ui-select-multi__options" role="listbox" aria-multiselectable="true">
-          ${optionsMarkup}
-        </ul>
-        ${counterMarkup}
-      </div>
+    <div ${triggerAttrs}>
+      ${renderSelectedChips(state)}
+      ${caret}
+    </div>
+    <div class="ui-select-multi__dropdown"${state?.dropdownOpen ? '' : ' hidden'}>
+      ${searchMarkup}
+      ${selectAllMarkup}
+      <ul class="ui-select-multi__options" role="listbox" aria-multiselectable="true">
+        ${optionsMarkup}
+      </ul>
+      ${counterMarkup}
     </div>
   `;
 }

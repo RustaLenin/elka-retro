@@ -11,7 +11,11 @@ export const renderResultsContainer = () => `
   <div class="catalog-results" data-catalog-results-root>
     <div class="catalog-results__grid" data-catalog-results></div>
     <div class="catalog-results__empty" data-catalog-empty hidden>
-      <p>По вашему запросу ничего не найдено.</p>
+      <div class="catalog-results__empty-content">
+        <ui-icon name="search" size="large" class="catalog-results__empty-icon"></ui-icon>
+        <h3 class="catalog-results__empty-title">По вашему запросу ничего не найдено</h3>
+        <p class="catalog-results__empty-text">Попробуйте изменить параметры поиска или фильтры</p>
+      </div>
     </div>
     <div class="catalog-results__error" data-catalog-error hidden>
       <p></p>

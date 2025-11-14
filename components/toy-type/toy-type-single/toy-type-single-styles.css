@@ -5,9 +5,6 @@ toy-type-single {
   width: 80%;
   max-width: 1200px;
   margin: 4rem auto 2rem auto;
-}
-
-toy-type-single .toy-type-single_content {
   position: relative;
   background: var(--color-card, rgba(32, 34, 39, 0.95));
   border: 1px solid var(--color-border-accent);
@@ -17,7 +14,7 @@ toy-type-single .toy-type-single_content {
 }
 
 /* Loader и состояния ошибки */
-toy-type-single .toy-type-single_content block-loader {
+toy-type-single block-loader {
   position: relative;
   display: flex;
   align-items: center;
@@ -30,9 +27,6 @@ toy-type-single .toy-type-single_empty {
   text-align: center;
   padding: 3rem 1rem;
   color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
-  background: var(--color-card, rgba(32, 34, 39, 0.95));
-  border-radius: 1rem;
-  border: 1px solid var(--color-border-accent);
 }
 
 toy-type-single .toy-type-single_error {
@@ -316,9 +310,6 @@ toy-type-single .toy-instance-cards-container {
   toy-type-single {
     width: 95%;
     margin: 2rem auto 1rem auto;
-  }
-  
-  toy-type-single .toy-type-single_content {
     padding: 1.5rem;
   }
   
