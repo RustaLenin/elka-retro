@@ -62,8 +62,7 @@ class Cart_Service {
 			return $server_cart;
 		} elseif ( $client_has_items && ! $server_has_items ) {
 			// Case 2: User Meta empty, LocalStorage has data
-			$this->save_user_cart( $user_id, $client_cart );
-			return $client_cart;
+			return $this->save_user_cart( $user_id, $client_cart );
 		} elseif ( $client_has_items && $server_has_items ) {
 			// Case 3: Both have data - User Meta priority
 			return $server_cart;
@@ -78,13 +77,23 @@ class Cart_Service {
 	 *
 	 * @param int   $user_id User ID.
 	 * @param array $cart Cart data.
-	 * @return bool
+	 * @return array|WP_Error Normalized cart data.
 	 */
 	public function save_user_cart( $user_id, $cart ) {
 		$normalized = $this->normalize_cart( $cart );
 		$normalized['lastUpdated'] = current_time( 'mysql' );
 
-		return update_user_meta( $user_id, self::USER_META_KEY, $normalized );
+		$updated = update_user_meta( $user_id, self::USER_META_KEY, $normalized );
+
+		if ( ! $updated ) {
+			return new WP_Error(
+				'cart_meta_update_failed',
+				__( 'Failed to update cart meta.', 'elkaretro' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		return $normalized;
 	}
 
 	/**

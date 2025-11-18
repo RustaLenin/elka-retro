@@ -32,16 +32,44 @@ function renderLabel(state) {
   const description = state?.description;
   const hints = state?.hints || {};
   const iconMarkup = renderIcon(state?.icon);
+  const fieldType = state?.config?.type;
+
+  // Для чекбокса не рендерим внешний label, так как чекбокс сам рендерит свой label
+  if (fieldType === 'checkbox' || fieldType === 'boolean') {
+    return '<div class="ui-form-field__label-wrapper" hidden></div>';
+  }
 
   if (!label && !description && !iconMarkup) {
     return '<div class="ui-form-field__label-wrapper" hidden></div>';
   }
 
+  const hintPosition = state?.tooltip?.position || 'right';
+
+  const descriptionHint = description
+    ? `<ui-hint
+          class="ui-form-field__description-hint"
+          data-hint="${escapeAttribute(description)}"
+          data-hint-placement="${escapeAttribute(hintPosition)}"
+          data-hint-trigger="hover"
+          aria-label="${escapeAttribute(description)}"
+        >
+          <ui-icon name="question" size="xsmall"></ui-icon>
+        </ui-hint>`
+    : '';
+
   return `
     <div class="ui-form-field__label-wrapper">
-      ${iconMarkup ? `<span class="ui-form-field__label-icon">${iconMarkup}</span>` : ''}
-      ${label ? `<label class="ui-form-field__label">${escapeHTML(label)}${required ? '<span class="ui-form-field__required">*</span>' : ''}</label>` : ''}
-      ${description ? `<p class="ui-form-field__description">${escapeHTML(description)}</p>` : ''}
+      <div class="ui-form-field__label-row">
+        ${iconMarkup ? `<span class="ui-form-field__label-icon">${iconMarkup}</span>` : ''}
+        ${
+          label
+            ? `<label class="ui-form-field__label">${escapeHTML(label)}${
+                required ? '<span class="ui-form-field__required">*</span>' : ''
+              }</label>`
+            : ''
+        }
+        ${descriptionHint}
+      </div>
       ${hints.field ? `<p class="ui-form-field__hint">${escapeHTML(hints.field)}</p>` : ''}
     </div>
   `;
@@ -124,7 +152,7 @@ function renderControl(state) {
     return '<!-- no field config -->';
   }
   
-  const { type, id, placeholder, required, autocomplete, mask, icon, min, max, step, options, dataSource, searchable } = fieldConfig;
+  const { type, id, placeholder, required, autocomplete, mask, icon, min, max, step, options, dataSource, searchable, rows } = fieldConfig;
   
   // Определяем тип контрола
   let controlTag = 'ui-input-text';
@@ -136,13 +164,28 @@ function renderControl(state) {
     finalOptions = loadOptionsFromDataSource(dataSource);
   }
   
+  // Поддержка textarea
+  if (type === 'textarea') {
+    // Для textarea рендерим нативный textarea элемент
+    const textareaAttrs = [];
+    textareaAttrs.push(`id="${escapeAttribute(id)}"`);
+    textareaAttrs.push(`name="${escapeAttribute(id)}"`);
+    textareaAttrs.push('class="ui-form-field__textarea"');
+    if (placeholder) textareaAttrs.push(`placeholder="${escapeAttribute(placeholder)}"`);
+    if (required) textareaAttrs.push('required');
+    if (autocomplete) textareaAttrs.push(`autocomplete="${escapeAttribute(autocomplete)}"`);
+    if (rows) textareaAttrs.push(`rows="${escapeAttribute(rows)}"`);
+    
+    return `<textarea ${textareaAttrs.join(' ')}></textarea>`;
+  }
+  
   if (type === 'number' || type === 'integer' || type === 'float') {
     controlTag = 'ui-input-number';
     if (min !== undefined) controlAttrs.push(`min="${escapeAttribute(min)}"`);
     if (max !== undefined) controlAttrs.push(`max="${escapeAttribute(max)}"`);
     if (step !== undefined) controlAttrs.push(`step="${escapeAttribute(step)}"`);
   } else if (type === 'checkbox' || type === 'boolean') {
-    controlTag = 'ui-checkbox';
+    controlTag = 'ui-form-checkbox';
   } else if (type === 'select' || type === 'select-single') {
     controlTag = 'ui-select-single';
     if (finalOptions && Array.isArray(finalOptions) && finalOptions.length > 0) {
@@ -168,9 +211,15 @@ function renderControl(state) {
   if (required) controlAttrs.push('required');
   if (autocomplete) controlAttrs.push(`autocomplete="${escapeAttribute(autocomplete)}"`);
   if (mask) controlAttrs.push(`mask="${escapeAttribute(mask)}"`);
+  const allowedPatternAttr = fieldConfig?.allowedPattern || state?.allowedPattern;
+  if (allowedPatternAttr) controlAttrs.push(`allowed-pattern="${escapeAttribute(allowedPatternAttr)}"`);
   if (icon?.key) {
     controlAttrs.push(`icon="${escapeAttribute(icon.key)}"`);
     if (icon.icon_position) controlAttrs.push(`icon-position="${escapeAttribute(icon.icon_position)}"`);
+  }
+  // Для чекбокса передаём label напрямую в компонент (так как он рендерит свой label)
+  if ((type === 'checkbox' || type === 'boolean') && fieldConfig?.label) {
+    controlAttrs.push(`label="${escapeAttribute(fieldConfig.label)}"`);
   }
   
   return `<${controlTag} ${controlAttrs.join(' ')}></${controlTag}>`;
@@ -192,6 +241,7 @@ export function renderFormFieldTemplate(state) {
         ${renderControl(state)}
         ${renderTooltip(state?.tooltip)}
       </div>
+      <div class="ui-form-field__status-message" aria-live="polite">${escapeHTML(state?.statusMessage || '')}</div>
       ${renderFeedback(messages)}
     </div>
   `;

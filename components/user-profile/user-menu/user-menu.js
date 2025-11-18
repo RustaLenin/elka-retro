@@ -1,5 +1,4 @@
 import { BaseElement } from '../../base-element.js';
-import { authService } from '../services/auth-service.js';
 import { renderUserMenuTemplate } from './user-menu-template.js';
 
 if (window.app?.toolkit?.loadCSSOnce) {
@@ -151,15 +150,32 @@ export class UserMenu extends BaseElement {
     }
   }
 
-  toggle() {
-    if (this.state.user) {
-      this.setState({ open: !this.state.open });
-    } else {
-      // Если пользователь не авторизован, открываем модальное окно авторизации
-      if (window.app?.authModalManager) {
-        window.app.authModalManager.showAuth();
+  async toggle() {
+    if (!this.state.user) {
+      // Если пользователь не авторизован, открываем модальное окно входа
+      const openAuth = () => {
+        if (window.app?.events) {
+          window.app.events.emit('user.showSignInModal', { source: 'user-menu:toggle' });
+        } else {
+          window.app?.services?.userUi?.showSignInModal();
+        }
+      };
+
+      if (!window.app?.services?.userUi) {
+        try {
+          await import('../services/user-ui-service.js');
+        } catch (error) {
+          console.error('[UserMenu] Failed to load user-ui-service:', error);
+          return;
+        }
       }
+
+      openAuth();
+      return;
     }
+
+    // Если пользователь авторизован, переключаем меню
+    this.setState({ open: !this.state.open });
   }
 
   open() {
@@ -170,16 +186,6 @@ export class UserMenu extends BaseElement {
 
   close() {
     this.setState({ open: false });
-  }
-
-  async handleLogout() {
-    try {
-      await authService.logout();
-      this.close();
-      // Редирект происходит в authService
-    } catch (error) {
-      console.error('[UserMenu] Logout error:', error);
-    }
   }
 
   _getUserInitials() {
@@ -212,40 +218,8 @@ export class UserMenu extends BaseElement {
   }
 
   _attachEventListeners() {
-    // Обработка кликов через кастомные события от ui-button
-    this.removeEventListener('user-menu:login-click', this._handleLogin);
-    this._handleLogin = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (window.app?.authModalManager) {
-        window.app.authModalManager.showAuth();
-      }
-    };
-    this.addEventListener('user-menu:login-click', this._handleLogin);
-
-    this.removeEventListener('user-menu:toggle-click', this._handleToggle);
-    this._handleToggle = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.toggle();
-    };
-    this.addEventListener('user-menu:toggle-click', this._handleToggle);
-
-    this.removeEventListener('user-menu:logout-click', this._handleLogout);
-    this._handleLogout = async (e) => {
-      e.preventDefault();
-      await this.handleLogout();
-    };
-    this.addEventListener('user-menu:logout-click', this._handleLogout);
-
-    const profileLink = this.querySelector('[data-action="profile"]');
-    if (profileLink) {
-      profileLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.location.href = '/profile/';
-        this.close();
-      });
-    }
+    // Обработчики событий теперь обрабатываются через глобальный event bus (data-app-action)
+    // Удаляем старую логику с user-menu:toggle-click
   }
 }
 

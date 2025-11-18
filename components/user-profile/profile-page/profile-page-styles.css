@@ -21,45 +21,79 @@ profile-page {
 }
 
 .profile-page__error p {
-  color: var(--color-error, #ef4444);
+  color: #ef4444;
   font-size: 1.125rem;
 }
 
+/* Обёртка с ограничением ширины и центрированием */
+.profile-page__wrapper {
+  width: 80%;
+  max-width: 90rem;
+  margin: 4rem auto 2rem auto;
+  position: relative;
+}
+
+/* Карточка с контентом (как у wp-page) */
+.profile-page__card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border-accent);
+  border-radius: 1rem;
+  padding: 2rem;
+  min-height: 200px;
+  position: relative;
+}
+
+/* Вкладки над верхней границей карточки */
+.profile-page__tabs {
+  position: relative;
+  margin-bottom: -1px; /* Перекрываем верхнюю границу карточки */
+  z-index: 1;
+}
+
+/* Заголовок */
 .profile-page__header {
-  padding: 2rem 0 1.5rem;
-  border-bottom: 1px solid var(--color-border, #e0e0e0);
-  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border-accent);
 }
 
 .profile-page__title {
   margin: 0 0 0.5rem;
+  font-family: var(--font-heading);
   font-size: 2rem;
   font-weight: 600;
-  color: var(--color-text, #333);
+  color: var(--color-foreground);
+  line-height: 1.2;
 }
 
 .profile-page__subtitle {
   margin: 0;
   font-size: 1rem;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-muted-foreground);
 }
 
+/* Контент */
 .profile-page__content {
-  padding: 1.5rem 0;
+  padding: 0;
 }
 
 @media (max-width: 768px) {
+  .profile-page__wrapper {
+    width: 95%;
+    margin: 2rem auto 1rem auto;
+  }
+
+  .profile-page__card {
+    padding: 1.5rem;
+  }
+
   .profile-page__header {
-    padding: 1.5rem 0 1rem;
-    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
   }
 
   .profile-page__title {
-    font-size: 1.5rem;
-  }
-
-  .profile-page__content {
-    padding: 1rem 0;
+    font-size: 1.75rem;
   }
 }
 

@@ -5,6 +5,7 @@
 
 import {
   escapeHTML,
+  escapeAttribute,
   renderIcon,
   renderStatus,
   renderFormBody,
@@ -33,8 +34,9 @@ function renderHeader(state) {
 }
 
 export function renderFormControllerPageTemplate(state) {
+  const gapStyle = state?.layoutGap ? ` style="--ui-form-layout-gap:${escapeAttribute(state.layoutGap)}"` : '';
   return `
-    <form class="ui-form-controller" novalidate>
+    <form class="ui-form-controller"${gapStyle} novalidate>
       ${renderHeader(state)}
       ${renderStatus(state)}
       ${renderFormBody(state)}

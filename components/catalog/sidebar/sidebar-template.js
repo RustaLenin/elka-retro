@@ -14,17 +14,21 @@
 export const renderSidebarShell = () => {
   return `
     <div class="catalog-sidebar" data-catalog-sidebar-inner>
-      <!-- Переключатель режимов (Типы / Экземпляры) -->
-      <div class="catalog-sidebar__section catalog-sidebar__section--mode-toggle" data-sidebar-mode-toggle></div>
-      
-      <!-- Общий фильтр категорий (иерархический) -->
-      <div class="catalog-sidebar__section catalog-sidebar__section--category" data-sidebar-category></div>
-      
-      <!-- Динамические фильтры (зависят от режима) -->
-      <div class="catalog-sidebar__section catalog-sidebar__section--filters" data-sidebar-filters></div>
-      
-      <!-- Кнопки действий (Применить фильтры, Сбросить) -->
-      <div class="catalog-sidebar__section catalog-sidebar__section--actions" data-sidebar-actions></div>
+      <div class="catalog-sidebar__fixed">
+        <!-- Переключатель режимов (Типы / Экземпляры) -->
+        <div class="catalog-sidebar__section catalog-sidebar__section--mode-toggle" data-sidebar-mode-toggle></div>
+        
+        <!-- Общий фильтр категорий (иерархический) -->
+        <div class="catalog-sidebar__section catalog-sidebar__section--category" data-sidebar-category></div>
+        
+        <!-- Динамические фильтры (зависят от режима) -->
+        <div class="catalog-sidebar__filters-scroll">
+          <div class="catalog-sidebar__section catalog-sidebar__section--filters" data-sidebar-filters></div>
+        </div>
+        
+        <!-- Кнопки действий (Применить фильтры, Сбросить) -->
+        <div class="catalog-sidebar__section catalog-sidebar__section--actions" data-sidebar-actions></div>
+      </div>
     </div>
   `;
 };
@@ -47,25 +51,24 @@ export const renderFilterGroup = (config = {}) => {
  */
 export const renderActionButtons = ({ hasActiveFilters = false } = {}) => {
   return `
-    <div class="catalog-sidebar__actions" data-sidebar-actions>
-      <div class="catalog-sidebar__actions-row">
-        <ui-button 
-          type="primary"
-          label="Применить фильтры"
-          event="catalog-sidebar:apply-filters"
-          class="catalog-sidebar__apply-button"
-          data-apply-filters
-        ></ui-button>
-        ${hasActiveFilters ? `
-          <ui-button 
-            type="ghost"
-            label="Сбросить"
-            event="catalog-sidebar:reset-filters"
-            class="catalog-sidebar__reset-button"
-            data-reset-filters
-          ></ui-button>
-        ` : ''}
-      </div>
+    <div class="catalog-sidebar__actions">
+      ${hasActiveFilters ? `
+        <button 
+          type="button" 
+          class="catalog-sidebar__reset-icon" 
+          data-reset-filters 
+          aria-label="Сбросить фильтры"
+        >
+          <ui-icon name="refresh"></ui-icon>
+        </button>
+      ` : ''}
+      <ui-button 
+        type="primary"
+        label="Применить фильтры"
+        event="catalog-sidebar:apply-filters"
+        class="catalog-sidebar__apply-button"
+        data-apply-filters
+      ></ui-button>
     </div>
   `;
 };

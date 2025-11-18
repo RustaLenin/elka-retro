@@ -60,17 +60,11 @@ class SiteHeader extends BaseElement {
   }
 
   async _initAuth() {
-    // Загружаем auth-modal-manager и user-menu
     try {
       await Promise.all([
-        import('../../user-profile/auth-modal-manager.js'),
+        import('../../user-profile/services/user-ui-service.js'),
         import('../../user-profile/user-menu/user-menu.js')
       ]);
-
-      // Инициализируем менеджер модальных окон
-      if (window.app?.authModalManager) {
-        await window.app.authModalManager.init();
-      }
     } catch (error) {
       console.error('[SiteHeader] Failed to initialize auth components:', error);
     }

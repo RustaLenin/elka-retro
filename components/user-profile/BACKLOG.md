@@ -237,14 +237,37 @@
 #### Задачи:
 - [x] Создать документацию по работе с формами (`app/forms/README.md`)
 - [x] Создать TODO список для рефакторинга форм (`app/forms/TODO.md`)
-- [x] Мигрировать `auth-modal` на новый подход (использовать `config-path="window.app.forms.signIn"`)
-- [ ] Мигрировать `register-modal` на `app/forms/register.js`
-- [ ] Мигрировать `password-reset-modal` на `app/forms/password-reset.js`
+- [x] Вынести auth-модали в `user-ui-service` + `app.modal`
+- [x] Мигрировать `register` и `password-reset` формы в `app/forms/`
 - [ ] Мигрировать `profile-settings` на `app/forms/profile-edit.js` и `app/forms/profile-change-password.js`
 - [ ] Мигрировать `contact-form` на `app/forms/contact.js`
 - [ ] Обновить все места, где используется программная инициализация форм (`_initForm`, `setState`, `configure`)
 
 **Детальные задачи и инструкции по миграции см. в [`app/forms/TODO.md`](../../app/forms/TODO.md)**
+
+### Event Actions & App Event Bus (новый подход)
+
+**Цель:** отказаться от ручного навешивания обработчиков в модалях/компонентах и перейти на событийную шину (`app.events`) + декларативные `data-app-action`.
+
+#### Фаза 0 — Документация и план (текущий статус)
+- [x] Подготовить архитектурный документ (`app/events/README.md`).
+- [x] Обновить UI-kit и user-profile документацию с ссылками на новую архитектуру.
+- [x] Согласовать единый формат `data-app-action`, `data-app-payload`, `namespace.action`.
+
+#### Фаза 1 — Инфраструктура
+- [x] Реализовать `app/events/index.js` (регистрация, emit, DOM-диспетчеризация).
+- [x] Подключить глобальный делегат кликов/клавиш в `app/app.js`.
+- [ ] Обновить `app/modal-manager.js` (если потребуется) для работы с событиями без `onBodyReady`.
+
+#### Фаза 2 — Auth UI (пилот)
+- [x] Добавить `data-app-action` в шаблоны auth-модалей вместо ручных `addEventListener`.
+- [x] `userUiService` регистрирует действия через `app.events.register('user', {...})`.
+- [x] Удалить `onBodyReady`-обработчики и промежуточную логику.
+
+#### Фаза 3 — Расширение
+- [x] Перевести `user-menu`, `site-header`, `step-auth` на `data-app-action`.
+- [x] Описать дополнительные действия (`user.logout`, `user.openProfile`, `cart.openAuthStep`, и т.д.).
+- [x] Добавить гайдлайн в UI-kit о работе с `data-app-action`.
 
 **Низкий приоритет (Post-MVP):**
 - OAuth (социальные сети)

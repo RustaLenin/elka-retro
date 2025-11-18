@@ -50,6 +50,8 @@ export const orderPersonalFormConfig = {
       label: 'Телефон',
       placeholder: '+7 (999) 123-45-67',
       autocomplete: 'tel',
+      allowedPattern: '\\d',
+      mask: 'phone',
       required: true,
       validation: [
         { rule: 'required', value: true, message: 'Телефон обязателен для заполнения', severity: 'error' },

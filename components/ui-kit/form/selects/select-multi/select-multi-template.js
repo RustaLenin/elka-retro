@@ -8,26 +8,27 @@ function renderIcon(icon) {
 }
 
 function renderSelectedChips(state) {
-  const labels = formatSelectedLabels(state?.options, state?.values);
-  if (!labels.length) {
+  const selectedValues = Array.isArray(state?.values) ? state.values : [];
+  const labelsByValue = new Map();
+  const formattedLabels = formatSelectedLabels(state?.options, selectedValues);
+  selectedValues.forEach((value, index) => {
+    const label = formattedLabels[index] || value;
+    labelsByValue.set(value, label);
+  });
+
+  if (!selectedValues.length) {
     return `<span class="ui-select-multi__placeholder">${escapeHTML(state?.placeholder || 'Выберите значения')}</span>`;
   }
 
   // Ограничиваем отображение: максимум 2 чипса + чипс "+N" если больше 2
   const MAX_VISIBLE_CHIPS = 2;
-  const visibleLabels = labels.slice(0, MAX_VISIBLE_CHIPS);
-  const remainingCount = labels.length > MAX_VISIBLE_CHIPS ? labels.length - MAX_VISIBLE_CHIPS : 0;
+  const visibleValues = selectedValues.slice(0, MAX_VISIBLE_CHIPS);
+  const remainingCount = selectedValues.length > MAX_VISIBLE_CHIPS ? selectedValues.length - MAX_VISIBLE_CHIPS : 0;
 
-  const chipMarkup = visibleLabels.map((label, idx) => {
-    // Получаем реальный индекс для правильной идентификации
-    const realIndex = idx;
-    const option = Array.isArray(state?.options) 
-      ? state.options.find(opt => opt.label === label)
-      : null;
-    const value = option ? option.value : label;
-
+  const chipMarkup = visibleValues.map((value) => {
+    const label = labelsByValue.get(value) || value;
     return `
-      <span class="ui-select-multi__chip" data-value="${escapeHTML(String(value))}" data-label="${escapeHTML(label)}">
+      <span class="ui-select-multi__chip" data-value="${escapeHTML(String(value))}" data-label="${escapeHTML(String(label))}">
         <span class="ui-select-multi__chip-inner">
           <span class="ui-select-multi__chip-label">${escapeHTML(label)}</span>
           <button type="button" class="ui-select-multi__chip-remove" data-action="remove" aria-label="Удалить ${escapeHTML(label)}">

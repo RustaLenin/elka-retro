@@ -59,7 +59,7 @@ export function renderControl(fieldConfig) {
     if (max !== undefined) controlAttrs.push(`max="${escapeAttribute(max)}"`);
     if (step !== undefined) controlAttrs.push(`step="${escapeAttribute(step)}"`);
   } else if (type === 'checkbox' || type === 'boolean') {
-    controlTag = 'ui-checkbox';
+    controlTag = 'ui-form-checkbox';
   } else if (type === 'select' || type === 'select-single') {
     controlTag = 'ui-select';
   } else if (type === 'select-multi') {

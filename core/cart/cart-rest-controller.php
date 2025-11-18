@@ -62,6 +62,12 @@ class Cart_REST_Controller extends WP_REST_Controller {
 					'callback'            => array( $this, 'get_cart' ),
 					'permission_callback' => array( $this, 'check_permission' ),
 				),
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_cart' ),
+					'permission_callback' => array( $this, 'check_permission' ),
+					'args'                => $this->get_cart_sync_args(),
+				),
 			)
 		);
 
@@ -142,6 +148,39 @@ class Cart_REST_Controller extends WP_REST_Controller {
 			array(
 				'success' => true,
 				'cart'    => $result,
+			)
+		);
+	}
+
+	/**
+	 * Replace user cart with fresh data (explicit user action).
+	 *
+	 * @param WP_REST_Request $request Request instance.
+	 *
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function update_cart( WP_REST_Request $request ) {
+		$user_id = get_current_user_id();
+		$cart    = $request->get_param( 'cart' );
+
+		if ( ! is_array( $cart ) ) {
+			return new WP_Error(
+				'rest_invalid_param',
+				__( 'Cart data must be an array.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$saved_cart = $this->cart_service->save_user_cart( $user_id, $cart );
+
+		if ( is_wp_error( $saved_cart ) ) {
+			return $saved_cart;
+		}
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'cart'    => $saved_cart,
 			)
 		);
 	}

@@ -15,7 +15,7 @@ ui-form-controller {
   align-items: flex-start;
   gap: 12px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--form-border, #e4e7ec);
+  border-bottom: 1px solid var(--form-border, var(--color-border-accent));
 }
 
 .ui-form-controller__header[hidden] {
@@ -33,17 +33,18 @@ ui-form-controller {
 
 .ui-form-controller__title {
   margin: 0 0 8px 0;
+  font-family: var(--font-heading);
   font-size: 24px;
   font-weight: 600;
   line-height: 1.3;
-  color: var(--form-title, #101828);
+  color: var(--form-title, var(--color-foreground));
 }
 
 .ui-form-controller__description {
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--form-description, #475467);
+  color: var(--form-description, var(--color-muted-foreground));
 }
 
 /* Status */
@@ -105,7 +106,7 @@ ui-form-controller {
 .ui-form-controller__layout {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--ui-form-layout-gap, 24px);
   width: 100%;
 }
 
@@ -113,7 +114,7 @@ ui-form-controller {
 .ui-form-controller__columns-wrapper,
 .ui-form-controller__groups-wrapper {
   display: grid;
-  gap: 24px;
+  gap: var(--ui-form-layout-gap, 24px);
   width: 100%;
 }
 
@@ -328,6 +329,61 @@ ui-form-controller {
 
 ui-form-controller[data-debug="true"] .ui-form-controller__button[data-visible-when="debug"] {
   display: inline-flex;
+}
+
+/* Loading overlay */
+form.ui-form-controller {
+  position: relative;
+}
+
+.ui-form-controller__overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(3px);
+  border-radius: inherit;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* В модальном режиме overlay создается внутри modal_body и покрывает весь modal_body */
+/* modal_body уже имеет position: relative в modal-styles.css */
+.modal_body .ui-form-controller__overlay {
+  /* Overlay позиционируется относительно modal_body (который имеет position: relative) */
+  position: absolute;
+  inset: 0;
+  z-index: 100; /* Выше содержимого модального окна */
+}
+
+.ui-form-controller__overlay--visible {
+  display: flex;
+  pointer-events: all;
+}
+
+.ui-form-controller__overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 32px;
+  border-radius: 16px;
+  background: rgba(12, 16, 27, 0.85);
+  color: #fff;
+  text-align: center;
+  min-width: 220px;
+}
+
+.ui-form-controller__overlay-content block-loader {
+  --loader-color: var(--color-primary, #a855f7);
+}
+
+.ui-form-controller__overlay-label {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* Debug Panel */

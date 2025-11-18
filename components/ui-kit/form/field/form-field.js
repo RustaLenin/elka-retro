@@ -16,6 +16,7 @@ export class UIFormField extends BaseElement {
     required:    { type: 'boolean', default: false, attribute: { name: 'required', observed: true, reflect: true } },
     disabled:    { type: 'boolean', default: false, attribute: { name: 'disabled', observed: true, reflect: true } },
     status:      { type: 'string',  default: 'default', attribute: null },
+    statusMessage: { type: 'string', default: '', attribute: null },
     messages:    { type: 'json',    default: null, attribute: null },
     hints:       { type: 'json',    default: null, attribute: null },
     tooltip:     { type: 'json',    default: null, attribute: null },
@@ -23,7 +24,11 @@ export class UIFormField extends BaseElement {
     value:       { type: 'json',    default: null, attribute: null },
     meta:        { type: 'json',    default: null, attribute: null },
     touched:     { type: 'boolean', default: false, attribute: null, internal: true },
-    dirty:       { type: 'boolean', default: false, attribute: null, internal: true }
+    dirty:       { type: 'boolean', default: false, attribute: null, internal: true },
+    autoValidate:{ type: 'boolean', default: false, attribute: { name: 'auto-validate', observed: true, reflect: true } },
+    errorMessage:{ type: 'string',  default: 'Поле заполнено некорректно', attribute: { name: 'error-message', observed: true, reflect: true } },
+    successMessage:{ type: 'string', default: 'Готово', attribute: { name: 'success-message', observed: true, reflect: true } },
+    allowedPattern:{ type: 'string', default: '', attribute: { name: 'allowed-pattern', observed: true, reflect: true } }
   };
 
   constructor() {
@@ -31,6 +36,8 @@ export class UIFormField extends BaseElement {
     this._onControlEvent = this._onControlEvent.bind(this);
     this._controlEl = null;
     this._initialValue = null;
+    this._statusTimer = null;
+    this._statusMessageEl = null;
   }
 
   connectedCallback() {
@@ -102,6 +109,10 @@ export class UIFormField extends BaseElement {
     if (this.state.config && !this._initialValue) {
       this._initialValue = this.state.config.defaultValue ?? null;
       this.state.initialValue = this._initialValue;
+
+      if (this.state.config.allowedPattern) {
+        this.setState({ allowedPattern: this.state.config.allowedPattern });
+      }
     }
     
     // Если values еще не инициализированы, ждем
@@ -123,8 +134,10 @@ export class UIFormField extends BaseElement {
         formController.state.values[fieldId] = val;
         // Обновляем контрол
         const control = this._getControl();
-        if (control && typeof control.setState === 'function') {
-          control.setState({ value: val });
+        if (control) {
+          if (typeof control.applyExternalValue === 'function') {
+            control.applyExternalValue(val);
+          }
         }
       },
       enumerable: true,
@@ -140,6 +153,7 @@ export class UIFormField extends BaseElement {
 
   disconnectedCallback() {
     this._detachControlListeners();
+    this._detachTextareaListeners();
     
     // Очищаем ссылку на стейт родителя
     if (this.state._valueDescriptor) {
@@ -155,6 +169,11 @@ export class UIFormField extends BaseElement {
     // Обновляем состояние контрола без перерисовки
     if (_key === 'disabled' || _key === 'required') {
       this._applyFieldStateToControl();
+    }
+    
+    // Для textarea синхронизируем значение при изменении
+    if (_key === 'value' && this._controlEl && this._controlEl.tagName === 'TEXTAREA') {
+      this._syncTextarea();
     }
 
     // Обновляем статус без перерисовки
@@ -196,10 +215,26 @@ export class UIFormField extends BaseElement {
         fieldEl.classList.add(`ui-form-field--${status}`);
       }
     }
+
+    if (status === 'error') {
+      this.setAttribute('is_error', 'true');
+      this.removeAttribute('is_success');
+    } else if (status === 'success') {
+      this.setAttribute('is_success', 'true');
+      this.removeAttribute('is_error');
+    } else {
+      this.removeAttribute('is_error');
+      this.removeAttribute('is_success');
+    }
+
+    if (this._statusMessageEl) {
+      this._statusMessageEl.textContent = this.state.statusMessage || '';
+    }
   }
 
   render() {
     this._detachControlListeners();
+    this._detachTextareaListeners();
     
     // Проверяем, что конфигурация загружена перед рендером
     if (!this.state.config) {
@@ -209,14 +244,19 @@ export class UIFormField extends BaseElement {
     // Рендерим шаблон поля (контрол рендерится внутри шаблона на основе state.config)
     this.innerHTML = renderFormFieldTemplate(this.state);
     
-    // Находим контрол после рендера
-    this._controlEl = this.querySelector('ui-input-text, ui-input-number, ui-input-range, ui-select-single, ui-select-multi, ui-checkbox');
+    // Находим контрол после рендера (веб-компоненты или нативный textarea)
+    this._controlEl = this.querySelector('ui-input-text, ui-input-number, ui-input-range, ui-select-single, ui-select-multi, ui-checkbox, .ui-form-field__textarea, textarea');
+    this._statusMessageEl = this.querySelector('.ui-form-field__status-message');
     
     // Применяем состояние к контролу
     this._applyFieldStateToControl();
     
-    // Подключаем слушатели событий контрола
-    if (this._controlEl) {
+    // Для нативного textarea синхронизируем значение и добавляем слушатели
+    if (this._controlEl && this._controlEl.tagName === 'TEXTAREA') {
+      this._syncTextarea();
+      this._attachTextareaListeners();
+    } else if (this._controlEl) {
+      // Подключаем слушатели событий веб-компонента
       this._attachControlListeners();
     }
   }
@@ -305,6 +345,12 @@ export class UIFormField extends BaseElement {
   _applyFieldStateToControl() {
     if (!this._controlEl) return;
     
+    // Для нативного textarea используем _syncTextarea
+    if (this._controlEl.tagName === 'TEXTAREA') {
+      this._syncTextarea();
+      return;
+    }
+    
     // Обновляем только атрибуты disabled и required, не трогая DOM структуру
     if (this.state.disabled) {
       this._controlEl.setAttribute('disabled', '');
@@ -361,6 +407,7 @@ export class UIFormField extends BaseElement {
       case 'ui-input-number:input':
       case 'ui-input-range:input':
         update.dirty = true;
+        this.clearStatus();
         break;
       case 'ui-input-text:change':
       case 'ui-input-number:change':
@@ -371,6 +418,9 @@ export class UIFormField extends BaseElement {
       case 'ui-input-number:blur':
       case 'ui-input-range:blur':
         update.touched = true;
+        if (this.state.autoValidate) {
+          this._runAutoValidation();
+        }
         break;
       case 'ui-input-text:validation':
       case 'ui-input-number:validation':
@@ -385,13 +435,23 @@ export class UIFormField extends BaseElement {
       case 'ui-segmented-toggle:change':
         update.touched = true;
         break;
+      case 'ui-select:close':
+        update.touched = true;
+        if (this.state.autoValidate) {
+          this._runAutoValidation();
+        }
+        break;
       case 'ui-select:select':
       case 'ui-select:deselect':
       case 'ui-checkbox:input':
         update.dirty = true;
+        this.clearStatus();
         break;
       case 'ui-checkbox:blur':
         update.touched = true;
+        if (this.state.autoValidate) {
+          this._runAutoValidation();
+        }
         break;
       default:
         break;
@@ -433,6 +493,12 @@ export class UIFormField extends BaseElement {
    * Получить текущее значение поля
    */
   value() {
+    // Для нативного textarea получаем значение напрямую из элемента
+    const control = this._getControl();
+    if (control && control.tagName === 'TEXTAREA') {
+      return control.value || null;
+    }
+    
     return this.state.value ?? null;
   }
 
@@ -447,6 +513,13 @@ export class UIFormField extends BaseElement {
     // Контрол сам обновит свой DOM через свой setter
     // Но можем помочь, если контрол еще не создал ссылку
     const control = this._getControl();
+    
+    // Для нативного textarea обновляем напрямую
+    if (control && control.tagName === 'TEXTAREA') {
+      control.value = value !== null && value !== undefined ? String(value) : '';
+      return this;
+    }
+    
     if (control && !control.state?._valueDescriptor) {
       // Если контрол еще не создал ссылку, обновляем напрямую
       if (typeof control.setValue === 'function') {
@@ -473,6 +546,7 @@ export class UIFormField extends BaseElement {
       touched: false,
       dirty: false
     });
+    this.clearStatus();
     
     return this;
   }
@@ -480,13 +554,9 @@ export class UIFormField extends BaseElement {
   /**
    * Установить ошибку на поле
    */
-  setError(message) {
-    this.setState({
-      status: 'error',
-      messages: {
-        error: Array.isArray(message) ? message : [message]
-      }
-    });
+  setError(message, options = {}) {
+    const messages = Array.isArray(message) ? message : [message];
+    this.showError(messages[0], options.duration);
     return this;
   }
 
@@ -494,13 +564,118 @@ export class UIFormField extends BaseElement {
    * Очистить ошибки
    */
   clearError() {
-    if (this.state.status === 'error') {
-      this.setState({
-        status: 'default',
-        messages: null
-      });
-    }
+    this.clearStatus();
     return this;
+  }
+
+  showError(message, duration = 0) {
+    const text = message || this.state.errorMessage || 'Поле заполнено некорректно';
+    this.setState({ messages: { error: [text] } });
+    this._setStatusState('error', text);
+    this._triggerTransientErrorAnimation();
+    if (duration) {
+      this._scheduleStatusClear(duration);
+    }
+  }
+
+  showSuccess(message, duration = 2000) {
+    const text = message || this.state.successMessage || '';
+    this.setState({ messages: { success: text ? [text] : [] } });
+    this._setStatusState('success', text);
+    if (duration) {
+      this._scheduleStatusClear(duration);
+    }
+  }
+
+  clearStatus() {
+    this._clearStatusTimer();
+    this.setState({ messages: null });
+    this._setStatusState('default', '');
+  }
+
+  _setStatusState(status, message) {
+    this.setState({
+      status,
+      statusMessage: message || ''
+    });
+  }
+
+  _scheduleStatusClear(duration) {
+    this._clearStatusTimer();
+    this._statusTimer = setTimeout(() => {
+      this.clearStatus();
+    }, duration);
+  }
+
+  _clearStatusTimer() {
+    if (this._statusTimer) {
+      clearTimeout(this._statusTimer);
+      this._statusTimer = null;
+    }
+  }
+
+  _runAutoValidation() {
+    const value = this.value();
+
+    if (this.state.required && this._isEmptyValue(value)) {
+      this.showError(this._getRuleMessage('required'));
+      return false;
+    }
+
+    const validations = Array.isArray(this.state.config?.validation) ? this.state.config.validation : [];
+    for (const rule of validations) {
+      if (!this._validateRule(rule, value)) {
+        this.showError(rule?.message || this._getRuleMessage(rule?.rule));
+        return false;
+      }
+    }
+
+    if (!this._isEmptyValue(value)) {
+      this.showSuccess(this.state.successMessage);
+    } else {
+      this.clearStatus();
+    }
+    return true;
+  }
+
+  _validateRule(rule, value) {
+    if (!rule || !rule.rule) return true;
+    const comparable = value == null ? '' : value;
+    switch (rule.rule) {
+      case 'pattern': {
+        if (!rule.value) return true;
+        const regex = rule.value instanceof RegExp ? rule.value : new RegExp(rule.value);
+        return regex.test(comparable);
+      }
+      case 'minLength':
+        return String(comparable).length >= Number(rule.value || 0);
+      case 'maxLength':
+        return String(comparable).length <= Number(rule.value || Infinity);
+      case 'min':
+        return Number(comparable) >= Number(rule.value || 0);
+      case 'max':
+        return Number(comparable) <= Number(rule.value || 0);
+      case 'required':
+        return !this._isEmptyValue(comparable);
+      default:
+        return true;
+    }
+  }
+
+  _isEmptyValue(value) {
+    return (
+      value === null ||
+      value === undefined ||
+      value === '' ||
+      (Array.isArray(value) && value.length === 0)
+    );
+  }
+
+  _getRuleMessage(rule) {
+    if (rule === 'required') {
+      return this.getAttribute('error-message') || 'Поле обязательно для заполнения';
+    }
+    return this.getAttribute('error-message') || this.state.errorMessage || 'Поле заполнено некорректно';
   }
 
   /**
@@ -524,11 +699,107 @@ export class UIFormField extends BaseElement {
     return this.state.touched === true;
   }
 
+  _triggerTransientErrorAnimation() {
+    const fieldEl = this.querySelector('.ui-form-field');
+    if (!fieldEl) return;
+    fieldEl.classList.remove('ui-form-field--error-animated');
+    // Force reflow to restart animation
+    void fieldEl.offsetWidth;
+    fieldEl.classList.add('ui-form-field--error-animated');
+    setTimeout(() => {
+      fieldEl.classList.remove('ui-form-field--error-animated');
+    }, 1200);
+  }
+
   /**
    * Получить контрол поля
    */
   _getControl() {
-    return this.querySelector('ui-input-text, ui-input-number, ui-checkbox, ui-select, ui-select-multi, ui-input-range, ui-segmented-toggle');
+    return this.querySelector('ui-input-text, ui-input-number, ui-checkbox, ui-select, ui-select-multi, ui-input-range, ui-segmented-toggle, .ui-form-field__textarea');
+  }
+
+  /**
+   * Синхронизировать значение нативного textarea с состоянием поля
+   * @private
+   */
+  _syncTextarea() {
+    const textarea = this._controlEl;
+    if (!textarea || textarea.tagName !== 'TEXTAREA') return;
+    
+    // Устанавливаем значение из состояния
+    if (this.state.value !== null && this.state.value !== undefined) {
+      textarea.value = String(this.state.value);
+    }
+    
+    // Синхронизируем состояние disabled/required
+    if (this.state.disabled) {
+      textarea.disabled = true;
+    } else {
+      textarea.disabled = false;
+    }
+    
+    if (this.state.required) {
+      textarea.setAttribute('required', '');
+    } else {
+      textarea.removeAttribute('required');
+    }
+  }
+
+  /**
+   * Подключить слушатели событий для нативного textarea
+   * @private
+   */
+  _attachTextareaListeners() {
+    const textarea = this._controlEl;
+    if (!textarea || textarea.tagName !== 'TEXTAREA') return;
+    
+    this._textareaInputHandler = () => {
+      this.setState({ 
+        value: textarea.value,
+        dirty: true 
+      });
+      this.clearStatus();
+    };
+    
+    this._textareaChangeHandler = () => {
+      this.setState({ 
+        value: textarea.value,
+        touched: true 
+      });
+    };
+    
+    this._textareaBlurHandler = () => {
+      this.setState({ 
+        value: textarea.value,
+        touched: true 
+      });
+      if (this.state.autoValidate) {
+        this._runAutoValidation();
+      }
+    };
+    
+    textarea.addEventListener('input', this._textareaInputHandler);
+    textarea.addEventListener('change', this._textareaChangeHandler);
+    textarea.addEventListener('blur', this._textareaBlurHandler);
+  }
+
+  /**
+   * Отключить слушатели событий для нативного textarea
+   * @private
+   */
+  _detachTextareaListeners() {
+    const textarea = this._controlEl;
+    if (!textarea || textarea.tagName !== 'TEXTAREA') return;
+    
+    if (this._textareaInputHandler) {
+      textarea.removeEventListener('input', this._textareaInputHandler);
+    }
+    if (this._textareaChangeHandler) {
+      textarea.removeEventListener('change', this._textareaChangeHandler);
+    }
+    if (this._textareaBlurHandler) {
+      textarea.removeEventListener('blur', this._textareaBlurHandler);
+    }
   }
 }
 

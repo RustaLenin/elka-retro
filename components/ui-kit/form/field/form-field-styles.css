@@ -6,12 +6,20 @@ ui-form-field {
   flex-direction: column;
   gap: 8px;
   padding: 12px 0;
+  position: relative;
 }
 
 .ui-form-field__label-wrapper {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 4px;
+}
+
+.ui-form-field__label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .ui-form-field__label {
@@ -54,14 +62,69 @@ ui-form-field {
 .ui-form-field__control > ui-input-range,
 .ui-form-field__control > ui-select-single,
 .ui-form-field__control > ui-select-multi,
-.ui-form-field__control > ui-checkbox {
+.ui-form-field__control > ui-checkbox,
+.ui-form-field__control > .ui-form-field__textarea {
   flex: 1;
   min-width: 0; /* Позволяет сжиматься при необходимости */
+}
+
+/* Стили для textarea */
+.ui-form-field__textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-accent);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ui-form-field__textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(155, 140, 255, 0.15);
+}
+
+.ui-form-field__textarea::placeholder {
+  color: var(--color-muted-foreground);
+}
+
+.ui-form-field__textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .ui-form-field__icon {
   --icon-color: currentColor;
   color: var(--icon-color);
+}
+
+.ui-form-field__description-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  color: var(--color-text-secondary, var(--color-muted-foreground, #8a8f99));
+  cursor: help;
+  position: relative;
+}
+
+.ui-form-field__description-hint::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.ui-form-field__description-hint ui-icon {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
 }
 
 .ui-form-field__feedback {
@@ -102,8 +165,78 @@ ui-form-field.ui-form-field--success .ui-form-field__label {
   color: var(--color-success, #039855);
 }
 
+.ui-form-field .ui-input-text__control,
+.ui-form-field .ui-input-number__control,
+.ui-form-field .ui-input-range__control,
+.ui-form-field ui-select-single,
+.ui-form-field ui-select-multi,
+.ui-form-field ui-checkbox {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ui-form-field--error-animated .ui-form-field__control {
+  animation: ui-form-field-error-pulse 0.6s ease 0s 2;
+}
+
+@keyframes ui-form-field-error-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.4);
+  }
+  40% {
+    box-shadow: 0 0 0 6px rgba(217, 45, 32, 0.25);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(217, 45, 32, 0.0);
+  }
+}
+
 .ui-form-field__tooltip {
   margin-left: auto;
+}
+
+
+.ui-form-field__status-message {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  padding-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--color-text-secondary, var(--color-muted-foreground, #8a8f99));
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+ui-form-field[is_error="true"] .ui-form-field__status-message {
+  color: var(--color-danger, #ffb4aa);
+  opacity: 1;
+  transform: translateY(0);
+}
+
+ui-form-field[is_success="true"] .ui-form-field__status-message {
+  color: var(--color-success, #6ce9a6);
+  opacity: 1;
+  transform: translateY(0);
+}
+
+ui-form-field[is_error="true"] ui-input-text,
+ui-form-field[is_error="true"] ui-input-number,
+ui-form-field[is_error="true"] ui-input-range,
+ui-form-field[is_error="true"] ui-select-single,
+ui-form-field[is_error="true"] ui-select-multi {
+  border-color: var(--color-danger, #d92d20);
+  box-shadow: 0 0 0 1px rgba(217, 45, 32, 0.35);
+}
+
+ui-form-field[is_success="true"] ui-input-text,
+ui-form-field[is_success="true"] ui-input-number,
+ui-form-field[is_success="true"] ui-input-range,
+ui-form-field[is_success="true"] ui-select-single,
+ui-form-field[is_success="true"] ui-select-multi {
+  border-color: var(--color-success, #32d583);
+  box-shadow: 0 0 0 1px rgba(50, 213, 131, 0.3);
 }
 
 

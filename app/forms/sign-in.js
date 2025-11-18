@@ -128,19 +128,19 @@ export const signInFormConfig = {
       
       return result;
     },
-    onSuccess: (payload) => {
-      // payload = { controller, values, result }
-      const { result } = payload;
-      // Успешная авторизация обрабатывается через событие elkaretro:auth:login
+    onSuccess: ({ result }) => {
       window.dispatchEvent(new CustomEvent('elkaretro:auth:login', {
         detail: { user: result?.user }
       }));
+      window.app?.modal?.close?.('auth:signIn');
+      window.app?.ui?.showNotification?.('Вы успешно вошли в аккаунт', 'success');
     },
-    onError: (payload, error) => {
-      // payload = { controller, values }, error
+    onError: ({ error }) => {
+      const message = error?.message || error?.error || (typeof error === 'string' ? error : 'Ошибка авторизации');
       window.dispatchEvent(new CustomEvent('elkaretro:auth:error', {
-        detail: { error: error.message || 'Ошибка авторизации' }
+        detail: { error: message }
       }));
+      window.app?.ui?.showNotification?.(message, 'error');
     }
   }
 };

@@ -117,6 +117,7 @@ async function loadRelationshipOptionsForFields(fields) {
  * @returns {Promise<Object>} Конфигурация формы для ui-form-controller
  */
 export async function createCatalogFiltersFormConfig(mode, currentFilters = {}) {
+  const layoutGap = mode === 'type' ? '2px' : '';
   // Получаем конфигурации фильтров для режима через filter-registry
   const filterConfigs = await getFiltersForMode(mode);
   
@@ -272,6 +273,7 @@ export async function createCatalogFiltersFormConfig(mode, currentFilters = {}) 
   // Возвращаем полную конфигурацию формы
   return {
     formId: `catalog-filters-${mode}`,
+    ...(layoutGap && { layoutGap }),
     fields: fieldsWithOptions,
     values,
     autosubmit,

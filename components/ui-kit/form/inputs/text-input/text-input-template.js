@@ -24,6 +24,18 @@ function renderClearButton(state) {
   `;
 }
 
+function renderPasswordToggle(state) {
+  if (state?.mask !== 'password' || state?.disabled || state?.readonly) return '';
+  const isVisible = state?.passwordVisible || false;
+  const ariaLabel = isVisible ? 'Скрыть пароль' : 'Показать пароль';
+  const iconName = isVisible ? 'eye-off' : 'eye';
+  return `
+    <button type="button" class="ui-input-text__toggle" data-action="toggle-password" aria-label="${escapeAttribute(ariaLabel)}">
+      <ui-icon name="${escapeAttribute(iconName)}" size="small"></ui-icon>
+    </button>
+  `;
+}
+
 export function renderTextInputTemplate(state) {
   const value = state?.value ?? '';
   const placeholder = state?.placeholder ?? '';
@@ -38,6 +50,7 @@ export function renderTextInputTemplate(state) {
   const prefix = renderPrefix(state?.prefix);
   const suffix = renderSuffix(state?.suffix);
   const clearButton = renderClearButton(state);
+  const passwordToggle = renderPasswordToggle(state);
 
   // Обёртка не нужна - стили контейнера на самом элементе ui-input-text
   // Атрибуты status и disabled применяются к самому элементу через JS
@@ -49,8 +62,10 @@ export function renderTextInputTemplate(state) {
       type="${escapeAttribute(inputType)}"
       value="${escapeAttribute(value)}"
       placeholder="${escapeAttribute(placeholder)}"${disabled}${readonly}${maxlength}${autocomplete}${nameAttr}${inputMode}${pattern}
+      ${state?.mask ? ` data-mask="${escapeAttribute(state.mask)}"` : ''}
     />
     ${suffix}
+    ${passwordToggle}
     ${clearButton}
   `;
 }

@@ -39,6 +39,43 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 	 * Registers REST API routes.
 	 */
 	public function register_routes() {
+		// POST /wp-json/elkaretro/v1/auth/login
+		register_rest_route(
+			$this->namespace,
+			'/auth/login',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'login' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'username' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'password' => array(
+						'required'          => true,
+						'type'              => 'string',
+					),
+					'remember' => array(
+						'type'              => 'boolean',
+						'default'           => false,
+					),
+				),
+			)
+		);
+
+		// POST /wp-json/elkaretro/v1/auth/logout
+		register_rest_route(
+			$this->namespace,
+			'/auth/logout',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'logout' ),
+				'permission_callback' => array( $this, 'check_permission' ),
+			)
+		);
+
 		// GET /wp-json/elkaretro/v1/user/profile - Get user profile
 		register_rest_route(
 			$this->namespace,
@@ -128,6 +165,99 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 					),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Login user via REST.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function login( WP_REST_Request $request ) {
+		$username = $request->get_param( 'username' );
+		$password = $request->get_param( 'password' );
+		$remember = filter_var( $request->get_param( 'remember' ), FILTER_VALIDATE_BOOLEAN );
+
+		if ( empty( $username ) || empty( $password ) ) {
+			return new WP_Error(
+				'rest_invalid_login',
+				'Введите логин и пароль.',
+				array( 'status' => 400 )
+			);
+		}
+
+		$creds = array(
+			'user_login'    => $username,
+			'user_password' => $password,
+			'remember'      => $remember,
+		);
+
+		$user = wp_signon( $creds, is_ssl() );
+
+		if ( is_wp_error( $user ) ) {
+			$error_code = $user->get_error_code();
+			$message    = $user->get_error_message();
+
+			if ( in_array( $error_code, array( 'invalid_username', 'incorrect_password' ), true ) ) {
+				$message = 'Неверный логин или пароль';
+			}
+
+			return new WP_Error(
+				$error_code ?: 'rest_auth_failed',
+				$message ?: 'Не удалось выполнить вход.',
+				array( 'status' => 403 )
+			);
+		}
+
+		wp_set_current_user( $user->ID );
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'user'    => $this->prepare_user_info( $user ),
+			)
+		);
+	}
+
+	/**
+	 * Logout user via REST.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function logout( WP_REST_Request $request ) {
+		// WordPress logout function
+		wp_logout();
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'message' => 'Вы успешно вышли из системы.',
+			)
+		);
+	}
+
+	/**
+	 * Prepare user data for response.
+	 *
+	 * @param \WP_User $user
+	 *
+	 * @return array
+	 */
+	protected function prepare_user_info( $user ) {
+		return array(
+			'id'           => $user->ID,
+			'name'         => $user->display_name,
+			'display_name' => $user->display_name,
+			'email'        => $user->user_email,
+			'user_email'   => $user->user_email,
+			'user_login'   => $user->user_login,
+			'meta'         => array(
+				'phone'            => get_user_meta( $user->ID, 'phone_number', true ),
+				'delivery_address' => get_user_meta( $user->ID, 'delivery_address', true ),
+				'messenger_link'   => get_user_meta( $user->ID, 'messenger_link', true ),
+			),
 		);
 	}
 

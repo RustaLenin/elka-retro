@@ -143,7 +143,7 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 		$search = $request->get_param( 'search' );
 		$sort   = $request->get_param( 'sort' );
 
-		$filters = $this->sanitize_filters( $request->get_param( 'filters' ) );
+		$filters = $this->extract_filters( $request );
 
 		return array(
 			'mode'     => $mode,
@@ -186,17 +186,57 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 				'description' => __( 'Sort key identifier.', 'elkaretro' ),
 				'type'        => 'string',
 			),
-			'filters'  => array(
-				'description' => __( 'Filter map keyed by taxonomy/meta identifiers.', 'elkaretro' ),
-				'type'        => 'object',
-			),
+		);
+	}
+
+	/**
+	 * Extracts filters from request parameters (new flat notation + legacy filters[]).
+	 *
+	 * @param WP_REST_Request $request REST request object.
+	 *
+	 * @return array
+	 */
+	protected function extract_filters( WP_REST_Request $request ) {
+		$params      = $request->get_params();
+		$raw_filters = array();
+		$reserved    = $this->get_reserved_query_keys();
+
+		foreach ( $params as $key => $value ) {
+			if ( in_array( $key, $reserved, true ) ) {
+				continue;
+			}
+
+			$raw_filters[ $key ] = $value;
+		}
+
+		return $this->sanitize_filters( $raw_filters );
+	}
+
+	/**
+	 * Returns list of reserved query keys that shouldn't be treated as filters.
+	 *
+	 * @return array
+	 */
+	protected function get_reserved_query_keys() {
+		return array(
+			'mode',
+			'page',
+			'per_page',
+			'search',
+			'sort',
+			'context',
+			'_fields',
+			'_locale',
+			'_wpnonce',
+			'rest_route',
+			'filters',
 		);
 	}
 
 	/**
 	 * Sanitizes filter values supplied via REST request.
 	 *
-	 * @param mixed $filters
+	 * @param mixed $filters Raw filter payload.
 	 * @return array
 	 */
 	protected function sanitize_filters( $filters ) {
@@ -213,35 +253,69 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 				continue;
 			}
 
-			if ( is_array( $value ) ) {
-				$values = array();
+			$values = $this->normalize_filter_values( $value );
 
-				foreach ( $value as $sub_value ) {
-					if ( is_scalar( $sub_value ) ) {
-						$clean = sanitize_text_field( (string) $sub_value );
-
-						if ( '' !== $clean ) {
-							$values[] = $clean;
-						}
-					}
-				}
-
-				if ( ! empty( $values ) ) {
-					$normalized[ $normalized_key ] = array_values( array_unique( $values ) );
-				}
-				continue;
-			}
-
-			if ( is_scalar( $value ) ) {
-				$clean_value = sanitize_text_field( (string) $value );
-
-				if ( '' !== $clean_value ) {
-					$normalized[ $normalized_key ] = $clean_value;
-				}
+			if ( ! empty( $values ) ) {
+				$normalized[ $normalized_key ] = $values;
 			}
 		}
 
 		return $normalized;
+	}
+
+	/**
+	 * Normalizes a single filter value (scalar|array) into a sanitized array.
+	 *
+	 * @param mixed $value Raw filter value.
+	 * @return array
+	 */
+	protected function normalize_filter_values( $value ) {
+		$collected = array();
+
+		if ( is_array( $value ) ) {
+			foreach ( $value as $sub_value ) {
+				$collected = array_merge( $collected, $this->normalize_filter_values( $sub_value ) );
+			}
+
+			return $this->dedupe_filter_values( $collected );
+		}
+
+		if ( is_scalar( $value ) ) {
+			$pieces = array_map( 'trim', explode( ',', (string) $value ) );
+			foreach ( $pieces as $piece ) {
+				if ( '' === $piece ) {
+					continue;
+				}
+				$clean = sanitize_text_field( $piece );
+				if ( '' !== $clean ) {
+					$collected[] = $clean;
+				}
+			}
+		}
+
+		return $this->dedupe_filter_values( $collected );
+	}
+
+	/**
+	 * Removes empty values and duplicates from filter values list.
+	 *
+	 * @param array $values Raw list.
+	 * @return array
+	 */
+	protected function dedupe_filter_values( array $values ) {
+		$filtered = array();
+		foreach ( $values as $value ) {
+			if ( '' === $value || null === $value ) {
+				continue;
+			}
+			$filtered[] = $value;
+		}
+
+		if ( empty( $filtered ) ) {
+			return array();
+		}
+
+		return array_values( array_unique( $filtered ) );
 	}
 }
 

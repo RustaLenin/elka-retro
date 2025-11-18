@@ -36,6 +36,15 @@ export class TabNavigation extends BaseElement {
       label: item.getAttribute('label') || ''
     }));
 
+    // Если нет вкладок в DOM, используем дефолтные
+    if (tabItems.length === 0) {
+      tabItems.push(
+        { id: 'settings', label: 'Настройки профиля' },
+        { id: 'orders', label: 'История заказов' },
+        { id: 'contact', label: 'Обратная связь' }
+      );
+    }
+
     this.innerHTML = renderTabNavigationTemplate({
       activeTab: this.state.activeTab,
       tabs: tabItems

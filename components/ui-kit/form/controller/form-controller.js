@@ -17,6 +17,7 @@ export class UIFormController extends BaseElement {
     icon:      { type: 'json',    default: null, attribute: null },
     actions:   { type: 'json',    default: null, attribute: null },
     layout:    { type: 'json',    default: null, attribute: null },
+    layoutGap: { type: 'string',  default: '', attribute: { name: 'layout-gap', observed: true, reflect: true } },
     pipeline:  { type: 'json',    default: null, attribute: null },
     status:    { type: 'json',    default: null, attribute: null },
     autosubmit:{ type: 'json',    default: null, attribute: null },
@@ -35,6 +36,8 @@ export class UIFormController extends BaseElement {
     this._isSubmitting = false;
     this._autosubmitTimer = null;
     this._autosubmitConfig = null;
+    this._overlayEl = null;
+    this._overlayLoader = null;
   }
 
   connectedCallback() {
@@ -67,6 +70,7 @@ export class UIFormController extends BaseElement {
     }
     
     this._bindActions();
+    this._applyLayoutGap();
   }
   
   onStateChanged(key) {
@@ -84,6 +88,9 @@ export class UIFormController extends BaseElement {
     }
     if (key === 'actions') {
       this._rebindActionsSoon();
+    }
+    if (key === 'layoutGap') {
+      this._applyLayoutGap();
     }
   }
   
@@ -116,6 +123,7 @@ export class UIFormController extends BaseElement {
         if (config.icon !== undefined) patch.icon = config.icon;
         if (config.actions !== undefined) patch.actions = config.actions;
         if (config.layout !== undefined) patch.layout = config.layout;
+        if (config.layoutGap !== undefined) patch.layoutGap = config.layoutGap;
         if (config.debug !== undefined) patch.debug = Boolean(config.debug);
         if (config.autosubmit !== undefined) patch.autosubmit = config.autosubmit;
         
@@ -133,6 +141,15 @@ export class UIFormController extends BaseElement {
   disconnectedCallback() {
     this._unbindActions();
     this._clearAutosubmitTimer();
+  }
+
+  _applyLayoutGap() {
+    const value = this.state?.layoutGap;
+    if (value) {
+      this.style.setProperty('--ui-form-layout-gap', value);
+    } else {
+      this.style.removeProperty('--ui-form-layout-gap');
+    }
   }
 
   // Публичный API
@@ -196,6 +213,36 @@ export class UIFormController extends BaseElement {
     
     this._emitFormEvent('reset', { values: this.getValues() });
     return this;
+  }
+
+  /**
+   * Валидировать форму без отправки
+   * @returns {Promise<boolean>}
+   */
+  async validate() {
+    const values = this.getValues();
+    const context = { controller: this, values };
+
+    const sanitized = (await this._invokeHandler(this._getPipelineHandler('sanitize'), context, values)) ?? values;
+
+    const requiredCheck = this._runRequiredValidation(sanitized);
+    const requiredValid = this._applyValidationResult(requiredCheck, { showStatus: false });
+    if (!requiredValid) {
+      this._emitFormEvent('invalid', { values: sanitized, validation: requiredCheck });
+      return false;
+    }
+
+    const validationResult = await this._invokeHandler(this._getPipelineHandler('validate'), {
+      ...context,
+      values: sanitized
+    });
+    const valid = this._applyValidationResult(validationResult, { showStatus: false });
+    if (!valid) {
+      this._emitFormEvent('invalid', { values: sanitized, validation: validationResult });
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -301,6 +348,7 @@ export class UIFormController extends BaseElement {
     
     this.innerHTML = template;
     this._bindActions();
+    this._ensureOverlay();
   }
 
   _bindActions() {
@@ -395,7 +443,7 @@ export class UIFormController extends BaseElement {
       const requiredCheck = this._runRequiredValidation(sanitized);
       const requiredValid = this._applyValidationResult(requiredCheck);
       if (!requiredValid) {
-        this._setFormStatus({ type: 'error', message: 'Заполните обязательные поля', details: requiredCheck?.formMessages?.details || [] });
+        this._setFormStatus({ type: 'idle', message: null, details: [] });
         this._emitFormEvent('invalid', { values: sanitized, validation: requiredCheck });
         this._setSubmitLoading(false);
         this._isSubmitting = false;
@@ -408,7 +456,7 @@ export class UIFormController extends BaseElement {
       });
       const valid = this._applyValidationResult(validationResult);
       if (!valid) {
-        this._setFormStatus({ type: 'error', message: 'Некоторые поля заполнены неверно', details: validationResult?.formMessages || [] });
+        this._setFormStatus({ type: 'idle', message: null, details: [] });
         this._emitFormEvent('invalid', { values: sanitized, validation: validationResult });
         this._setSubmitLoading(false);
         this._isSubmitting = false;
@@ -440,7 +488,7 @@ export class UIFormController extends BaseElement {
     }
   }
 
-  _applyValidationResult(result) {
+  _applyValidationResult(result, options = {}) {
     if (!result) return true;
     if (typeof result === 'boolean') return result;
     const valid = result.valid !== false;
@@ -451,15 +499,18 @@ export class UIFormController extends BaseElement {
         if (field) {
           if (info?.status === 'error') {
             const messages = info?.messages?.error || [];
-            field.setError(messages.length > 0 ? messages : 'Ошибка валидации');
+            const messageText = messages.length > 0 ? messages[0] : 'Поле заполнено некорректно';
+            field.showError(messageText);
+          } else if (info?.status === 'success') {
+            field.showSuccess(info?.messages?.success?.[0]);
           } else {
-            field.clearError();
+            field.clearStatus();
           }
         }
       });
     }
 
-    if (result.formMessages) {
+    if (options.showStatus !== false && result.formMessages) {
       this._setFormStatus({
         type: valid ? 'success' : 'error',
         message: result.formMessages.message || null,
@@ -561,13 +612,19 @@ export class UIFormController extends BaseElement {
   }
 
   _setFormStatus(status) {
-    this.setState({
-      status: {
-        type: status?.type || 'idle',
-        message: status?.message || null,
-        details: Array.isArray(status?.details) ? status.details : []
-      }
-    });
+    const normalized = {
+      type: status?.type || 'idle',
+      message: status?.message || null,
+      details: Array.isArray(status?.details) ? status.details : []
+    };
+
+    if (normalized.type === 'submitting') {
+      this._toggleOverlay(true, normalized.message || 'Отправляем данные…');
+    } else {
+      this._toggleOverlay(false);
+    }
+
+    this.setState({ status: normalized });
   }
 
   _emitFormEvent(name, detail) {
@@ -587,6 +644,53 @@ export class UIFormController extends BaseElement {
     if (this._autosubmitTimer) {
       clearTimeout(this._autosubmitTimer);
       this._autosubmitTimer = null;
+    }
+  }
+
+  _ensureOverlay() {
+    const form = this.querySelector('form.ui-form-controller');
+    if (!form) return;
+
+    const isModal = this.state.mode === 'modal';
+    
+    // В модальном режиме overlay создаем внутри modal_body, иначе внутри формы
+    let container = form;
+    if (isModal) {
+      // Ищем modal_body, в котором находится форма
+      const modalBody = this.closest('.modal_body');
+      if (modalBody) {
+        container = modalBody;
+      }
+    }
+
+    let overlay = container.querySelector('.ui-form-controller__overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'ui-form-controller__overlay';
+      overlay.setAttribute('aria-hidden', 'true');
+      overlay.style.display = 'none';
+      overlay.style.pointerEvents = 'none';
+      overlay.innerHTML = `
+        <div class="ui-form-controller__overlay-content">
+          <block-loader label="Отправляем данные…" size="large"></block-loader>
+        </div>
+      `;
+      container.appendChild(overlay);
+    }
+
+    this._overlayEl = overlay;
+    this._overlayLoader = overlay.querySelector('block-loader');
+  }
+
+  _toggleOverlay(isVisible, label) {
+    if (!this._overlayEl) return;
+    const visible = Boolean(isVisible);
+    this._overlayEl.classList.toggle('ui-form-controller__overlay--visible', visible);
+    this._overlayEl.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    this._overlayEl.style.display = visible ? 'flex' : 'none';
+    this._overlayEl.style.pointerEvents = visible ? 'all' : 'none';
+    if (visible && this._overlayLoader && label) {
+      this._overlayLoader.setAttribute('label', label);
     }
   }
 

@@ -46,6 +46,9 @@ class Order_Service {
 				__( 'Order requires authentication or personal data for registration.', 'elkaretro' ),
 				array( 'status' => 400 )
 			);
+		} elseif ( isset( $order_data['personal'] ) ) {
+			// Authenticated user provided personal data — ensure profile meta is filled
+			$this->update_missing_user_profile_fields( $user_id, $order_data['personal'] );
 		}
 
 		// Validate cart
@@ -139,7 +142,7 @@ class Order_Service {
 
 		// Update user meta
 		if ( $phone ) {
-			update_user_meta( $user_id, 'phone', $phone );
+			update_user_meta( $user_id, 'phone_number', $phone );
 		}
 
 		if ( isset( $personal_data['first_name'] ) ) {
@@ -155,6 +158,51 @@ class Order_Service {
 		wp_set_auth_cookie( $user_id );
 
 		return $user_id;
+	}
+
+	/**
+	 * Ensure authenticated user's profile has mandatory fields filled from order form.
+	 *
+	 * @param int   $user_id       User ID.
+	 * @param array $personal_data Personal data submitted with order.
+	 *
+	 * @return void
+	 */
+	protected function update_missing_user_profile_fields( $user_id, $personal_data ) {
+		if ( ! $user_id || ! is_array( $personal_data ) ) {
+			return;
+		}
+
+		$mapping = array(
+			'first_name' => array(
+				'meta_key' => 'first_name',
+				'sanitize' => 'sanitize_text_field',
+			),
+			'last_name'  => array(
+				'meta_key' => 'last_name',
+				'sanitize' => 'sanitize_text_field',
+			),
+			'phone'      => array(
+				'meta_key' => 'phone_number',
+				'sanitize' => 'sanitize_text_field',
+			),
+		);
+
+		foreach ( $mapping as $payload_key => $config ) {
+			if ( empty( $personal_data[ $payload_key ] ) ) {
+				continue;
+			}
+
+			$value = call_user_func( $config['sanitize'], $personal_data[ $payload_key ] );
+			if ( '' === trim( $value ) ) {
+				continue;
+			}
+
+			$current = get_user_meta( $user_id, $config['meta_key'], true );
+			if ( empty( $current ) ) {
+				update_user_meta( $user_id, $config['meta_key'], $value );
+			}
+		}
 	}
 
 	/**

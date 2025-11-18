@@ -68,17 +68,24 @@ export const parse = (search = '') => {
       return;
     }
 
-    if (rawKey.startsWith('filters[')) {
-      const match = rawKey.match(/^filters\[(.+?)\](?:\[\])?$/);
-      const filterKey = match ? match[1].trim() : '';
-      if (!filterKey) {
-        return;
-      }
-      if (!state.filters[filterKey]) {
-        state.filters[filterKey] = [];
-      }
-      state.filters[filterKey].push(value);
+    if (!rawKey) {
+      return;
     }
+
+    const fragments = value
+      .split(',')
+      .map((fragment) => fragment.trim())
+      .filter((fragment) => fragment.length > 0);
+
+    if (!fragments.length) {
+      return;
+    }
+
+    if (!state.filters[rawKey]) {
+      state.filters[rawKey] = [];
+    }
+
+    state.filters[rawKey].push(...fragments);
   });
 
   Object.keys(state.filters).forEach((key) => {
@@ -105,14 +112,8 @@ export const serialize = (state = {}) => {
   const nextState = cloneState(state);
 
   params.set('mode', nextState.mode);
-
-  if (nextState.page > 1) {
-    params.set('page', String(nextState.page));
-  }
-
-  if (nextState.perPage !== DEFAULT_STATE.perPage) {
-    params.set('per_page', String(nextState.perPage));
-  }
+  params.set('page', String(nextState.page));
+  params.set('per_page', String(nextState.perPage));
 
   if (nextState.search) {
     params.set('search', nextState.search);
@@ -129,11 +130,24 @@ export const serialize = (state = {}) => {
       if (!Array.isArray(values) || !values.length) {
         return;
       }
-      values.forEach((value) => {
-        if (value !== undefined && value !== null && value !== '') {
-          params.append(`filters[${key}][]`, value);
-        }
-      });
+
+      const normalized = Array.from(
+        new Set(
+          values
+            .map((value) => {
+              if (value === null || value === undefined) {
+                return '';
+              }
+              return String(value).trim();
+            })
+        )
+      ).filter((value) => value !== '');
+
+      if (!normalized.length) {
+        return;
+      }
+
+      params.set(key, normalized.join(','));
     });
 
   const query = params.toString();

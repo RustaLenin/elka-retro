@@ -45,58 +45,21 @@
 
 **Примечание:** Старая сигнатура (`context`) должна работать, но лучше использовать новую.
 
-### 2. Обновить шаблон `auth-modal-template.js`
+### 2. Auth-модалки → декларации `user-ui-service`
 
-**Текущее состояние:**
-- Использует `config-path="window.app.forms.signIn"` - можно упростить
-- Отсутствует `mode="modal"` - нужно добавить
+- [x] Шаблоны перенесены в схемы `user-ui-service`
+- [x] Стили объединены в `modals/auth-modals-styles.css`
+- [x] `app.modal` отвечает за создание `ui-modal`, формы подключаются через `config-path`
 
-**Действия:**
-- [ ] Изменить `config-path` на `app.forms.signIn` (без `window`)
-- [ ] Добавить `mode="modal"` для правильной интеграции с модальным окном
+### 3. Регистрация
 
-### 3. Мигрировать `register-modal`
+- [x] Конфигурация `app/forms/register.js` создана
+- [x] Модалка управляется через `user-ui-service.showRegisterModal()`
 
-**Текущее состояние:**
-- Использует программную инициализацию через `_initForm()` и `_initFormAsync()`
-- Конфигурация формы определена внутри компонента
+### 4. Восстановление пароля
 
-**Действия:**
-- [ ] Создать `app/forms/register.js` с конфигурацией формы регистрации
-- [ ] Перенести конфигурацию полей:
-  - Email (обязательное, валидация email)
-  - Login (обязательное, минимум 3 символа)
-  - Phone (обязательное, валидация телефона)
-  - Password (обязательное, минимум 16 символов, сложность)
-  - Confirm Password (обязательное, совпадение с паролем)
-- [ ] Перенести pipeline в конфигурацию (обновить сигнатуру на `payload`)
-- [ ] Зарегистрировать в `app/forms/index.js` как `window.app.forms.register`
-- [ ] Обновить шаблон `register-modal-template.js`:
-  - Добавить `config-path="app.forms.register"`
-  - Добавить `mode="modal"`
-- [ ] Удалить методы `_initFormAsync()` и `_initForm()` из компонента
-- [ ] Упростить `_updateModalVisibility()` - убрать проверки инициализации формы
-- [ ] Убрать флаг `_formInitialized` и связанную логику
-
-### 4. Мигрировать `password-reset-modal`
-
-**Текущее состояние:**
-- Использует программную инициализацию через `_initForm()` и `_initFormAsync()`
-- Конфигурация формы определена внутри компонента
-- Имеет особую логику для состояния `submitted` (показывает сообщение об успехе)
-
-**Действия:**
-- [ ] Создать `app/forms/password-reset.js` с конфигурацией формы восстановления пароля
-- [ ] Перенести конфигурацию полей (email)
-- [ ] Перенести pipeline в конфигурацию (обновить сигнатуру на `payload`)
-- [ ] Обработать состояние `submitted` через `onSuccess` в pipeline (можно диспатчить событие)
-- [ ] Зарегистрировать в `app/forms/index.js` как `window.app.forms.passwordReset`
-- [ ] Обновить шаблон `password-reset-modal-template.js`:
-  - Добавить `config-path="app.forms.passwordReset"`
-  - Добавить `mode="modal"`
-- [ ] Удалить методы `_initFormAsync()` и `_initForm()` из компонента
-- [ ] Упростить `_updateModalVisibility()` - убрать проверки инициализации формы
-- [ ] Убрать флаг `_formInitialized` и связанную логику
+- [x] Конфигурация `app/forms/password-reset.js` создана
+- [x] UI управляется через `user-ui-service.showPasswordResetModal()` и события `password-reset:*`
 
 ### 5. Мигрировать `profile-settings`
 

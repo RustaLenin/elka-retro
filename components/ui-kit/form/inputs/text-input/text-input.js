@@ -27,7 +27,9 @@ export class UITextInput extends BaseElement {
     clearable:    { type: 'boolean', default: false, attribute: { name: 'clearable', observed: true, reflect: true } },
     meta:         { type: 'json',    default: null, attribute: null },
     focused:      { type: 'boolean', default: false, attribute: null, internal: true },
-    dirty:        { type: 'boolean', default: false, attribute: null, internal: true }
+    dirty:        { type: 'boolean', default: false, attribute: null, internal: true },
+    allowedPattern: { type: 'string', default: '', attribute: { name: 'allowed-pattern', observed: true, reflect: true } },
+    mask:          { type: 'string',  default: '', attribute: { name: 'mask', observed: true, reflect: true } }
   };
 
   constructor() {
@@ -37,8 +39,11 @@ export class UITextInput extends BaseElement {
     this._onFocus = this._onFocus.bind(this);
     this._onBlur = this._onBlur.bind(this);
     this._onClear = this._onClear.bind(this);
+    this._onTogglePassword = this._onTogglePassword.bind(this);
     this._inputEl = null;
     this._clearBtn = null;
+    this._toggleBtn = null;
+    this._passwordVisible = false;
     this._suspendDispatch = false;
   }
 
@@ -166,11 +171,27 @@ export class UITextInput extends BaseElement {
 
   render() {
     this._detachEvents();
-    this.innerHTML = renderTextInputTemplate(this.state);
+    const templateState = {
+      ...this.state,
+      inputType: this._resolveInputType(),
+      passwordVisible: this._passwordVisible,
+    };
+    this.innerHTML = renderTextInputTemplate(templateState);
     this._inputEl = this.querySelector('.ui-input-text__control');
     this._clearBtn = this.querySelector('.ui-input-text__clear');
+    this._toggleBtn = this.querySelector('.ui-input-text__toggle');
     this._attachEvents();
     this._syncControl();
+  }
+
+  _resolveInputType() {
+    if (this.state.mask === 'password') {
+      return this._passwordVisible ? 'text' : 'password';
+    }
+    if (this.state.inputType) {
+      return this.state.inputType;
+    }
+    return 'text';
   }
 
   _attachEvents() {
@@ -181,6 +202,9 @@ export class UITextInput extends BaseElement {
     this._inputEl.addEventListener('blur', this._onBlur);
     if (this._clearBtn) {
       this._clearBtn.addEventListener('click', this._onClear);
+    }
+    if (this._toggleBtn) {
+      this._toggleBtn.addEventListener('click', this._onTogglePassword);
     }
   }
 
@@ -194,18 +218,69 @@ export class UITextInput extends BaseElement {
     if (this._clearBtn) {
       this._clearBtn.removeEventListener('click', this._onClear);
     }
+    if (this._toggleBtn) {
+      this._toggleBtn.removeEventListener('click', this._onTogglePassword);
+    }
   }
 
   _syncControl() {
     if (this._inputEl) {
       // Синхронизируем DOM с текущим значением из стейта
       const currentValue = this.state.value ?? '';
-      this._inputEl.value = currentValue;
+      if (this.state.mask === 'phone') {
+        const digits = this._sanitizePhoneDigits(currentValue);
+        this._inputEl.value = this._formatPhoneValue(digits);
+      } else {
+        this._inputEl.value = currentValue;
+      }
+      // Синхронизируем тип инпута для пароля
+      if (this.state.mask === 'password') {
+        const desiredType = this._passwordVisible ? 'text' : 'password';
+        if (this._inputEl.type !== desiredType) {
+          this._inputEl.type = desiredType;
+        }
+      }
+    }
+  }
+
+  applyExternalValue(value) {
+    if (!this._inputEl) return;
+    const nextValue = value == null ? '' : String(value);
+    if (this.state.mask === 'phone') {
+      const digits = this._sanitizePhoneDigits(nextValue);
+      this._inputEl.value = this._formatPhoneValue(digits);
+    } else {
+      this._inputEl.value = nextValue;
     }
   }
 
   _onInput(event) {
-    const nextValue = event.target.value ?? '';
+    let nextValue = event.target.value ?? '';
+    if (this.state.mask === 'phone') {
+      const caret = this._inputEl ? this._inputEl.selectionStart : nextValue.length;
+      const digits = this._sanitizePhoneDigits(nextValue);
+      nextValue = this._formatPhoneValue(digits);
+      if (this._inputEl) {
+        this._inputEl.value = nextValue;
+        this._inputEl.setSelectionRange(caret, caret);
+      }
+    } else {
+      const allowed = this.state.allowedPattern;
+      if (allowed) {
+        try {
+          const regex = new RegExp(allowed, 'g');
+          const filtered = (nextValue.match(regex) || []).join('');
+          if (filtered !== nextValue && this._inputEl) {
+            const pos = this._inputEl.selectionStart || filtered.length;
+            nextValue = filtered;
+            this._inputEl.value = filtered;
+            this._inputEl.setSelectionRange(Math.max(pos - 1, filtered.length), Math.max(pos - 1, filtered.length));
+          }
+        } catch (e) {
+          console.warn('[ui-input-text] Invalid allowed-pattern:', allowed, e);
+        }
+      }
+    }
     
     // Обновляем через setter (который синхронизируется с полем и формой)
     this.state.value = nextValue;
@@ -218,7 +293,24 @@ export class UITextInput extends BaseElement {
   }
 
   _onChange(event) {
-    const nextValue = event.target.value ?? '';
+    let nextValue = event.target.value ?? '';
+    if (this.state.mask === 'phone') {
+      const digits = this._sanitizePhoneDigits(nextValue);
+      nextValue = this._formatPhoneValue(digits);
+      if (this._inputEl && this._inputEl.value !== nextValue) {
+        this._inputEl.value = nextValue;
+      }
+    } else {
+      const allowed = this.state.allowedPattern;
+      if (allowed) {
+        try {
+          const regex = new RegExp(allowed, 'g');
+          nextValue = (nextValue.match(regex) || []).join('');
+        } catch (e) {
+          console.warn('[ui-input-text] Invalid allowed-pattern:', allowed, e);
+        }
+      }
+    }
     
     // Обновляем через setter
     this.state.value = nextValue;
@@ -239,7 +331,14 @@ export class UITextInput extends BaseElement {
 
   _onClear() {
     // Обновляем через setter
-    this.state.value = '';
+    if (this.state.mask === 'phone') {
+      this.state.value = '';
+      if (this._inputEl) {
+        this._inputEl.value = '';
+      }
+    } else {
+      this.state.value = '';
+    }
     
     // Обновляем локальные флаги
     this.setState({ dirty: true });
@@ -247,6 +346,67 @@ export class UITextInput extends BaseElement {
     // Отправляем события
     this._emitEvent('ui-input-text:clear', { value: '' });
     this._emitEvent('ui-input-text:change', { value: '' });
+  }
+
+  _onTogglePassword(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!this._inputEl || this.state.mask !== 'password') return;
+    this._passwordVisible = !this._passwordVisible;
+    const isVisible = this._passwordVisible;
+    // Используем прямое присваивание для более надежного изменения типа
+    this._inputEl.type = isVisible ? 'text' : 'password';
+    // Обновляем иконку и aria-label
+    const icon = this._toggleBtn?.querySelector('ui-icon');
+    if (icon) {
+      icon.setAttribute('name', isVisible ? 'eye-off' : 'eye');
+    }
+    if (this._toggleBtn) {
+      this._toggleBtn.setAttribute('aria-label', isVisible ? 'Скрыть пароль' : 'Показать пароль');
+    }
+  }
+
+  _sanitizePhoneDigits(raw) {
+    let digits = String(raw || '').replace(/\D/g, '');
+    if (!digits.length) {
+      return '';
+    }
+    if (digits[0] === '8') {
+      digits = digits.slice(1);
+    }
+    if (digits[0] === '7' && digits.length > 10) {
+      digits = digits.slice(1);
+    }
+    return digits.slice(0, 10);
+  }
+
+  _formatPhoneValue(digits) {
+    if (!digits) {
+      return '';
+    }
+    const parts = ['+7'];
+    const block1 = digits.slice(0, 3);
+    if (block1) {
+      parts.push(` (${block1}`);
+      if (block1.length === 3) {
+        parts[parts.length - 1] += ')';
+      }
+    }
+    const block2 = digits.slice(3, 6);
+    if (block2) {
+      parts.push(` ${block2}`);
+    }
+    const block3 = digits.slice(6, 8);
+    if (block3) {
+      parts.push(`-${block3}`);
+    }
+    const block4 = digits.slice(8, 10);
+    if (block4) {
+      parts.push(`-${block4}`);
+    }
+    return parts.join('');
   }
 
   _emitValidation() {
@@ -289,7 +449,21 @@ export class UITextInput extends BaseElement {
    */
   setValue(value) {
     const previousValue = this.state.value;
-    const newValue = String(value ?? '');
+    let newValue = String(value ?? '');
+    if (this.state.mask === 'phone') {
+      const digits = this._sanitizePhoneDigits(newValue);
+      newValue = this._formatPhoneValue(digits);
+    } else {
+      const allowed = this.state.allowedPattern;
+      if (allowed) {
+        try {
+          const regex = new RegExp(allowed, 'g');
+          newValue = (newValue.match(regex) || []).join('');
+        } catch (e) {
+          console.warn('[ui-input-text] Invalid allowed-pattern:', allowed, e);
+        }
+      }
+    }
     
     // Обновляем через setter (если есть связь с полем)
     if (this.state._valueDescriptor) {

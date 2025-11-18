@@ -88,5 +88,9 @@ Refer to TODOs inside each placeholder file for implementation guidance.
 
 **Зависимости:**
 - Данные доступны в `window.taxonomy_terms['category-of-toys']` (уже загружены)
-- Структура терминов содержит поле `parent` для построения дерева
+- Структура терминов содержит поле `parent` для построения дерева (добавлено в `functions.php`)
+
+**Документация:**
+- Полная спецификация: `components/catalog/sidebar/CATEGORY_FILTER_SPEC.md`
+- Backlog реализации: `components/catalog/sidebar/CATEGORY_FILTER_BACKLOG.md`
 

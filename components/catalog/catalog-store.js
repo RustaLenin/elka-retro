@@ -17,10 +17,11 @@
 
 import {
   parse as parseUrlState,
-  serialize as serializeUrlState,
   applyStateToUrl,
   subscribe as subscribeToUrlState,
 } from './catalog-url-state.js';
+
+const CATALOG_STORAGE_KEY = 'elkaretro_catalog_state';
 
 /**
  * @typedef {Object} CatalogState
@@ -56,6 +57,7 @@ class CatalogStore {
       meta: this._getDefaultMeta(),
       isLoading: false,
       error: null,
+      draftFilters: null,
     };
 
     /** @type {Set<Function>} */
@@ -73,9 +75,20 @@ class CatalogStore {
    * @private
    */
   _initUrlSync() {
-    // Парсим начальное состояние из URL
     const urlState = parseUrlState();
-    this._state.state = this._normalizeState(urlState);
+    const storedState = this._loadStateFromStorage();
+    const hasUrlParams = this._hasUrlQueryParams();
+
+    const initialStateSource = hasUrlParams
+      ? urlState
+      : storedState || urlState;
+
+    this._state.state = this._normalizeState(initialStateSource);
+    this._saveStateToStorage(this._state.state);
+
+    if (!hasUrlParams && storedState) {
+      applyStateToUrl(this._state.state, { replace: true });
+    }
 
     // Подписываемся на изменения URL (popstate, программные изменения)
     this._unsubscribeUrl = subscribeToUrlState((urlState) => {
@@ -188,6 +201,14 @@ class CatalogStore {
       meta: updates.meta ? { ...updates.meta } : this._state.meta,
     };
 
+    if (updates.state) {
+      this._state.draftFilters = null;
+    }
+
+    if (updates.state) {
+      this._saveStateToStorage(this._state.state);
+    }
+
     // Синхронизация с URL
     if (syncUrl && updates.state) {
       applyStateToUrl(this._state.state, { replace });
@@ -214,6 +235,7 @@ class CatalogStore {
           isLoading: nextState.isLoading,
           error: nextState.error,
           prevState: prevState.state,
+            draftFilters: nextState.draftFilters,
         },
       })
     );
@@ -239,6 +261,7 @@ class CatalogStore {
       ...this._state,
       state: { ...this._state.state },
       meta: { ...this._state.meta },
+      draftFilters: this._cloneFilters(this._state.draftFilters),
     };
   }
 
@@ -256,6 +279,14 @@ class CatalogStore {
    */
   getMeta() {
     return { ...this._state.meta };
+  }
+
+  /**
+   * Получить черновые фильтры (значения из формы до применения)
+   * @returns {Object|null}
+   */
+  getDraftFilters() {
+    return this._cloneFilters(this._state.draftFilters);
   }
 
   /**
@@ -382,6 +413,131 @@ class CatalogStore {
       this._unsubscribeUrl();
       this._unsubscribeUrl = null;
     }
+  }
+
+  setDraftFilters(filters) {
+    const normalized = this._normalizeFiltersMap(filters);
+    const prevState = this._state;
+
+    if (this._areFiltersEqual(prevState.draftFilters, normalized)) {
+      return;
+    }
+
+    this._state = {
+      ...this._state,
+      draftFilters: normalized,
+    };
+
+    this._notifySubscribers(prevState, this._state);
+  }
+
+  _hasUrlQueryParams() {
+    if (typeof window === 'undefined' || !window.location) {
+      return false;
+    }
+    const query = window.location.search || '';
+    return query.length > 1;
+  }
+
+  _loadStateFromStorage() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return null;
+    }
+    try {
+      const raw = window.localStorage.getItem(CATALOG_STORAGE_KEY);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+    } catch (error) {
+      console.warn('[catalog-store] Failed to load state from storage:', error);
+    }
+    return null;
+  }
+
+  _saveStateToStorage(state) {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      console.warn('[catalog-store] Failed to save state to storage:', error);
+    }
+  }
+
+  _normalizeFiltersMap(filters) {
+    if (!filters || typeof filters !== 'object') {
+      return null;
+    }
+
+    const normalized = {};
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (!key) {
+        return;
+      }
+      const normalizedKey = String(key).trim();
+      if (!normalizedKey) {
+        return;
+      }
+
+      const normalizedValues = this._normalizeFilterValues(value);
+      if (normalizedValues.length > 0) {
+        normalized[normalizedKey] = normalizedValues;
+      }
+    });
+
+    return Object.keys(normalized).length ? normalized : null;
+  }
+
+  _normalizeFilterValues(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => (item === null || item === undefined ? '' : String(item).trim()))
+        .filter((item) => item !== '');
+    }
+
+    if (value === null || value === undefined) {
+      return [];
+    }
+
+    const asString = String(value).trim();
+    return asString ? [asString] : [];
+  }
+
+  _areFiltersEqual(a, b) {
+    const normalize = (obj) => {
+      if (!obj || typeof obj !== 'object') {
+        return {};
+      }
+      const sorted = {};
+      Object.keys(obj)
+        .sort()
+        .forEach((key) => {
+          const values = Array.isArray(obj[key]) ? [...obj[key]] : [];
+          sorted[key] = values.sort();
+        });
+      return sorted;
+    };
+
+    const normalizedA = normalize(a);
+    const normalizedB = normalize(b);
+    return JSON.stringify(normalizedA) === JSON.stringify(normalizedB);
+  }
+
+  _cloneFilters(filters) {
+    if (!filters || typeof filters !== 'object') {
+      return null;
+    }
+    const cloned = {};
+    Object.entries(filters).forEach(([key, values]) => {
+      cloned[key] = Array.isArray(values) ? [...values] : [];
+    });
+    return cloned;
   }
 }
 

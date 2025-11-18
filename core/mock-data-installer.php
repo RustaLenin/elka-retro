@@ -414,6 +414,71 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
             </div>
 
             <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
+                <h2>Category Counter</h2>
+                
+                <div class="card" style="padding: 20px; margin-top: 15px;">
+                    <h3>Пересчет количества типов в категориях</h3>
+                    <p>
+                        Пересчитывает поле <code>toy_types_count</code> для всех категорий игрушек.
+                        Это поле кеширует количество типов игрушек с доступными экземплярами (available_instances_count > 0) для быстрых запросов.
+                    </p>
+                    <p style="margin-top: 10px;">
+                        <strong>Когда использовать:</strong>
+                    </p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>После массового импорта данных</li>
+                        <li>После изменения категорий у типов игрушек</li>
+                        <li>Если счетчики выглядят несинхронизированными</li>
+                        <li>После первичной настройки темы</li>
+                    </ul>
+                    
+                    <?php
+                    // Подсчитываем общее количество категорий
+                    $categories = get_terms(array(
+                        'taxonomy' => 'category-of-toys',
+                        'hide_empty' => false,
+                    ));
+                    $categories_count = is_wp_error($categories) ? 0 : count($categories);
+                    ?>
+                    
+                    <p style="margin-top: 15px;">
+                        <strong>Всего категорий:</strong> <?php echo esc_html($categories_count); ?>
+                    </p>
+                    
+                    <?php
+                    // Проверяем статус CRON
+                    require_once THEME_DIR . '/core/catalog/category-counter.php';
+                    $cron_next = wp_next_scheduled(ELKARETRO_CATEGORY_COUNTER::CRON_HOOK);
+                    ?>
+                    
+                    <p style="margin-top: 15px;">
+                        <strong>Автоматический пересчет (CRON):</strong>
+                        <?php if ($cron_next): ?>
+                            <span style="color: #46b450;">
+                                ✓ Запланирован (следующий запуск: <?php echo esc_html(date_i18n('d.m.Y H:i', $cron_next)); ?>)</span>
+                        <?php else: ?>
+                            <span style="color: #dc3232;">
+                                ✗ Не запланирован</span>
+                        <?php endif; ?>
+                    </p>
+                    
+                    <div style="margin-top: 20px;">
+                        <?php
+                        $recalculate_url = wp_nonce_url(
+                            add_query_arg('elkaretro_action', 'recalculate_category_counts', admin_url('themes.php?page=elkaretro-settings')),
+                            'elkaretro_action_recalculate_category_counts'
+                        );
+                        ?>
+                        <a href="<?php echo esc_url($recalculate_url); ?>" 
+                           class="button button-primary" 
+                           onclick="return confirm('Запустить пересчет количества типов для всех категорий игрушек?');">
+                            Пересчитать все категории
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
                 <h2>Объединение дублей</h2>
                 <div class="card" style="padding: 20px; margin-top: 15px;">
                     <h3>Объединить записи «На спецификации» и «На оформлении»</h3>
@@ -592,6 +657,24 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
                 $message = $result['success'] 
                     ? $result['message'] 
                     : 'Failed to recalculate instances count: ' . ($result['message'] ?? 'Unknown error');
+                break;
+                
+            case 'recalculate_category_counts':
+                require_once THEME_DIR . '/core/catalog/category-counter.php';
+                $result = ELKARETRO_CATEGORY_COUNTER::recalculate_all_categories();
+                if ($result['success']) {
+                    $total_categories = $result['updated'] + count($result['errors']);
+                    $duration = isset($result['duration']) ? $result['duration'] : 'N/A';
+                    $message = sprintf(
+                        'Пересчитано %d категорий за %s сек. Обновлено: %d, Ошибок: %d',
+                        $total_categories,
+                        $duration,
+                        $result['updated'],
+                        count($result['errors'])
+                    );
+                } else {
+                    $message = 'Failed to recalculate category counts: ' . ($result['message'] ?? 'Unknown error');
+                }
                 break;
 
             case 'merge_instance_duplicates':

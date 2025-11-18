@@ -1,14 +1,21 @@
 /* TODO: Align colors with global tokens */
 
 /* ⚠️ ВАЖНО: Web Component - это элемент, а не класс! Селектор БЕЗ точки */
+/* Все стили контейнера применяются напрямую к веб-компоненту */
 ui-form-checkbox {
-  display: inline-flex;
+  display: flex;
   align-items: flex-start;
   gap: 10px;
   cursor: pointer;
   user-select: none;
   font-size: 14px;
   line-height: 1.4;
+}
+
+/* Семантический label не создает дополнительный контейнер */
+ui-form-checkbox .ui-form-checkbox__label-wrapper {
+  display: contents;
+  cursor: inherit;
 }
 
 .ui-form-checkbox__control {
@@ -29,6 +36,7 @@ ui-form-checkbox {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-right: 10px;
 }
 
 .ui-form-checkbox__box-mark {
@@ -89,14 +97,18 @@ ui-form-checkbox {
   color: var(--checkbox-hint, var(--color-muted-foreground, #8a8f99));
 }
 
+/* Состояния применяются напрямую к веб-компоненту */
+ui-form-checkbox[data-status="error"] .ui-form-checkbox__box,
 ui-form-checkbox.ui-form-checkbox--error .ui-form-checkbox__box {
   border-color: var(--checkbox-error-border, #d92d20);
 }
 
+ui-form-checkbox[data-status="error"] .ui-form-checkbox__label,
 ui-form-checkbox.ui-form-checkbox--error .ui-form-checkbox__label {
   color: var(--checkbox-error-label, #d92d20);
 }
 
+ui-form-checkbox[data-status="success"] .ui-form-checkbox__box,
 ui-form-checkbox.ui-form-checkbox--success .ui-form-checkbox__box {
   border-color: var(--checkbox-success-border, #039855);
 }

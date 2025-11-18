@@ -12,8 +12,9 @@ export function renderUserMenuTemplate(state) {
         type="ghost"
         icon="login"
         label="Войти"
-        event="user-menu:login-click"
         class="user-menu__button user-menu__button--login"
+        data-app-action="user.showSignInModal"
+        data-app-prevent-default="true"
       ></ui-button>
     `;
   }
@@ -24,10 +25,11 @@ export function renderUserMenuTemplate(state) {
       <ui-button 
         type="ghost"
         label="${user.name || user.display_name || user.email}"
-        event="user-menu:toggle-click"
         aria-expanded="${open}"
         class="user-menu__button"
         data-avatar="${initials}"
+        data-app-action="user.toggleMenu"
+        data-app-prevent-default="true"
       ></ui-button>
       
       <div class="user-menu__dropdown ${open ? 'user-menu__dropdown--open' : ''}">
@@ -40,16 +42,31 @@ export function renderUserMenuTemplate(state) {
         </div>
         
         <nav class="user-menu__nav">
-          <a href="/profile/" data-action="profile" class="user-menu__link">
+          <a
+            href="/profile/"
+            class="user-menu__link"
+            data-app-action="user.openProfile"
+            data-app-prevent-default="true"
+          >
             <ui-icon name="account" size="small"></ui-icon>
             <span>Профиль</span>
+          </a>
+          <a
+            href="/profile/#orders"
+            class="user-menu__link"
+            data-app-action="user.openOrders"
+            data-app-prevent-default="true"
+          >
+            <ui-icon name="cart" size="small"></ui-icon>
+            <span>Мои заказы</span>
           </a>
           <ui-button 
             type="ghost"
             icon="close"
             icon-position="left"
             label="Выйти"
-            event="user-menu:logout-click"
+            data-app-action="user.logout"
+            data-app-prevent-default="true"
             class="user-menu__link user-menu__link--logout"
           ></ui-button>
         </nav>

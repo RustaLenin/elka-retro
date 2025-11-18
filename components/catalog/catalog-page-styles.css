@@ -59,6 +59,16 @@
   .catalog-page__sidebar {
     display: block;
   }
+  
+  /* Увеличение ширины сайдбара при развороте фильтра категорий */
+  .catalog-page__sidebar.expanded {
+    width: 50vw; /* На FullHD это ~960px */
+  }
+  
+  /* Также обновляем CSS-переменную для grid-template-columns */
+  .catalog-page:has(.catalog-page__sidebar.expanded) {
+    --catalog-sidebar-width: 50vw;
+  }
 }
 
 .site_content--catalog {

@@ -6,27 +6,24 @@ if (window.app?.toolkit?.loadCSSOnce) {
   window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
 }
 
-let modalOverlayArea = null;
-let modalOverlayIdCounter = 0;
+let openModalsCount = 0;
 
 function ensureArea() {
-  if (!document.querySelector('.UIModalArea')) {
-    const area = document.createElement('div');
+  let area = document.querySelector('.UIModalArea');
+  if (!area) {
+    area = document.createElement('div');
     area.className = 'UIModalArea';
+    area.style.pointerEvents = 'none';
     document.body.appendChild(area);
   }
+  return area;
 }
 
-function ensureOverlayArea() {
-  if (!modalOverlayArea || !modalOverlayArea.isConnected) {
-    modalOverlayArea = document.querySelector('.UIModalOverlayArea');
-    if (!modalOverlayArea) {
-      modalOverlayArea = document.createElement('div');
-      modalOverlayArea.className = 'UIModalOverlayArea';
-      document.body.appendChild(modalOverlayArea);
-    }
+function updateAreaPointerEvents() {
+  const area = document.querySelector('.UIModalArea');
+  if (area) {
+    area.style.pointerEvents = openModalsCount > 0 ? 'auto' : 'none';
   }
-  return modalOverlayArea;
 }
 
 export class UIModal extends BaseElement {
@@ -35,6 +32,8 @@ export class UIModal extends BaseElement {
     size: { type: 'string', default: 'medium', attribute: { name: 'size', observed: true, reflect: true } },
     closable: { type: 'boolean', default: true, attribute: { name: 'closable', observed: true, reflect: true } },
     apiUrl: { type: 'string', default: '', attribute: { name: 'api-url', observed: true, reflect: true } },
+    footer: { type: 'string', default: 'auto', attribute: { name: 'footer', observed: true, reflect: true } },
+    bodyPadding: { type: 'string', default: 'default', attribute: { name: 'body-padding', observed: true, reflect: true } },
     loading: { type: 'boolean', default: false, attribute: null, internal: true },
     visible: { type: 'boolean', default: false, attribute: null, internal: true },
   };
@@ -43,127 +42,17 @@ export class UIModal extends BaseElement {
     super();
     this._onOverlayClick = this._onOverlayClick.bind(this);
     this._onEscape = this._onEscape.bind(this);
-    this._overlayId = `ui-modal-overlay-${++modalOverlayIdCounter}`;
-    this._overlayElement = null;
-    this._containerElement = null;
-  }
-
-  _removeOverlayFromBody() {
-    if (this._overlayElement && this._overlayElement.parentNode) {
-      this._overlayElement.remove();
-    }
-    if (this._containerElement && this._containerElement.parentNode) {
-      this._containerElement.remove();
-    }
-    this._overlayElement = null;
-    this._containerElement = null;
-  }
-
-  _mountOverlayToBody() {
-    if (!this.state.visible) {
-      this._removeOverlayFromBody();
-      return;
-    }
-
-    const overlayInComponent = this.querySelector('.modal_overlay');
-    const containerInComponent = this.querySelector('.modal_container');
-    if (!overlayInComponent || !containerInComponent) {
-      return;
-    }
-
-    overlayInComponent.dataset.modalOverlayId = this._overlayId;
-    containerInComponent.dataset.modalOverlayId = this._overlayId;
-
-    const host = ensureOverlayArea();
-
-    this._removeOverlayFromBody();
-
-    host.appendChild(overlayInComponent);
-    host.appendChild(containerInComponent);
-
-    this._overlayElement = overlayInComponent;
-    this._containerElement = containerInComponent;
-  }
-
-  _getOverlayElement() {
-    if (this._overlayElement && this._overlayElement.isConnected) {
-      return this._overlayElement;
-    }
-
-    const host = modalOverlayArea && modalOverlayArea.isConnected
-      ? modalOverlayArea
-      : document.querySelector('.UIModalOverlayArea');
-
-    if (host) {
-      const overlay = host.querySelector(`.modal_overlay[data-modal-overlay-id="${this._overlayId}"]`);
-      if (overlay) {
-        this._overlayElement = overlay;
-        return overlay;
-      }
-    }
-
-    const inlineOverlay = this.querySelector('.modal_overlay');
-    if (inlineOverlay) {
-      this._overlayElement = inlineOverlay;
-      return inlineOverlay;
-    }
-
-    return null;
-  }
-
-  _getContainerElement() {
-    if (this._containerElement && this._containerElement.isConnected) {
-      return this._containerElement;
-    }
-
-    const host = modalOverlayArea && modalOverlayArea.isConnected
-      ? modalOverlayArea
-      : document.querySelector('.UIModalOverlayArea');
-
-    if (host) {
-      const container = host.querySelector(`.modal_container[data-modal-overlay-id="${this._overlayId}"]`);
-      if (container) {
-        this._containerElement = container;
-        return container;
-      }
-    }
-
-    const inlineContainer = this.querySelector('.modal_container');
-    if (inlineContainer) {
-      this._containerElement = inlineContainer;
-      return inlineContainer;
-    }
-
-    return null;
-  }
-
-  _queryContainer(selector) {
-    const container = this._getContainerElement();
-    return container ? container.querySelector(selector) : null;
-  }
-
-  _queryAllContainer(selector) {
-    const container = this._getContainerElement();
-    return container ? container.querySelectorAll(selector) : [];
-  }
-
-  _syncOverlayState() {
-    const overlay = this._getOverlayElement() || this.querySelector('.modal_overlay');
-    const container = this._getContainerElement() || this.querySelector('.modal_container');
-    const isVisible = !!this.state.visible;
-    if (overlay) {
-      overlay.classList.toggle('modal_overlay--visible', isVisible);
-    }
-    if (container) {
-      container.classList.toggle('modal_container--visible', isVisible);
-    }
+    this._bodyContent = null;
+    this._footerContent = '';
+    this._defaultBodyContent = null;
   }
 
   connectedCallback() {
-    // Стили уже загружены при импорте модуля
-    // window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
-    ensureArea();
+    const area = ensureArea();
     super.connectedCallback();
+    if (this.parentElement !== area) {
+      area.appendChild(this);
+    }
     this.render();
     if (this.state.apiUrl) {
       this.loadData();
@@ -172,7 +61,6 @@ export class UIModal extends BaseElement {
 
   disconnectedCallback() {
     document.removeEventListener('keydown', this._onEscape);
-    this._removeOverlayFromBody();
   }
 
   async loadData() {
@@ -211,28 +99,37 @@ export class UIModal extends BaseElement {
   }
 
   show() {
+    if (!this.isVisible()) {
+      openModalsCount += 1;
+      updateAreaPointerEvents();
+    }
     this.setState({ visible: true });
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', this._onEscape);
     
     requestAnimationFrame(() => {
-      this._syncOverlayState();
       const overlay = this._getOverlayElement();
-      if (overlay) overlay.addEventListener('click', this._onOverlayClick);
-      
+      if (overlay) {
+        overlay.removeEventListener('click', this._onOverlayClick);
+        overlay.addEventListener('click', this._onOverlayClick);
+      }
       const firstFocusable = this._queryContainer('button, a, input, textarea, select, [tabindex]:not([tabindex="-1"])');
       if (firstFocusable) firstFocusable.focus();
     });
   }
 
   hide() {
+    if (this.isVisible() && openModalsCount > 0) {
+      openModalsCount -= 1;
+      updateAreaPointerEvents();
+    }
     this.setState({ visible: false });
-    document.body.style.overflow = '';
+    if (openModalsCount === 0) {
+      document.body.style.overflow = '';
+    }
     document.removeEventListener('keydown', this._onEscape);
     const overlay = this._getOverlayElement();
     if (overlay) overlay.removeEventListener('click', this._onOverlayClick);
-    
-    requestAnimationFrame(() => this._syncOverlayState());
   }
 
   destroy() {
@@ -240,57 +137,63 @@ export class UIModal extends BaseElement {
     setTimeout(() => this.remove(), 300);
   }
 
+  _requestClose(detail = {}) {
+    const event = new CustomEvent('ui-modal:request-close', {
+      bubbles: false,
+      cancelable: true,
+      detail,
+    });
+    this.dispatchEvent(event);
+    return !event.defaultPrevented;
+  }
+
   _onOverlayClick(e) {
     if (e.target === e.currentTarget && this.state.closable) {
+      if (!this._requestClose({ reason: 'overlay' })) return;
       this.hide();
     }
   }
 
   _onEscape(e) {
     if (e.key === 'Escape' && this.state.visible && this.state.closable) {
+      if (!this._requestClose({ reason: 'escape' })) return;
       this.hide();
     }
   }
 
   _onCloseClick() {
-    if (this.state.closable) this.hide();
+    if (!this.state.closable) return;
+    if (!this._requestClose({ reason: 'close-button' })) return;
+    this.hide();
   }
 
   render() {
-    const { title, size, closable, loading, visible } = this.state;
-    // Сохраняем дополнительные классы перед установкой базовых
+    const { title, size, closable, loading, visible, bodyPadding, footer } = this.state;
     const preservedClasses = Array.from(this.classList).filter(cls => 
       cls !== 'modal' && 
       !cls.startsWith('modal--') &&
       cls !== 'modal--visible'
     );
-    // Устанавливаем базовые классы
     this.className = `modal modal--${size} ${visible ? 'modal--visible' : ''}`;
-    // Восстанавливаем сохраненные дополнительные классы
     preservedClasses.forEach(cls => {
-      if (cls) {
-        this.classList.add(cls);
-      }
+      if (cls) this.classList.add(cls);
     });
-    
-    const existingBody = this._queryContainer('.modal_body') || this.querySelector('.modal_body');
-    let existingContent = existingBody ? existingBody.innerHTML : '';
 
-    // Проверяем, есть ли actions формы для перемещения в footer
-    let footerContent = '';
-    if (existingBody) {
-      const formActions = existingBody.querySelector('[data-form-actions]');
-      if (formActions) {
-        // Сохраняем содержимое actions
-        footerContent = formActions.outerHTML;
-        // Удаляем actions из body
-        formActions.remove();
-        // Обновляем existingContent без actions
-        existingContent = existingBody.innerHTML;
-      }
+    if (this._defaultBodyContent === null) {
+      this._defaultBodyContent = this.innerHTML;
     }
 
-    this._removeOverlayFromBody();
+    const existingBody = this.querySelector('.modal_body');
+    const existingFooter = this.querySelector('.modal_footer');
+    const currentBody = typeof this._bodyContent === 'string'
+      ? this._bodyContent
+      : (existingBody ? existingBody.innerHTML : this._defaultBodyContent || '');
+    if (!this._bodyContent && existingBody) {
+      this._bodyContent = existingBody.innerHTML;
+    }
+    if (!this._footerContent && existingFooter) {
+      this._footerContent = existingFooter.innerHTML;
+    }
 
     const header = title ? `
       <div class="modal_header">
@@ -298,29 +201,31 @@ export class UIModal extends BaseElement {
         ${closable ? `<button class="modal_close" aria-label="Close">×</button>` : ''}
       </div>
     ` : '';
+
+    const footerMode = (footer || 'auto').toString().toLowerCase();
+    const shouldRenderFooter = footerMode === 'none' || footerMode === 'false'
+      ? false
+      : (footerMode === 'auto' ? Boolean(this._footerContent) : true);
+
+    const bodyClass = ['modal_body', `modal_body--${bodyPadding || 'default'}`].join(' ');
     
     this.innerHTML = `
-      <div class="modal_overlay"></div>
-      <div class="modal_container">
+      <div class="modal_overlay ${visible ? 'modal_overlay--visible' : ''}"></div>
+      <div class="modal_container ${visible ? 'modal_container--visible' : ''}" data-modal-id="${this.dataset.modalId || ''}">
         ${header}
-        <div class="modal_body">
-          ${loading ? `<block-loader label="Загрузка..." spinduration="1200"></block-loader>` : existingContent}
+        <div class="${bodyClass}">
+          ${loading ? `<block-loader label="Загрузка..." spinduration="1200"></block-loader>` : currentBody}
         </div>
-        ${footerContent ? `<div class="modal_footer">${footerContent}</div>` : ''}
+        ${shouldRenderFooter ? `<div class="modal_footer">${this._footerContent || ''}</div>` : ''}
       </div>
     `;
     
-    this._mountOverlayToBody();
-    this._syncOverlayState();
-
-    // Attach close handler
-    const closeBtn = this._queryContainer('.modal_close');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this._onCloseClick());
-    }
+    this.dispatchEvent(new CustomEvent('ui-modal:rendered', { bubbles: false }));
+    this._bindInteractiveElements();
   }
   
   setBodyContent(html) {
+    this._bodyContent = html;
     const body = this._queryContainer('.modal_body');
     if (body) {
       body.innerHTML = html;
@@ -331,7 +236,49 @@ export class UIModal extends BaseElement {
     const body = this._queryContainer('.modal_body');
     if (body && element) {
       body.appendChild(element);
+      this._bodyContent = body.innerHTML;
     }
+  }
+
+  setFooterContent(html) {
+    this._footerContent = html;
+    const footer = this._queryContainer('.modal_footer');
+    if (footer) {
+      footer.innerHTML = html;
+    } else {
+      this.render();
+    }
+  }
+
+  _bindInteractiveElements() {
+    const overlay = this._getOverlayElement();
+    if (overlay) {
+      overlay.removeEventListener('click', this._onOverlayClick);
+      overlay.addEventListener('click', this._onOverlayClick);
+    }
+    const closeBtn = this._queryContainer('.modal_close');
+    if (closeBtn) {
+      closeBtn.removeEventListener('click', this._onCloseHandler);
+      closeBtn.addEventListener('click', () => this._onCloseClick());
+    }
+  }
+
+  _getOverlayElement() {
+    return this.querySelector('.modal_overlay');
+  }
+
+  _getContainerElement() {
+    return this.querySelector('.modal_container');
+  }
+
+  _queryContainer(selector) {
+    const container = this._getContainerElement();
+    return container ? container.querySelector(selector) : null;
+  }
+
+  _queryAllContainer(selector) {
+    const container = this._getContainerElement();
+    return container ? container.querySelectorAll(selector) : [];
   }
 
   // Публичный API

@@ -4,7 +4,7 @@
  */
 
 export function cart_page_template(state) {
-  const { items, isLoading, isEmpty } = state;
+  const { items, isLoading, isEmpty, showBlockingOverlay, blockingMessage } = state;
 
   if (isLoading) {
     return `
@@ -50,6 +50,12 @@ export function cart_page_template(state) {
 
       <div class="cart-page_content">
         <div class="cart-page_main">
+          ${showBlockingOverlay ? `
+            <div class="cart-page_overlay">
+              <ui-loader></ui-loader>
+              <p>${blockingMessage || 'Обновляем корзину...'}</p>
+            </div>
+          ` : ''}
           <div class="cart-page_items" role="list">
             <!-- Товары будут добавлены через renderItems() -->
           </div>

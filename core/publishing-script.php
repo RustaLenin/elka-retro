@@ -75,11 +75,11 @@ class ELKARETRO_PUBLISHING_SCRIPT {
             return;
         }
         
-        // Получаем записи в статусе draft
+        // Получаем записи в статусах draft, pending, specification и decoration
         // Временно убран батчинг для разовой обработки всех записей
         $query = new WP_Query(array(
             'post_type' => $post_type,
-            'post_status' => 'draft',
+            'post_status' => array('draft', 'pending', 'specification', 'decoration'),
             'posts_per_page' => -1, // Обрабатываем все записи
             'orderby' => 'ID',
             'order' => 'ASC'
@@ -141,11 +141,11 @@ class ELKARETRO_PUBLISHING_SCRIPT {
             return;
         }
         
-        // Получаем записи в статусе draft
+        // Получаем записи в статусах draft, pending, specification и decoration
         // Временно убран батчинг для разовой обработки всех записей
         $query = new WP_Query(array(
             'post_type' => $post_type,
-            'post_status' => 'draft',
+            'post_status' => array('draft', 'pending', 'specification', 'decoration'),
             'posts_per_page' => -1, // Обрабатываем все записи
             'orderby' => 'ID',
             'order' => 'ASC'

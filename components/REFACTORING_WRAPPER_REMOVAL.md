@@ -179,7 +179,7 @@ toy-type-card .toy-type-card_content {
 
 ## Важные замечания
 
-1. **Семантические элементы**: Если `<article>` используется для семантики, можно оставить его, но применить `display: contents` к нему, чтобы он не создавал дополнительный контейнер.
+1. **Семантические элементы**: Если `<article>`, `<label>`, `<button>` и другие семантические элементы используются для семантики, можно оставить их, но применить `display: contents` к ним, чтобы они не создавали дополнительный контейнер.
 
 2. **Обратная совместимость**: После рефакторинга нужно проверить все места использования компонентов, так как структура DOM изменится.
 
@@ -190,6 +190,88 @@ toy-type-card .toy-type-card_content {
    - Интерактивность (hover, click)
    - Адаптивность
    - Состояния (loading, error, empty)
+
+---
+
+## Чек-лист для предотвращения проблемы
+
+### ✅ Перед созданием нового Web Component:
+
+1. **Проверь шаблон:**
+   - ❌ Нет ли внутри веб-компонента элемента с тем же классом, что и имя компонента?
+   - ❌ Нет ли внутренней обёртки с теми же стилями, что должны быть на компоненте?
+
+2. **Проверь стили:**
+   - ✅ Все стили контейнера (display, padding, margin, border, background) применяются к самому веб-компоненту?
+   - ✅ Внутренние элементы имеют уникальные классы (не совпадающие с именем компонента)?
+
+3. **Если нужен семантический элемент:**
+   - ✅ Используй `display: contents` для семантических элементов (`<label>`, `<article>`, `<button>`), чтобы они не создавали дополнительный контейнер
+   - ✅ Или применяй стили напрямую к веб-компоненту, а семантический элемент оставляй без стилей
+
+### ✅ Пример правильной структуры:
+
+```html
+<!-- ✅ ПРАВИЛЬНО: ui-form-checkbox -->
+<ui-form-checkbox>
+  <label class="ui-form-checkbox__label-wrapper" style="display: contents;">
+    <input class="ui-form-checkbox__control" />
+    <span class="ui-form-checkbox__box"></span>
+    <span class="ui-form-checkbox__content"></span>
+  </label>
+</ui-form-checkbox>
+```
+
+```css
+/* ✅ ПРАВИЛЬНО: стили на веб-компоненте */
+ui-form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Семантический label не создает контейнер */
+ui-form-checkbox .ui-form-checkbox__label-wrapper {
+  display: contents;
+}
+```
+
+### ❌ Пример неправильной структуры:
+
+```html
+<!-- ❌ НЕПРАВИЛЬНО: дублирование класса -->
+<ui-form-checkbox>
+  <label class="ui-form-checkbox">  <!-- ❌ Тот же класс, что и компонент! -->
+    <input />
+  </label>
+</ui-form-checkbox>
+```
+
+```css
+/* ❌ НЕПРАВИЛЬНО: стили на внутреннем элементе */
+ui-form-checkbox .ui-form-checkbox {  /* ❌ Дублирование! */
+  display: flex;
+}
+```
+
+---
+
+### 8. `ui-form-checkbox` ✅ (ИСПРАВЛЕНО)
+
+**Файлы:**
+- `components/ui-kit/form/checkbox/form-checkbox-template.js`
+- `components/ui-kit/form/checkbox/form-checkbox-styles.css`
+- `components/ui-kit/form/checkbox/form-checkbox.js`
+
+**Проблема (была):**
+- Внутри веб-компонента `ui-form-checkbox` был `<label class="ui-form-checkbox">` - дублирование класса
+- Стили контейнера применялись к внутреннему `<label>`, а не к веб-компоненту
+
+**Решение:**
+- Переименован внутренний `<label>` в `ui-form-checkbox__label-wrapper`
+- Применен `display: contents` к label-wrapper, чтобы он не создавал дополнительный контейнер
+- Все стили контейнера перенесены на сам веб-компонент `ui-form-checkbox`
+- Состояния (error, success) применяются напрямую к веб-компоненту через атрибуты/классы
 
 ---
 

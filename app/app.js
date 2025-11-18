@@ -1,3 +1,6 @@
+import { createModalManager } from './modal-manager.js';
+import { createEventBus } from './events/index.js';
+
 // Global App State and Utilities
 window.app = {
   // Services registry
@@ -369,6 +372,33 @@ window.app = {
   }
 };
 
+window.app.modal = createModalManager();
+window.app.events = createEventBus();
+window.dispatchEvent(new CustomEvent('app:events-ready'));
+
+function handleAppActionClick(event) {
+  if (!window.app?.events) return;
+  window.app.events.dispatchFromDom(event);
+}
+
+document.addEventListener('click', handleAppActionClick);
+
+let authFormsPreloadPromise = null;
+
+function preloadAuthFormsIfNeeded() {
+  if (window.app?.forms?.signIn) {
+    return Promise.resolve();
+  }
+  if (!authFormsPreloadPromise) {
+    authFormsPreloadPromise = import('./forms/index.js')
+      .catch((error) => {
+        authFormsPreloadPromise = null;
+        console.error('[app] Failed to preload auth forms:', error);
+      });
+  }
+  return authFormsPreloadPromise;
+}
+
 // Инициализация данных авторизации из PHP (выполняется синхронно до DOMContentLoaded)
 // Доверяем PHP - если он вернул данные пользователя, используем их
 // Если вернул null, значит пользователь не авторизован - не делаем дополнительных запросов
@@ -379,20 +409,23 @@ if (window.wpApiSettings?.currentUser) {
   // PHP явно вернул null - пользователь не авторизован
   window.app.auth.user = null;
   window.app.auth.authenticated = false;
+  preloadAuthFormsIfNeeded();
 }
 
 // Initialize cart store (async)
 document.addEventListener('DOMContentLoaded', function() {
-  // Загружаем catalog-store асинхронно
-  import('../components/catalog/catalog-store.js').then(module => {
-    const { getCatalogStore } = module;
-    const catalogStore = getCatalogStore();
-    
-    // Делаем catalogStore доступным глобально
-    window.app.catalogStore = catalogStore;
-  }).catch(err => {
-    console.error('[app] Failed to load catalog-store:', err);
-  });
+  // Загружаем catalog-store только там, где есть каталог
+  if (document.querySelector('catalog-page')) {
+    import('../components/catalog/catalog-store.js').then(module => {
+      const { getCatalogStore } = module;
+      const catalogStore = getCatalogStore();
+      
+      // Делаем catalogStore доступным глобально
+      window.app.catalogStore = catalogStore;
+    }).catch(err => {
+      console.error('[app] Failed to load catalog-store:', err);
+    });
+  }
 
   // Загружаем новый cart-store асинхронно
   import('../components/cart/cart-store.js').then(module => {
@@ -472,6 +505,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('elkaretro:auth:logout', () => {
       app.auth.user = null;
       app.auth.authenticated = false;
+      preloadAuthFormsIfNeeded();
     });
 
     window.addEventListener('elkaretro:auth:error', (e) => {

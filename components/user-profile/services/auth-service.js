@@ -30,23 +30,28 @@ class AuthService {
       // Используем стандартный wp_login через AJAX или форму
       // Для этого создадим кастомный endpoint или используем существующий
       
-      const formData = new FormData();
-      formData.append('log', username); // username или email
-      formData.append('pwd', password);
-      formData.append('rememberme', rememberMe ? 'forever' : '');
-      formData.append('wp-submit', 'Войти');
-      formData.append('redirect_to', window.location.href);
+      const nonce = this.getNonce();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (nonce) {
+        headers['X-WP-Nonce'] = nonce;
+      }
 
-      const response = await fetch('/wp-login.php', {
+      const response = await fetch('/wp-json/elkaretro/v1/auth/login', {
         method: 'POST',
-        body: formData,
         credentials: 'same-origin',
-        redirect: 'manual'
+        headers,
+        body: JSON.stringify({
+          username,
+          password,
+          remember: rememberMe,
+        }),
       });
 
-      if (response.ok || response.status === 302) {
-        // Проверяем авторизацию через REST API
-        const user = await this.getCurrentUser();
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.success) {
+        const user = data.user || (await this.getCurrentUser().catch(() => null));
         if (user && !user.error) {
           this.currentUser = user;
           this.dispatchAuthEvent('login', { user });
@@ -54,10 +59,9 @@ class AuthService {
         }
       }
 
-      // Если не получилось авторизоваться
-      const error = new Error('Неверный логин или пароль');
-      this.dispatchAuthEvent('error', { error: error.message });
-      return { success: false, error: error.message };
+      const errorMessage = data?.message || 'Неверный логин или пароль';
+      this.dispatchAuthEvent('error', { error: errorMessage });
+      return { success: false, error: errorMessage };
 
     } catch (error) {
       console.error('[AuthService] Login error:', error);
@@ -71,20 +75,39 @@ class AuthService {
    */
   async logout() {
     try {
-      await fetch('/wp-login.php?action=logout', {
-        method: 'GET',
-        credentials: 'same-origin'
+      const nonce = this.getNonce();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (nonce) {
+        headers['X-WP-Nonce'] = nonce;
+      }
+
+      const response = await fetch('/wp-json/elkaretro/v1/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers,
       });
 
-      this.currentUser = null;
-      this.dispatchAuthEvent('logout', {});
+      const data = await response.json().catch(() => null);
       
-      // Редирект на главную страницу
-      window.location.href = '/';
-      
-      return { success: true };
+      if (response.ok && data?.success) {
+        this.currentUser = null;
+        this.dispatchAuthEvent('logout', {});
+        
+        // Редирект на главную страницу
+        window.location.href = '/';
+        
+        return { success: true };
+      }
+
+      const errorMessage = data?.message || 'Не удалось выйти из системы';
+      this.dispatchAuthEvent('error', { error: errorMessage });
+      return { success: false, error: errorMessage };
+
     } catch (error) {
       console.error('[AuthService] Logout error:', error);
+      this.dispatchAuthEvent('error', { error: error.message });
       return { success: false, error: error.message };
     }
   }

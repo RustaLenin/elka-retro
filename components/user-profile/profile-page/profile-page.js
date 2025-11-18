@@ -106,16 +106,34 @@ export class ProfilePage extends BaseElement {
     this._updateTabNavigation();
   }
 
+  /**
+   * Получить имя элемента вкладки по её ID
+   */
+  _getTabElementName(tabId) {
+    const mapping = {
+      'settings': 'profile-settings-tab',
+      'orders': 'order-history-tab',
+      'contact': 'contact-form-tab',
+    };
+    return mapping[tabId] || null;
+  }
+
   async _loadTab(tabId) {
+    const tabElementName = this._getTabElementName(tabId);
+    if (!tabElementName) {
+      console.warn(`[ProfilePage] Unknown tab ID: ${tabId}`);
+      return;
+    }
+
     // Проверяем, не загружен ли уже JavaScript-компонент вкладки
-    const tabElement = this.querySelector(`${tabId}-tab`);
+    const tabElement = this.querySelector(tabElementName);
     if (!tabElement) {
-      console.warn(`[ProfilePage] Tab element "${tabId}-tab" not found`);
+      console.warn(`[ProfilePage] Tab element "${tabElementName}" not found`);
       return;
     }
 
     // Если компонент уже определён и подключён, просто показываем вкладку
-    if (customElements.get(`${tabId}-tab`) && tabElement.isConnected) {
+    if (customElements.get(tabElementName) && tabElement.isConnected) {
       this._tabsLoaded.add(tabId);
       this._showActiveTab();
       return;
@@ -145,7 +163,7 @@ export class ProfilePage extends BaseElement {
       }
 
       // Ждём, пока компонент зарегистрируется и инициализируется
-      await customElements.whenDefined(`${tabId}-tab`);
+      await customElements.whenDefined(tabElementName);
       
       this._tabsLoaded.add(tabId);
       
@@ -161,9 +179,12 @@ export class ProfilePage extends BaseElement {
     const tabs = ['settings', 'orders', 'contact'];
     
     tabs.forEach(tabId => {
-      const tabElement = this.querySelector(`${tabId}-tab`);
-      if (tabElement) {
-        tabElement.style.display = tabId === activeTab ? 'block' : 'none';
+      const tabElementName = this._getTabElementName(tabId);
+      if (tabElementName) {
+        const tabElement = this.querySelector(tabElementName);
+        if (tabElement) {
+          tabElement.style.display = tabId === activeTab ? 'block' : 'none';
+        }
       }
     });
   }
@@ -172,6 +193,10 @@ export class ProfilePage extends BaseElement {
     const nav = this.querySelector('tab-navigation');
     if (nav) {
       nav.setAttribute('active-tab', this.state.activeTab);
+      // Обновляем навигацию, если у неё есть метод render
+      if (typeof nav.render === 'function') {
+        nav.render();
+      }
     }
   }
 
@@ -221,18 +246,19 @@ export class ProfilePage extends BaseElement {
     });
   }
 
-  _initComponents() {
+  async _initComponents() {
     // Инициализируем навигацию по вкладкам
     const tabNav = this.querySelector('tab-navigation');
     if (tabNav) {
-      // Передаём список вкладок в навигацию через innerHTML
-      tabNav.innerHTML = `
-        <tab-nav-item id="settings" label="Настройки профиля"></tab-nav-item>
-        <tab-nav-item id="orders" label="История заказов"></tab-nav-item>
-        <tab-nav-item id="contact" label="Обратная связь"></tab-nav-item>
-      `;
-      tabNav.render(); // Перерендерим навигацию с новыми вкладками
+      // Ждём, пока компонент tab-navigation загрузится и определится
+      await customElements.whenDefined('tab-navigation');
       
+      // Убеждаемся, что навигация отрендерилась с вкладками из шаблона
+      if (typeof tabNav.render === 'function') {
+        tabNav.render();
+      }
+      
+      // Добавляем обработчик смены вкладки
       tabNav.addEventListener('tab-navigation:change', (e) => this._handleTabChange(e));
       this._updateTabNavigation();
     }

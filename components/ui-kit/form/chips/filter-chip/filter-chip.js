@@ -18,6 +18,8 @@ export class UIFilterChip extends BaseElement {
     super();
     this._onRemoveClick = this._onRemoveClick.bind(this);
     this._onChipClick = this._onChipClick.bind(this);
+    this._onRemoveKeydown = this._onRemoveKeydown.bind(this);
+    this._removeButton = null;
   }
 
   connectedCallback() {
@@ -30,9 +32,10 @@ export class UIFilterChip extends BaseElement {
   }
 
   _bindEvents() {
-    const removeBtn = this.querySelector('[data-action="remove"]');
-    if (removeBtn) {
-      removeBtn.addEventListener('click', this._onRemoveClick);
+    this._removeButton = this.querySelector('[data-action="remove"]');
+    if (this._removeButton) {
+      this._removeButton.addEventListener('click', this._onRemoveClick);
+      this._removeButton.addEventListener('keydown', this._onRemoveKeydown);
     }
     this.addEventListener('click', this._onChipClick);
   }
@@ -40,11 +43,18 @@ export class UIFilterChip extends BaseElement {
   _onRemoveClick(e) {
     e.stopPropagation();
     if (!this.state.removable) return;
-    this._emitEvent('remove', {
+    console.debug('[ui-filter-chip] remove click', {
       filterId: this.state.filterId,
-      label: this.state.label,
-      value: this.state.value
+      value: this.state.value,
     });
+    this._emitRemove();
+  }
+
+  _onRemoveKeydown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this._onRemoveClick(e);
+    }
   }
 
   _onChipClick(e) {
@@ -52,6 +62,46 @@ export class UIFilterChip extends BaseElement {
     this._emitEvent('click', {
       filterId: this.state.filterId
     });
+  }
+
+  _emitRemove() {
+    const field = this.closest('ui-form-field');
+    console.debug('[ui-filter-chip] emit remove', {
+      fieldFound: Boolean(field),
+      filterId: this.state.filterId,
+    });
+    if (field && typeof field.setValue === 'function') {
+      try {
+        field.setValue(null);
+        if (typeof field.handleControlChange === 'function') {
+          field.handleControlChange({ type: 'change' });
+        }
+      } catch (err) {
+        console.warn('[ui-filter-chip] Failed to reset field value', err);
+      }
+    }
+
+    this._emitEvent('remove', {
+      filterId: this.state.filterId,
+      label: this.state.label,
+      value: this.state.value
+    });
+
+    const controller = this.closest('ui-form-controller');
+    if (controller && typeof controller.submit === 'function') {
+      console.debug('[ui-filter-chip] submitting form controller');
+      controller.submit();
+    } else {
+      console.debug('[ui-filter-chip] dispatch ui-form:change fallback');
+      this.dispatchEvent(new CustomEvent('ui-form:change', {
+        bubbles: true,
+        composed: true,
+        detail: {
+          filterId: this.state.filterId,
+          value: null,
+        },
+      }));
+    }
   }
 
   _emitEvent(type, detail) {

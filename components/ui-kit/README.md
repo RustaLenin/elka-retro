@@ -42,6 +42,9 @@ component-name/
    - Header с заголовком
    - Content для контента
    - Footer с кнопками (confirm, cancel)
+   - Событие `ui-modal:rendered` (срабатывает после рендера контейнера, удобно для отложенного `setBodyContent`)
+   - Используется через глобальный менеджер `app.modal` (см. `app/modal-manager.js`)
+   - Действия внутри модалок рекомендуется описывать декларативно через `data-app-action` и глобальную шину событий (см. [app/events/README.md](../../app/events/README.md))
 
 5. **button** - Кнопки различных типов
    - Типы: `primary`, `secondary`, `warning`, `ghost`, `danger`
@@ -70,12 +73,19 @@ component-name/
 
 ## Стилизация Web Component как контейнера (КРИТИЧЕСКИ ВАЖНОЕ ПРАВИЛО)
 
-**ПРАВИЛО**: Web Component сам является HTML элементом и контейнером для всего своего содержимого. Все стили контейнера (display, position, padding, border, background, width, max-width и т.д.) **ОБЯЗАТЕЛЬНО** должны применяться непосредственно к самому кастомному элементу (например, `.ui-input-text`), а не к внутренним обёрткам (`.ui-input-text__wrapper`).
+**ПРАВИЛО**: Web Component сам является HTML элементом и контейнером для всего своего содержимого. Все стили контейнера (display, position, padding, border, background, width, max-width и т.д.) **ОБЯЗАТЕЛЬНО** должны применяться непосредственно к самому кастомному элементу (например, `ui-input-text`), а не к внутренним обёрткам.
+
+**⚠️ КРИТИЧЕСКИ ВАЖНО:**
+- **НЕ используй тот же класс, что и имя компонента, внутри компонента!**
+  - ❌ `<ui-form-checkbox>` с `<label class="ui-form-checkbox">` внутри - **НЕПРАВИЛЬНО**
+  - ✅ `<ui-form-checkbox>` с `<label class="ui-form-checkbox__label-wrapper">` внутри - **ПРАВИЛЬНО**
+- Если нужен семантический элемент (`<label>`, `<article>`, `<button>`), используй `display: contents` для него, чтобы он не создавал дополнительный контейнер
 
 **Почему это важно:**
 - Web Component занимает место в DOM дереве и должен быть правильно стилизован как контейнер
 - Избегаем лишней вложенности и дополнительных обёрток
 - Компонент становится более гибким и предсказуемым в использовании
+- Предотвращаем путаницу: стили применяются не к тому элементу
 
 **Неправильно:**
 ```css
@@ -113,6 +123,31 @@ ui-input-text {
   flex: 1;
   border: none;
   /* стили для input */
+}
+```
+
+**Если нужен семантический элемент (label, article, button):**
+```html
+<!-- ✅ ПРАВИЛЬНО: семантический label с display: contents -->
+<ui-form-checkbox>
+  <label class="ui-form-checkbox__label-wrapper">
+    <input class="ui-form-checkbox__control" />
+    <span class="ui-form-checkbox__box"></span>
+  </label>
+</ui-form-checkbox>
+```
+
+```css
+/* ✅ ПРАВИЛЬНО: стили на веб-компоненте */
+ui-form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Семантический label не создает контейнер */
+ui-form-checkbox .ui-form-checkbox__label-wrapper {
+  display: contents; /* ⚠️ Важно: label не создает дополнительный контейнер */
 }
 ```
 
@@ -271,6 +306,23 @@ customElements.define('ui-component-name', UIComponentName);
 - На стороне PHP формируется список нужных компонентов через фильтр `elkaretro_required_components`.
 - Список попадает в DOM как JSON (`<script id="elkaretro-required-components" type="application/json">[...]</script>`).
 - В `components/components.js` есть реестр и загрузчик, который импортирует только перечисленные компоненты.
+
+## Декларативные действия и шина событий
+
+Для единообразного управления поведением UI используем `data-app-action` + `app.events`:
+
+- Любой интерактивный элемент объявляет действие:  
+  `<button data-app-action="user.showSignInModal">Войти</button>`
+- Формат значения: `namespace.action`. Обработчики регистрируются в сервисах:  
+  `app.events.register('user', { showSignInModal(context) { ... } });`
+- Дополнительные атрибуты:
+  - `data-app-payload='{"source":"header"}'` — JSON, доступный как `context.payload`;
+  - `data-app-prevent-default="false"` — если нужно оставить нативное поведение ссылки;
+  - `data-app-stop="true"` — останавливает всплытие события.
+- Глобальный делегат (`app/app.js`) сам перехватывает клики по элементам с `data-app-action` и вызывает шину, поэтому внутри компонентов UI не навешиваем `addEventListener` ради вызова сервисов/модалок.
+- Если действие требуется до инициализации `app.events`, допускается fallback на прямой вызов сервиса, но основное взаимодействие должно быть через событие.
+
+Полный список правил и API: [`app/events/README.md`](../../app/events/README.md).
 
 ## Стили
 

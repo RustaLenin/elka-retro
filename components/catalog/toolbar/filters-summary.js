@@ -14,7 +14,7 @@
  * - ui-filters-summary - компонент из UI Kit
  */
 
-import { getFiltersForMode, getFilterKey, getTaxonomyTerms } from '../sidebar/filter-registry.js';
+import { getFiltersForMode, getFilterKey, getTaxonomyTerms, getDataModel } from '../sidebar/filter-registry.js';
 
 /**
  * Получить название фильтра по его ключу
@@ -167,6 +167,28 @@ export const createFiltersSummary = ({ container, sidebarContainer = null } = {}
       return;
     }
 
+    // Специальная обработка для category-of-toys
+    if (filterId === 'category-of-toys') {
+      // Находим компонент category-tree-filter
+      const categoryFilter = sidebarContainer.querySelector('category-tree-filter');
+      if (categoryFilter) {
+        // Разворачиваем фильтр категорий, если он свёрнут
+        if (!categoryFilter.state.isExpanded) {
+          categoryFilter.toggleExpanded();
+        }
+        
+        // Скроллим к фильтру категорий
+        categoryFilter.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        // Подсвечиваем фильтр
+        categoryFilter.classList.add('catalog-sidebar__filter--highlighted');
+        setTimeout(() => {
+          categoryFilter.classList.remove('catalog-sidebar__filter--highlighted');
+        }, 2000);
+      }
+      return;
+    }
+
     // Находим соответствующий фильтр в сайдбаре
     // Ищем по field-id в ui-form-field или по name в ui-form-controller
     const filterField = sidebarContainer.querySelector(
@@ -196,19 +218,57 @@ export const createFiltersSummary = ({ container, sidebarContainer = null } = {}
       return [];
     }
 
-    return Object.entries(filters)
-      .filter(([_, values]) => Array.isArray(values) && values.length > 0)
-      .map(([filterKey, filterValues]) => {
+    const chips = [];
+    
+    // Обрабатываем category-of-toys отдельно - один общий чипс
+    if (filters['category-of-toys'] && Array.isArray(filters['category-of-toys']) && filters['category-of-toys'].length > 0) {
+      const categoryValues = filters['category-of-toys'];
+      const taxonomyTerms = getTaxonomyTerms();
+      const categoryTerms = taxonomyTerms?.['category-of-toys'];
+      
+      if (categoryTerms) {
+        // Получаем названия категорий
+        const categoryNames = categoryValues
+          .map(value => {
+            const term = Object.values(categoryTerms).find(
+              t => t.slug === value || String(t.id) === String(value)
+            );
+            return term ? term.name : value;
+          })
+          .filter(Boolean);
+        
+        // Создаём один общий чипс
+        chips.push({
+          id: 'category-of-toys',
+          label: 'Категории',
+          value: categoryNames.join(', '),
+          removable: true,
+        });
+      }
+    }
+
+    // Обрабатываем остальные фильтры
+    Object.entries(filters)
+      .filter(([filterKey, values]) => {
+        // Пропускаем category-of-toys, так как он уже обработан
+        if (filterKey === 'category-of-toys') {
+          return false;
+        }
+        return Array.isArray(values) && values.length > 0;
+      })
+      .forEach(([filterKey, filterValues]) => {
         const label = getFilterLabel(filterKey, mode);
         const displayValue = getFilterDisplayValue(filterKey, filterValues, mode);
 
-        return {
+        chips.push({
           id: filterKey,
           label,
           value: displayValue,
           removable: true,
-        };
+        });
       });
+
+    return chips;
   };
 
   /**
@@ -222,11 +282,14 @@ export const createFiltersSummary = ({ container, sidebarContainer = null } = {}
     }
 
     const catalogState = event.detail?.state;
+    const draftFilters = event.detail?.draftFilters;
     if (!catalogState) {
       return;
     }
 
-    const filters = catalogState.filters || {};
+    const filters = draftFilters && Object.keys(draftFilters).length > 0
+      ? draftFilters
+      : (catalogState.filters || {});
     const mode = catalogState.mode || 'type';
     
     // Добавляем чип для поиска, если он активен
@@ -259,7 +322,9 @@ export const createFiltersSummary = ({ container, sidebarContainer = null } = {}
       return;
     }
     
-    const filters = currentState.filters || {};
+    const draftFilters = window.app?.catalogStore?.getDraftFilters?.();
+    const hasDraft = draftFilters && Object.keys(draftFilters).length > 0;
+    const filters = hasDraft ? draftFilters : (currentState.filters || {});
     const mode = currentState.mode || 'type';
     const chips = formatFiltersForChips(filters, mode);
     

@@ -166,8 +166,8 @@ render() {
 - [x] Рендеринг actions как `[data-form-actions]` в модальном режиме
 - [x] Автоматическое перемещение actions в footer модального окна
 - [x] Поиск кнопок в footer модального окна при привязке обработчиков
-- [x] Обновлены все модальные окна с формами (auth-modal, register-modal, password-reset-modal)
-- [x] Документация обновлена
+- [x] `ui-modal` генерирует событие `ui-modal:rendered` (можно дождаться готовности body, прежде чем вызывать `setBodyContent`)
+- [x] Примеры использования вынесены в `app/modal-manager.js` и `user-ui-service.js`
 
 ## Важные детали
 

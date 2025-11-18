@@ -20,11 +20,9 @@ components/
 ├── category-breadcrumbs/   # Хлебные крошки категорий (автономная)
 ├── category-catalog/       # Каталог с навигацией по категориям (автономная)
 └── user-profile/           # Профиль пользователя и авторизация
-    ├── modals/             # Модальные формы авторизации
-    │   ├── auth-modal/      # Авторизация
-    │   ├── register-modal/  # Регистрация
-    │   └── password-reset-modal/  # Восстановление пароля
-    └── profile-page/        # Страница профиля с вкладками
+    ├── modals/             # Стили блоков внутри auth-модалок
+    ├── profile-page/       # Страница профиля с вкладками
+    └── services/           # Сервисы API и UI (auth-service, user-service, user-ui-service)
 ```
 
 ## Типы компонентов

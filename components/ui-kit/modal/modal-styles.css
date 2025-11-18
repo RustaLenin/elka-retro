@@ -1,18 +1,11 @@
 .UIModalArea {
   position: fixed;
   inset: 0;
-  /* Убираем z-index - он не нужен, так как pointer-events: none */
-  pointer-events: none;
-}
-
-.UIModalOverlayArea {
-  position: relative;
-  z-index: var(--z-index-modal-toy-instance-overlay, 2000);
+  z-index: var(--z-index-modal-layer, 2000);
 }
 
 /* Глобальные базовые стили для всех модальных окон */
 /* Классы modal_overlay, modal_container и т.д. используются в любых компонентах, наследующихся от UIModal */
-.UIModalOverlayArea .modal_overlay,
 .modal_overlay {
   position: fixed;
   inset: 0;
@@ -20,12 +13,10 @@
   backdrop-filter: blur(4px);
   opacity: 0;
   transition: opacity 0.3s ease;
-  /* z-index будет переопределен в конкретных модальных окнах */
   z-index: var(--z-index-modal-toy-instance-overlay, 2000);
   pointer-events: none;
 }
 
-.UIModalOverlayArea .modal_container,
 .modal_container {
   position: fixed;
   top: 50%;
@@ -41,10 +32,9 @@
   flex-direction: column;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
-  /* z-index будет переопределен в конкретных модальных окнах */
   z-index: var(--z-index-modal-toy-instance-container, 2001);
-  pointer-events: none;
   overflow: hidden;
+  pointer-events: none;
   /* НЕ используем isolation: isolate, чтобы fullscreen overlay галереи мог выйти из stacking context */
 }
 
@@ -78,6 +68,15 @@
   min-height: 100px;
   z-index: 1;
 }
+.modal_body--default {
+  padding: 1.5rem;
+}
+.modal_body--none {
+  padding: 0;
+}
+.modal_body--compact {
+  padding: 1rem 1.5rem;
+}
 
 .modal_footer {
   display: flex;
@@ -94,31 +93,11 @@
 /* Стили для базового ui-modal компонента */
 ui-modal {
   display: none;
-  pointer-events: none; /* Не блокируем клики когда модалка скрыта */
   position: relative;
-  /* НЕ используем isolation: isolate, чтобы fullscreen overlay галереи мог выйти из stacking context */
 }
 
 ui-modal.modal--visible {
-  display: flex;
-  pointer-events: auto; /* Разрешаем клики только когда модалка видима */
-}
-
-/* Когда модалка скрыта, overlay и container не должны блокировать клики */
-ui-modal:not(.modal--visible) .modal_overlay,
-ui-modal:not(.modal--visible) .modal_container {
-  pointer-events: none;
-}
-
-ui-modal.modal--visible .modal_overlay {
-  opacity: 1;
-  pointer-events: auto; /* Overlay блокирует клики только когда видим */
-}
-
-ui-modal.modal--visible .modal_container {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-  pointer-events: auto; /* Container принимает клики только когда видим */
+  display: block;
 }
 
 /* Стили для заголовка, кнопки закрытия и других элементов модального окна */
@@ -152,17 +131,11 @@ ui-modal.modal--visible .modal_container {
 }
 
 .modal_body block-loader {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-}
-
-.modal_body:has(block-loader) {
-  pointer-events: none;
-}
-
-.modal_body:not(:has(block-loader)) {
-  animation: fadeIn 0.3s ease;
+  /* Ранее блокировали клики по modal_body при наличии block-loader.
+     Теперь управление блокировкой выполняет оверлей формы (ui-form-controller__overlay).
+     Сохраняем стандартное позиционирование лоадера. */
+  position: static;
+  z-index: auto;
 }
 
 @keyframes fadeIn {

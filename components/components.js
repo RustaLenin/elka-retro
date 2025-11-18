@@ -22,6 +22,7 @@ import "./ui-kit/form/selects/select-multi/select-multi.js";
 import "./ui-kit/form/checkbox/form-checkbox.js";
 import "./ui-kit/form/chips/filter-chip/filter-chip.js";
 import "./ui-kit/form/chips/filters-summary/filters-summary.js";
+import "./catalog/sidebar/category-tree-filter.js";
 
 // Registry for page-specific components (extend as components are added)
 const registry = {
@@ -53,9 +54,6 @@ const registry = {
   'category-catalog': () => import('./category-catalog/category-catalog.js'),
   
   // User Profile
-  'auth-modal': () => import('./user-profile/modals/auth-modal/auth-modal.js'),
-  'register-modal': () => import('./user-profile/modals/register-modal/register-modal.js'),
-  'password-reset-modal': () => import('./user-profile/modals/password-reset-modal/password-reset-modal.js'),
   'user-menu': () => import('./user-profile/user-menu/user-menu.js'),
   'profile-page': () => import('./user-profile/profile-page/profile-page.js'),
   'tab-navigation': () => import('./user-profile/profile-page/tab-navigation/tab-navigation.js'),

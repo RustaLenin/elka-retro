@@ -294,6 +294,9 @@ require_once( THEME_COR . 'publishing-script.php' );
 // Instances Counter (автоматический подсчет доступных экземпляров)
 require_once( THEME_COR . 'instances-counter.php' );
 
+// Category Counter (автоматический подсчет типов игрушек в категориях)
+require_once( THEME_COR . 'catalog/category-counter.php' );
+
 // Instances Duplicates Merger (объединение дублей экземпляров)
 require_once( THEME_COR . 'instances-duplicates-merger.php' );
 
@@ -347,12 +350,25 @@ if (!function_exists('elkaretro_get_taxonomy_terms_for_js')) {
             
             $terms_map[$taxonomy_slug] = array();
             foreach ($terms as $term) {
-                $terms_map[$taxonomy_slug][$term->term_id] = array(
+                $term_data = array(
                     'id' => $term->term_id,
                     'name' => $term->name,
                     'slug' => $term->slug,
                     'description' => $term->description,
                 );
+                
+                // Для иерархических таксономий добавляем поле parent
+                if (is_taxonomy_hierarchical($taxonomy_slug)) {
+                    $term_data['parent'] = (int) $term->parent;
+                }
+                
+                // Для категорий игрушек добавляем счетчик типов
+                if ($taxonomy_slug === 'category-of-toys') {
+                    $toy_types_count = get_term_meta($term->term_id, 'toy_types_count', true);
+                    $term_data['toy_types_count'] = (int) ($toy_types_count ?: 0);
+                }
+                
+                $terms_map[$taxonomy_slug][$term->term_id] = $term_data;
             }
         }
         
@@ -588,6 +604,36 @@ add_action('after_setup_theme', function() {
 
         if (!is_wp_error($cart_page_id)) {
             update_post_meta($cart_page_id, '_wp_page_template', 'page-cart.php');
+        }
+    }
+
+    // Проверяем, существует ли уже страница с slug 'profile'
+    if (!get_page_by_path('profile')) {
+        $profile_page = array(
+            'post_title'   => 'Профиль',
+            'post_name'    => 'profile',
+            'post_content' => '',
+            'post_status'  => 'publish',
+            'post_type'    => 'page',
+            'post_author'  => 1,
+            'meta_input'   => array(
+                '_wp_page_template' => 'page-profile.php',
+            ),
+        );
+
+        $profile_page_id = wp_insert_post($profile_page);
+
+        if (!is_wp_error($profile_page_id)) {
+            update_post_meta($profile_page_id, '_wp_page_template', 'page-profile.php');
+        }
+    } else {
+        // Если страница уже существует, убеждаемся, что шаблон привязан
+        $profile_page = get_page_by_path('profile');
+        if ($profile_page) {
+            $current_template = get_page_template_slug($profile_page->ID);
+            if ($current_template !== 'page-profile.php') {
+                update_post_meta($profile_page->ID, '_wp_page_template', 'page-profile.php');
+            }
         }
     }
 });

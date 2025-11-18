@@ -10,7 +10,7 @@ export const contactFormConfig = {
   fields: [
     {
       id: 'subject',
-      type: 'text',
+      type: 'textarea',
       label: 'Тема сообщения',
       placeholder: 'Введите тему сообщения',
       required: true,
@@ -18,11 +18,7 @@ export const contactFormConfig = {
       validation: {
         rules: ['required']
       },
-      icon: {
-        key: 'envelope',
-        icon_position: 'left',
-        color: '#888888'
-      }
+      rows: 3
     },
     {
       id: 'message',

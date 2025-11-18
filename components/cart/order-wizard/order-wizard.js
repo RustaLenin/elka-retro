@@ -218,6 +218,18 @@ export class OrderWizard extends BaseElement {
   }
 
   /**
+   * Открыть/вернуться к шагу авторизации (публичный API)
+   * @param {Object} [options]
+   * @param {boolean} [options.scrollIntoView=true] - прокрутить к мастеру
+   */
+  openAuthStep(options = {}) {
+    this.goToStep(1);
+    if (options.scrollIntoView !== false) {
+      this.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  /**
    * Валидация шага
    */
   async validateStep(step) {
@@ -310,4 +322,35 @@ export class OrderWizard extends BaseElement {
 }
 
 customElements.define('order-wizard', OrderWizard);
+
+let cartActionsRegistered = false;
+function registerCartEventActions() {
+  if (cartActionsRegistered) return;
+  if (!window.app?.events) {
+    window.addEventListener('app:events-ready', registerCartEventActions, { once: true });
+    return;
+  }
+
+  window.app.events.register('cart', {
+    openAuthStep: ({ payload } = {}) => {
+      const selector = payload?.wizardSelector;
+      let wizard = selector ? document.querySelector(selector) : null;
+      if (!wizard) {
+        wizard = document.querySelector('order-wizard');
+      }
+
+      if (wizard?.openAuthStep) {
+        wizard.openAuthStep(payload || {});
+        return true;
+      }
+
+      console.warn('[cart] order-wizard not found for cart.openAuthStep action');
+      return false;
+    },
+  });
+
+  cartActionsRegistered = true;
+}
+
+registerCartEventActions();
 

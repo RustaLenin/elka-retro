@@ -27,19 +27,8 @@
 components/user-profile/
 ├── README.md                          # Эта документация
 ├── BACKLOG.md                         # Список задач и планов развития
-├── modals/                            # Модальные формы
-│   ├── auth-modal/                    # Модальное окно авторизации
-│   │   ├── auth-modal.js
-│   │   ├── auth-modal-template.js
-│   │   └── auth-modal-styles.css
-│   ├── register-modal/                # Модальное окно регистрации
-│   │   ├── register-modal.js
-│   │   ├── register-modal-template.js
-│   │   └── register-modal-styles.css
-│   └── password-reset-modal/          # Модальное окно восстановления пароля
-│       ├── password-reset-modal.js
-│       ├── password-reset-modal-template.js
-│       └── password-reset-modal-styles.css
+├── modals/
+│   └── auth-modals-styles.css         # Общие стили блоков внутри auth-модалок
 ├── profile-page/                      # Страница профиля
 │   ├── profile-page.js                # Главный компонент страницы
 │   ├── profile-page-template.js
@@ -61,65 +50,46 @@ components/user-profile/
 │       ├── tab-navigation.js
 │       ├── tab-navigation-template.js
 │       └── tab-navigation-styles.css
-└── services/                          # Сервисы для работы с API
-    ├── auth-service.js                 # Сервис авторизации
-    ├── user-service.js                 # Сервис работы с пользователем
-    └── profile-api-adapter.js          # Адаптер для WordPress REST API
+└── services/                          # Сервисы для работы с API и UI
+    ├── auth-service.js                 # Сервис авторизации (REST)
+    ├── user-service.js                 # Сервис работы с пользователем (REST)
+    ├── profile-api-adapter.js          # Адаптер для WordPress REST API
+    └── user-ui-service.js              # Декларации модалок и действий UI
 ```
 
-## Компоненты
+## Компоненты и декларации
 
-### Модальные формы
+### Auth-модали
 
-Все модальные формы используют компонент `ui-modal` из UI-kit и `ui-form-controller` для управления формами.
+Модальные окна авторизации больше не реализованы отдельными web-компонентами.  
+Их декларации описаны в `services/user-ui-service.js` и работают через универсальный API `app.modal`.
 
-#### auth-modal
-Модальное окно авторизации пользователя.
+- Каждая схема содержит `id`, `title/size/closable`, функцию `body()` и обработчик `onBodyReady`.
+- `app.modal.open(schemaId)` создаёт `<ui-modal>` в `UIModalArea`, подставляет шаблон и показывает окно.
+- Формы внутри модалей остаются декларативными (`<ui-form-controller config-path="app.forms.signIn" mode="modal">`).
+- Стили для блоков (`.auth-modal__content`, `.register-modal__links`, `.password-reset-modal__success`) подключаются один раз из `modals/auth-modals-styles.css`.
 
-**Атрибуты:**
-- `visible` (boolean) - видимость модального окна
+Публичные методы UI-сервиса:
 
-**События:**
-- `auth-modal:success` - успешная авторизация
-- `auth-modal:error` - ошибка авторизации
-- `auth-modal:register-click` - клик на ссылку регистрации
-- `auth-modal:forgot-password-click` - клик на ссылку восстановления пароля
-
-**Использование:**
-```html
-<auth-modal visible="false"></auth-modal>
+```js
+app.services.userUi.showSignInModal();
+app.services.userUi.showRegisterModal();
+app.services.userUi.showPasswordResetModal();
 ```
 
-#### register-modal
-Модальное окно регистрации нового пользователя.
+Эти методы вызываются из `site-header`, `user-menu`, шага авторизации в checkout и других сценариев приложения, не дублируя код.
 
-**Атрибуты:**
-- `visible` (boolean) - видимость модального окна
+#### Декларативные действия (план внедрения)
 
-**События:**
-- `register-modal:success` - успешная регистрация
-- `register-modal:error` - ошибка регистрации
-- `register-modal:login-click` - клик на ссылку авторизации
+Чтобы упростить обслуживание UI и подготовиться к конфигурации действий из админки, auth-модалки переходят на событийную шину приложения:
 
-**Использование:**
-```html
-<register-modal visible="false"></register-modal>
-```
+- шаблоны содержат только `data-app-action="user.showRegisterModal"` / `user.showPasswordResetModal`;
+- глобальный делегат кликов срабатывает на `data-app-action` и отправляет событие в `app.events`;
+- `userUiService` регистрирует свои действия (`showSignInModal`, `showRegisterModal`, `showPasswordResetModal`) через `app.events.register('user', handlers)`.
 
-#### password-reset-modal
-Модальное окно восстановления пароля.
+Документация: [`app/events/README.md`](../../app/events/README.md).
 
-**Атрибуты:**
-- `visible` (boolean) - видимость модального окна
-
-**События:**
-- `password-reset-modal:success` - успешная отправка запроса
-- `password-reset-modal:error` - ошибка
-
-**Использование:**
-```html
-<password-reset-modal visible="false"></password-reset-modal>
-```
+План миграции описан в разделе **"Event Actions"** файла [`components/user-profile/BACKLOG.md`](./BACKLOG.md).
 
 ### Страница профиля
 

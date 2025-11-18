@@ -185,7 +185,10 @@ export class UISelectMulti extends BaseElement {
       this._optionsEl.addEventListener('click', this._onOptionClick);
       this._optionsEl.addEventListener('keydown', this._onKeyDown);
     }
-    this.addEventListener('click', this._onChipRemove);
+    const chips = this.querySelector('.ui-select-multi__chips');
+    if (chips) {
+      chips.addEventListener('click', this._onChipRemove);
+    }
     const toggleAll = this.querySelector('.ui-select-multi__select-all');
     if (toggleAll) toggleAll.addEventListener('click', this._onToggleAll);
     this.addEventListener('keydown', this._onKeyDown);
@@ -314,6 +317,7 @@ export class UISelectMulti extends BaseElement {
     // Получаем value из data-value или из label
     const value = chip?.dataset.value;
     if (value) {
+      console.debug('[ui-select-multi] chip remove click', { value, values: this.state.values });
       this._toggleValue(value, true);
       return;
     }
@@ -424,6 +428,7 @@ export class UISelectMulti extends BaseElement {
   }
 
   _commitValues(nextValues, meta = {}) {
+    console.debug('[ui-select-multi] commit values', { nextValues, meta });
     // Обновляем массив напрямую (так как это ссылка на field.state.value)
     if (this.state._valuesDescriptor && Array.isArray(this.state.values)) {
       // Очищаем массив и добавляем новые значения
@@ -442,6 +447,7 @@ export class UISelectMulti extends BaseElement {
     this.render();
     
     this._emit(EVENT_PREFIX + ':change', { values: nextValues, ...meta });
+    this._notifyFormChange();
   }
 
   _addDocumentListener() {
@@ -466,6 +472,18 @@ export class UISelectMulti extends BaseElement {
         values: Array.isArray(this.state.values) ? [...this.state.values] : [],
         ...detail
       }
+    }));
+  }
+
+  _notifyFormChange() {
+    const values = Array.isArray(this.state.values) ? [...this.state.values] : [];
+    console.debug('[ui-select-multi] dispatch ui-form:change', { values });
+    this.dispatchEvent(new CustomEvent('ui-form:change', {
+      bubbles: true,
+      composed: true,
+      detail: {
+        values,
+      },
     }));
   }
 

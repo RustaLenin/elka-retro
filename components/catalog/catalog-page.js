@@ -221,12 +221,24 @@ export default class CatalogPage {
 
     Object.keys(catalogState.filters || {}).forEach((key) => {
       const values = catalogState.filters[key];
-      if (!Array.isArray(values)) {
+      if (!Array.isArray(values) || !values.length) {
         return;
       }
-      values.forEach((value) => {
-        params.append(`filters[${key}][]`, value);
-      });
+      const normalized = Array.from(
+        new Set(
+          values
+            .map((value) => {
+              if (value === null || value === undefined) {
+                return '';
+              }
+              return String(value).trim();
+            })
+        )
+      ).filter((value) => value !== '');
+      if (!normalized.length) {
+        return;
+      }
+      params.set(key, normalized.join(','));
     });
 
     const url = `${endpointBase}/${modePath}?${params.toString()}`;

@@ -18,6 +18,8 @@ import { createModeToggle } from './mode-toggle.js';
 import { renderSidebarShell, renderActionButtons } from './sidebar-template.js';
 import { getFilterKey, getFiltersForMode } from './filter-registry.js';
 import { createCatalogFiltersFormConfig, CATALOG_FILTERS_FORM_KEY } from '../../../app/forms/catalog-filters-factory.js';
+import { notify } from '../../ui-kit/notification/notification.js';
+import { initSharedCategoryFilter } from './shared-category-filter.js';
 
 // Загружаем стили сразу при импорте модуля
 if (window.app?.toolkit?.loadCSSOnce) {
@@ -37,13 +39,16 @@ export default class CatalogSidebar {
     
     // Ссылки на компоненты
     this.modeToggle = null;
+    this.categoryFilter = null;
     this.formController = null;
     this.unsubscribeStore = null;
     
     // Ссылки на DOM элементы
     this.modeToggleContainer = null;
+    this.categoryContainer = null;
     this.filtersContainer = null;
     this.resetButtonContainer = null;
+    this._formFieldsConfig = [];
     
     // Состояние для debounce кнопки применения фильтров
     this.debounceTimer = null;
@@ -73,6 +78,7 @@ export default class CatalogSidebar {
 
     // Находим контейнеры для компонентов
     this.modeToggleContainer = this.container.querySelector('[data-sidebar-mode-toggle]');
+    this.categoryContainer = this.container.querySelector('[data-sidebar-category]');
     this.filtersContainer = this.container.querySelector('[data-sidebar-filters]');
     this.resetButtonContainer = this.container.querySelector('[data-sidebar-actions]');
 
@@ -90,6 +96,18 @@ export default class CatalogSidebar {
       },
     });
     this.modeToggle.render();
+
+    // Инициализируем фильтр категорий
+    if (this.categoryContainer) {
+      this.categoryFilter = initSharedCategoryFilter(this.categoryContainer);
+      
+      // Обрабатываем событие разворота фильтра категорий
+      if (this.categoryFilter && this.categoryFilter.getElement()) {
+        this.categoryFilter.getElement().addEventListener('category-filter:expanded', (event) => {
+          this._handleCategoryFilterExpanded(event.detail.isExpanded);
+        });
+      }
+    }
 
     // Подписываемся на события каталога для реактивного обновления UI
     window.addEventListener('elkaretro:catalog:updated', this._handleCatalogUpdate);
@@ -155,6 +173,7 @@ export default class CatalogSidebar {
 
     // Генерируем конфигурацию формы через фабрику
     const formConfig = await createCatalogFiltersFormConfig(mode, currentFilters);
+    this._formFieldsConfig = Array.isArray(formConfig.fields) ? formConfig.fields : [];
 
     // Проверяем, что у нас есть поля для отображения
     if (!formConfig.fields || formConfig.fields.length === 0) {
@@ -233,6 +252,7 @@ export default class CatalogSidebar {
 
     // Настраиваем обработчики после того, как элемент подключён к DOM
     this.setupFormHandlers();
+    this._captureDraftFilters();
   }
 
 
@@ -408,6 +428,8 @@ export default class CatalogSidebar {
         this.debounceTimer = null;
       }
       this._stopCountdown();
+      this._clearDraftFilters();
+      notify('success', 'Фильтры обновлены');
     });
 
     this.formController.addEventListener('ui-form:invalid', (event) => {
@@ -422,6 +444,7 @@ export default class CatalogSidebar {
         clearTimeout(this.debounceTimer);
       }
       this._startCountdown();
+      this._captureDraftFilters();
       
       // Устанавливаем таймер для автоматической отправки
       this.debounceTimer = setTimeout(() => {
@@ -518,6 +541,8 @@ export default class CatalogSidebar {
     if (this.formController && typeof this.formController.clear === 'function') {
       this.formController.clear();
     }
+
+    this._clearDraftFilters();
   }
 
   /**
@@ -553,6 +578,15 @@ export default class CatalogSidebar {
       this.formController = null;
     }
 
+    if (this.categoryFilter) {
+      if (typeof this.categoryFilter.destroy === 'function') {
+        this.categoryFilter.destroy();
+      }
+      this.categoryFilter = null;
+    }
+
+    this._clearDraftFilters();
+
     if (typeof this.unsubscribeStore === 'function') {
       this.unsubscribeStore();
       this.unsubscribeStore = null;
@@ -567,6 +601,99 @@ export default class CatalogSidebar {
     this.resetButtonContainer = null;
     this.applyButton = null;
     this.container = null;
+    this._formFieldsConfig = [];
+  }
+
+  _captureDraftFilters() {
+    if (!this.formController || typeof this.formController.getValues !== 'function') {
+      return;
+    }
+
+    const formValues = this.formController.getValues() || {};
+    const filters = {};
+
+    (this._formFieldsConfig || []).forEach((fieldConfig) => {
+      if (!fieldConfig || !fieldConfig.id) {
+        return;
+      }
+      const filterKey = getFilterKey(fieldConfig.id);
+      const normalizedValue = this._normalizeValueForFilters(formValues[fieldConfig.id], fieldConfig.type);
+      if (normalizedValue) {
+        filters[filterKey] = normalizedValue;
+      }
+    });
+
+    if (window.app?.catalogStore?.setDraftFilters) {
+      window.app.catalogStore.setDraftFilters(filters);
+    }
+  }
+
+  _normalizeValueForFilters(value, fieldType) {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    if (Array.isArray(value)) {
+      const normalized = value
+        .map((item) => (item === null || item === undefined ? '' : String(item).trim()))
+        .filter((item) => item !== '');
+      return normalized.length ? normalized : null;
+    }
+
+    if (typeof value === 'number' && !Number.isNaN(value)) {
+      return [String(value)];
+    }
+
+    const stringValue = String(value).trim();
+    if (!stringValue) {
+      return null;
+    }
+
+    return [stringValue];
+  }
+
+  _clearDraftFilters() {
+    if (window.app?.catalogStore?.setDraftFilters) {
+      window.app.catalogStore.setDraftFilters(null);
+    }
+  }
+
+  /**
+   * Обработчик разворота фильтра категорий
+   * @param {boolean} isExpanded - Развёрнут ли фильтр
+   * @private
+   */
+  _handleCategoryFilterExpanded(isExpanded) {
+    // Добавляем/убираем класс для скрытия других фильтров
+    if (this.filtersContainer) {
+      if (isExpanded) {
+        this.filtersContainer.style.display = 'none';
+      } else {
+        this.filtersContainer.style.display = '';
+      }
+    }
+    
+    // Добавляем/убираем класс для увеличения ширины сайдбара
+    if (this.container) {
+      const sidebarElement = this.container.closest('.catalog-sidebar');
+      if (sidebarElement) {
+        if (isExpanded) {
+          sidebarElement.classList.add('catalog-sidebar--expanded');
+        } else {
+          sidebarElement.classList.remove('catalog-sidebar--expanded');
+        }
+      }
+      
+      // Добавляем класс на .catalog-page__sidebar для изменения ширины
+      const pageSidebar = this.container.closest('.catalog-page__sidebar');
+      if (pageSidebar) {
+        if (isExpanded) {
+          pageSidebar.classList.add('expanded');
+        } else {
+          pageSidebar.classList.remove('expanded');
+        }
+      }
+    }
   }
 }
 

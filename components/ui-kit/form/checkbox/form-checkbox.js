@@ -108,6 +108,17 @@ export class UIFormCheckbox extends BaseElement {
       }
     }
     
+    if (key === 'status') {
+      // Применяем статус напрямую к веб-компоненту
+      const status = this.state.status || 'default';
+      this.setAttribute('data-status', status);
+      // Удаляем старые классы статуса
+      this.classList.remove('ui-form-checkbox--error', 'ui-form-checkbox--success', 'ui-form-checkbox--default');
+      if (status !== 'default') {
+        this.classList.add(`ui-form-checkbox--${status}`);
+      }
+    }
+    
     if (['indeterminate', 'disabled', 'required', 'value'].includes(key)) {
       this._syncControl();
     }
@@ -117,6 +128,12 @@ export class UIFormCheckbox extends BaseElement {
     this._detachEvents();
     this.innerHTML = renderFormCheckboxTemplate(this.state);
     this._inputEl = this.querySelector('.ui-form-checkbox__control');
+    // Применяем статус к веб-компоненту
+    const status = this.state.status || 'default';
+    this.setAttribute('data-status', status);
+    if (status !== 'default') {
+      this.classList.add(`ui-form-checkbox--${status}`);
+    }
     this._attachEvents();
     this._syncControl();
   }

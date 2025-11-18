@@ -140,6 +140,13 @@ export class CartItem extends BaseElement {
   removeFromCart() {
     const { id, type } = this.state;
     if (id && type && window.app && window.app.cart) {
+      this.dispatchEvent(
+        new CustomEvent('cart-item:removal-start', {
+          bubbles: true,
+          composed: true,
+          detail: { id, type },
+        })
+      );
       window.app.cart.remove(id, type);
     }
   }

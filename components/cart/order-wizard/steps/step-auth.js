@@ -61,22 +61,20 @@ export class StepAuth extends BaseElement {
   async handleLogin() {
     this.setState({ choice: 'login' });
 
-    // Открываем модальное окно авторизации
     try {
-      // Загружаем auth-modal-manager если еще не загружен
-      if (!window.app?.authModalManager) {
-        const { default: AuthModalManager } = await import('../../../user-profile/auth-modal-manager.js');
-        window.app.authModalManager = new AuthModalManager();
-        await window.app.authModalManager.init();
+      if (!window.app?.services?.userUi) {
+        await import('../../../user-profile/services/user-ui-service.js');
       }
 
-      // Показываем модальное окно авторизации
-      window.app.authModalManager.showAuth();
+      if (window.app?.events) {
+        window.app.events.emit('user.showSignInModal', { source: 'step-auth' });
+      } else {
+        window.app?.services?.userUi?.showSignInModal();
+      }
 
-      // Слушаем событие успешной авторизации
       const handleAuthSuccess = () => {
         window.removeEventListener('elkaretro:auth:login', handleAuthSuccess);
-        this.checkAuth(); // Проверяем авторизацию снова
+        this.checkAuth();
       };
 
       window.addEventListener('elkaretro:auth:login', handleAuthSuccess);

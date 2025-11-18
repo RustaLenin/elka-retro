@@ -316,6 +316,10 @@ class ELKARETRO_INSTANCES_COUNTER {
         if ($result) {
             // Очищаем кеш поста для WordPress
             clean_post_cache($toy_type_id);
+            
+            // Уведомляем другие компоненты об изменении счетчика экземпляров
+            // Это нужно для обновления счетчиков категорий
+            do_action('elkaretro_instances_count_updated', $toy_type_id, $count);
         }
         
         return $result !== false;

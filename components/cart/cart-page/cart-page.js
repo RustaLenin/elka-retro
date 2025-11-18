@@ -19,6 +19,8 @@ export class CartPage extends BaseElement {
     items: { type: 'json', default: [], attribute: null, internal: true },
     isLoading: { type: 'boolean', default: false, attribute: null, internal: true },
     isEmpty: { type: 'boolean', default: true, attribute: null, internal: true },
+    showBlockingOverlay: { type: 'boolean', default: false, attribute: null, internal: true },
+    blockingMessage: { type: 'string', default: '', attribute: null, internal: true },
   };
 
   constructor() {
@@ -26,6 +28,7 @@ export class CartPage extends BaseElement {
     this._unsubscribe = null;
     this._isInitializing = true;
     this._isUpdating = false; // Флаг для предотвращения параллельных обновлений
+    this._pendingRemoval = null;
     this._handleCartUpdate = (e) => {
       // Слушаем глобальное событие обновления корзины
       // Не обновляем при инициализации, т.к. updateItems уже вызывается
@@ -35,6 +38,18 @@ export class CartPage extends BaseElement {
     };
     this._handleCheckoutClick = () => {
       this.startCheckout();
+    };
+    this._handleItemRemovalStart = (event) => {
+      const { id, type } = event.detail || {};
+      if (this._pendingRemoval) {
+        return;
+      }
+      this._pendingRemoval = { id, type };
+      this.setState({
+        showBlockingOverlay: true,
+        blockingMessage: 'Удаляем товар...',
+      });
+      this.render();
     };
   }
 
@@ -105,17 +120,37 @@ export class CartPage extends BaseElement {
       // Для каждого товара нужно получить дополнительные данные (название, фото)
       const enrichedItems = await this.enrichItems(items);
 
-      this.setState({
+      const nextState = {
         items: enrichedItems,
         isEmpty,
         isLoading: false,
-      });
+      };
+
+      if (this._pendingRemoval) {
+        nextState.showBlockingOverlay = false;
+        nextState.blockingMessage = '';
+      }
+
+      this.setState(nextState);
       // Рендерим результат один раз после всех обновлений состояния
       this.render();
+      if (this._pendingRemoval) {
+        this._pendingRemoval = null;
+        this.showNotification('Товар удалён из корзины', 'success');
+      }
     } catch (error) {
       console.error('[cart-page] Update items error:', error);
-      this.setState({ isLoading: false });
+      const nextState = { isLoading: false };
+      if (this._pendingRemoval) {
+        nextState.showBlockingOverlay = false;
+        nextState.blockingMessage = '';
+      }
+      this.setState(nextState);
       this.render();
+      if (this._pendingRemoval) {
+        this.showNotification('Не удалось обновить корзину', 'error');
+        this._pendingRemoval = null;
+      }
     } finally {
       this._isUpdating = false;
     }
@@ -210,6 +245,8 @@ export class CartPage extends BaseElement {
     // Обработка клика по кнопке оформления заказа через кастомное событие от ui-button
     this.removeEventListener('cart-page:checkout-click', this._handleCheckoutClick);
     this.addEventListener('cart-page:checkout-click', this._handleCheckoutClick);
+    this.removeEventListener('cart-item:removal-start', this._handleItemRemovalStart);
+    this.addEventListener('cart-item:removal-start', this._handleItemRemovalStart);
   }
 
   /**
@@ -258,12 +295,14 @@ export class CartPage extends BaseElement {
   }
 
   render() {
-    const { items, isLoading, isEmpty } = this.state;
+    const { items, isLoading, isEmpty, showBlockingOverlay, blockingMessage } = this.state;
 
     this.innerHTML = cart_page_template({
       items,
       isLoading,
       isEmpty,
+      showBlockingOverlay,
+      blockingMessage,
     });
 
     // После рендера нужно снова прикрепить обработчики

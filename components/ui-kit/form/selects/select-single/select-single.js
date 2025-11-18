@@ -312,6 +312,7 @@ export class UISelectSingle extends BaseElement {
     const option = (this.state.options || []).find(opt => opt.value === value) || null;
     this._emit(EVENT_PREFIX + ':select', { value, option });
     this._emit(EVENT_PREFIX + ':change', { value, option });
+    this._notifyFormChange();
   }
 
   _addDocumentListener() {
@@ -337,6 +338,16 @@ export class UISelectSingle extends BaseElement {
         values: this.state.value ? [this.state.value] : [],
         ...detail
       }
+    }));
+  }
+
+  _notifyFormChange() {
+    this.dispatchEvent(new CustomEvent('ui-form:change', {
+      bubbles: true,
+      composed: true,
+      detail: {
+        value: this.state.value || null,
+      },
     }));
   }
 

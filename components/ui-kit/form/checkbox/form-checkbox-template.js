@@ -17,7 +17,7 @@ export function renderFormCheckboxTemplate(state) {
   const required = state?.required ? '<span class="ui-form-checkbox__required">*</span>' : '';
 
   return `
-    <label class="ui-form-checkbox ui-form-checkbox--${escapeHTML(status)}"${disabled}>
+    <label class="ui-form-checkbox__label-wrapper" data-status="${escapeHTML(status)}"${disabled}>
       <input
         class="ui-form-checkbox__control"
         type="checkbox"

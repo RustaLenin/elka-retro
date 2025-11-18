@@ -42,6 +42,7 @@
 
 const STORAGE_KEY = 'elkaretro_cart';
 const SYNC_ENDPOINT = '/wp-json/elkaretro/v1/cart/sync';
+const UPDATE_ENDPOINT = '/wp-json/elkaretro/v1/cart';
 
 class CartStore {
   constructor() {
@@ -99,7 +100,9 @@ class CartStore {
   }
 
   /**
-   * Синхронизация корзины с сервером (для авторизованных)
+   * Фоновая синхронизация корзины с сервером (для авторизованных).
+   * Используется только системой при загрузке, чтобы привести LocalStorage
+   * в соответствие с User Meta (не перезаписывает серверные данные).
    * @private
    */
   async _syncWithServer() {
@@ -161,7 +164,7 @@ class CartStore {
   }
 
   /**
-   * Сохранение корзины на сервер (для авторизованных)
+   * Сохранение корзины на сервер (для авторизованных) по действию пользователя
    * @private
    */
   async _saveToServer() {
@@ -170,7 +173,7 @@ class CartStore {
     }
 
     try {
-      await fetch(SYNC_ENDPOINT, {
+      await fetch(UPDATE_ENDPOINT, {
         method: 'PUT',
         credentials: 'same-origin',
         headers: {
