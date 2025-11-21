@@ -40,11 +40,13 @@ export class UITextInput extends BaseElement {
     this._onBlur = this._onBlur.bind(this);
     this._onClear = this._onClear.bind(this);
     this._onTogglePassword = this._onTogglePassword.bind(this);
+    this._onKeyDown = this._onKeyDown.bind(this);
     this._inputEl = null;
     this._clearBtn = null;
     this._toggleBtn = null;
     this._passwordVisible = false;
     this._suspendDispatch = false;
+    this._previousPhoneValue = ''; // Сохраняем предыдущее значение для расчёта позиции курсора
   }
 
   connectedCallback() {
@@ -200,6 +202,10 @@ export class UITextInput extends BaseElement {
     this._inputEl.addEventListener('change', this._onChange);
     this._inputEl.addEventListener('focus', this._onFocus);
     this._inputEl.addEventListener('blur', this._onBlur);
+    // Добавляем обработчик keydown для правильной обработки backspace
+    if (this.state.mask === 'phone') {
+      this._inputEl.addEventListener('keydown', this._onKeyDown);
+    }
     if (this._clearBtn) {
       this._clearBtn.addEventListener('click', this._onClear);
     }
@@ -214,6 +220,7 @@ export class UITextInput extends BaseElement {
       this._inputEl.removeEventListener('change', this._onChange);
       this._inputEl.removeEventListener('focus', this._onFocus);
       this._inputEl.removeEventListener('blur', this._onBlur);
+      this._inputEl.removeEventListener('keydown', this._onKeyDown);
     }
     if (this._clearBtn) {
       this._clearBtn.removeEventListener('click', this._onClear);
@@ -257,12 +264,25 @@ export class UITextInput extends BaseElement {
   _onInput(event) {
     let nextValue = event.target.value ?? '';
     if (this.state.mask === 'phone') {
-      const caret = this._inputEl ? this._inputEl.selectionStart : nextValue.length;
+      // Используем сохранённое предыдущее значение или текущее значение из DOM
+      const oldValue = this._previousPhoneValue || (this._inputEl ? this._inputEl.value : '');
+      const oldCaret = this._inputEl ? this._inputEl.selectionStart : nextValue.length;
+      
+      // Извлекаем цифры из нового значения (убираем все нецифровые символы и ведущие "7")
       const digits = this._sanitizePhoneDigits(nextValue);
+      
+      // Форматируем
       nextValue = this._formatPhoneValue(digits);
+      
       if (this._inputEl) {
+        // Вычисляем новую позицию курсора с учётом форматирования
+        const newCaret = this._calculatePhoneCaretPosition(oldCaret, oldValue, nextValue, digits);
+        
         this._inputEl.value = nextValue;
-        this._inputEl.setSelectionRange(caret, caret);
+        this._inputEl.setSelectionRange(newCaret, newCaret);
+        
+        // Сохраняем новое значение как предыдущее для следующего ввода
+        this._previousPhoneValue = nextValue;
       }
     } else {
       const allowed = this.state.allowedPattern;
@@ -329,6 +349,56 @@ export class UITextInput extends BaseElement {
     this._emitEvent('ui-input-text:blur', { value: this.state.value, originalEvent: event });
   }
 
+  _onKeyDown(event) {
+    // Обрабатываем backspace и delete для правильного удаления символов в маске телефона
+    if (this.state.mask === 'phone' && (event.key === 'Backspace' || event.key === 'Delete')) {
+      const input = event.target;
+      const selectionStart = input.selectionStart;
+      const selectionEnd = input.selectionEnd;
+      
+      // Если выделен текст, позволяем удалить его (событие input обработает форматирование)
+      if (selectionStart !== selectionEnd) {
+        return;
+      }
+      
+      // Если курсор находится на разделителе (скобка, дефис, пробел), перемещаем его на предыдущую цифру
+      const value = input.value;
+      const cursorPos = selectionStart;
+      
+      if (event.key === 'Backspace' && cursorPos > 0) {
+        const charBefore = value[cursorPos - 1];
+        // Если перед курсором не цифра, пропускаем этот символ и удаляем предыдущую цифру
+        if (!/\d/.test(charBefore) && charBefore !== '+') {
+          event.preventDefault();
+          // Ищем предыдущую цифру
+          let prevDigitPos = cursorPos - 1;
+          while (prevDigitPos > 0 && !/\d/.test(value[prevDigitPos - 1])) {
+            prevDigitPos--;
+          }
+          if (prevDigitPos > 0 && value[prevDigitPos - 1] !== '+') {
+            // Удаляем цифру перед разделителем
+            const before = value.slice(0, prevDigitPos - 1);
+            const after = value.slice(cursorPos);
+            const tempValue = before + after;
+            const digits = this._sanitizePhoneDigits(tempValue);
+            const formatted = this._formatPhoneValue(digits);
+            
+            // Сохраняем предыдущее значение для правильного расчёта позиции курсора
+            this._previousPhoneValue = value;
+            
+            input.value = formatted;
+            const digitsBefore = (before.match(/\d/g) || []).length;
+            const newCaret = this._getCaretPositionAfterDigit(formatted, digitsBefore);
+            input.setSelectionRange(newCaret, newCaret);
+            
+            // Триггерим событие input для обновления состояния
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+      }
+    }
+  }
+
   _onClear() {
     // Обновляем через setter
     if (this.state.mask === 'phone') {
@@ -336,6 +406,7 @@ export class UITextInput extends BaseElement {
       if (this._inputEl) {
         this._inputEl.value = '';
       }
+      this._previousPhoneValue = '';
     } else {
       this.state.value = '';
     }
@@ -373,40 +444,96 @@ export class UITextInput extends BaseElement {
     if (!digits.length) {
       return '';
     }
+    // Убираем 8 в начале (российский формат начинается с 7, не с 8)
     if (digits[0] === '8') {
       digits = digits.slice(1);
     }
-    if (digits[0] === '7' && digits.length > 10) {
+    // Убираем ВСЕ ведущие "7" (код страны)
+    // Код страны "+7" мы всегда добавляем сами при форматировании
+    // Поэтому все "7" в начале - это код страны, который нужно убрать
+    while (digits.length > 0 && digits[0] === '7') {
       digits = digits.slice(1);
+      // Останавливаемся, если осталась только одна "7" и больше нет цифр
+      // (это может быть начальный ввод, не трогаем)
+      if (digits.length === 0) break;
     }
+    // Ограничиваем 10 цифрами (российский номер без кода страны)
     return digits.slice(0, 10);
   }
 
   _formatPhoneValue(digits) {
-    if (!digits) {
+    if (!digits || digits.length === 0) {
       return '';
     }
+    // Всегда начинаем с +7 для российских номеров
     const parts = ['+7'];
     const block1 = digits.slice(0, 3);
-    if (block1) {
+    if (block1.length > 0) {
       parts.push(` (${block1}`);
       if (block1.length === 3) {
         parts[parts.length - 1] += ')';
       }
     }
     const block2 = digits.slice(3, 6);
-    if (block2) {
+    if (block2.length > 0) {
       parts.push(` ${block2}`);
     }
     const block3 = digits.slice(6, 8);
-    if (block3) {
+    if (block3.length > 0) {
       parts.push(`-${block3}`);
     }
     const block4 = digits.slice(8, 10);
-    if (block4) {
+    if (block4.length > 0) {
       parts.push(`-${block4}`);
     }
     return parts.join('');
+  }
+
+  /**
+   * Вычисляет позицию курсора после форматирования телефона
+   * @param {number} oldPos - позиция курсора до форматирования
+   * @param {string} oldValue - значение до форматирования
+   * @param {string} newValue - значение после форматирования
+   * @param {string} digits - извлечённые цифры
+   * @returns {number} - новая позиция курсора
+   */
+  _calculatePhoneCaretPosition(oldPos, oldValue, newValue, digits) {
+    // Считаем количество цифр до старой позиции курсора
+    const digitsBeforeOldPos = (oldValue.slice(0, oldPos).match(/\d/g) || []).length;
+    
+    // Если мы удаляем (старая позиция больше текущей длины или значение уменьшилось)
+    const isDeleting = oldPos < oldValue.length || digitsBeforeOldPos > digits.length;
+    
+    if (isDeleting && digitsBeforeOldPos > digits.length) {
+      // При удалении: позиционируем курсор после последней цифры, которая осталась
+      const targetDigitIndex = Math.max(0, digitsBeforeOldPos - 1);
+      return this._getCaretPositionAfterDigit(newValue, targetDigitIndex);
+    } else {
+      // При добавлении: позиционируем курсор после следующей цифры после введённой
+      const targetDigitIndex = Math.min(digitsBeforeOldPos, digits.length);
+      return this._getCaretPositionAfterDigit(newValue, targetDigitIndex);
+    }
+  }
+
+  /**
+   * Находит позицию курсора после указанной цифры в отформатированном номере
+   * @param {string} formatted - отформатированный номер телефона
+   * @param {number} digitIndex - индекс цифры (0-based)
+   * @returns {number} - позиция курсора
+   */
+  _getCaretPositionAfterDigit(formatted, digitIndex) {
+    let digitCount = 0;
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) {
+        if (digitCount === digitIndex) {
+          // Возвращаем позицию после этой цифры
+          return i + 1;
+        }
+        digitCount++;
+      }
+    }
+    // Если все цифры пройдены, возвращаем конец строки
+    return formatted.length;
   }
 
   _emitValidation() {
@@ -494,6 +621,9 @@ export class UITextInput extends BaseElement {
     this.setValue('');
     this.setState({ dirty: false, touched: false });
     this._updateStatus();
+    if (this.state.mask === 'phone') {
+      this._previousPhoneValue = '';
+    }
     return this;
   }
 

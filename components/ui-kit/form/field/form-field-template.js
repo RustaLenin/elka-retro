@@ -130,8 +130,9 @@ function loadOptionsFromDataSource(dataSource) {
       const terms = window.taxonomy_terms[taxonomySlug];
       
       // Преобразуем структуру { term_id: { id, name, slug, description } } в опции
+      // ВАЖНО: Используем ID как value, а не slug (для совместимости с бэкендом)
       const options = Object.values(terms).map(term => ({
-        value: term.slug || String(term.id),
+        value: String(term.id), // Всегда используем ID, не slug
         label: term.name || String(term.id),
         ...(term.description && { description: term.description }),
       }));

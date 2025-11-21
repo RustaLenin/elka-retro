@@ -1,0 +1,96 @@
+/**
+ * UI Tabs Styles
+ * 
+ * Универсальные стили для компонента табов
+ * 
+ * @package ElkaRetro
+ */
+
+ui-tabs {
+  display: block;
+}
+
+.ui-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border-accent);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ui-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Стили для ui-button в виде табов */
+.ui-tabs__button {
+  border: 1px solid var(--color-border-accent);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* Перекрываем нижнюю границу навигации */
+  background: transparent !important;
+  border-radius: 0 !important;
+  white-space: nowrap;
+  position: relative;
+  color: var(--color-muted-foreground);
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+/* Убираем border-left у всех табов кроме первого */
+.ui-tabs__button:not(:first-child) {
+  border-left: none;
+}
+
+/* Размеры табов */
+.ui-tabs__button--small {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+.ui-tabs__button--medium {
+  padding: 1rem 1.5rem;
+  font-size: 0.95rem;
+}
+
+.ui-tabs__button--large {
+  padding: 1.25rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.ui-tabs__button:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--color-foreground) !important;
+}
+
+.ui-tabs__button--active {
+  border: none !important; /* Убираем border у активного таба */
+  border-bottom: 2px solid var(--color-card) !important; /* Только нижний border, сливается с карточкой */
+  background-color: var(--color-primary) !important; /* Акцентный фон */
+  color: var(--color-foreground) !important; /* Цвет текста */
+  margin-bottom: -2px; /* Перекрываем границу карточки */
+}
+
+/* Адаптивные стили для разных размеров */
+@media (max-width: 768px) {
+  .ui-tabs {
+    gap: 0;
+  }
+
+  .ui-tabs__button--small {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+
+  .ui-tabs__button--medium {
+    padding: 0.875rem 1rem;
+    font-size: 0.9375rem;
+  }
+
+  .ui-tabs__button--large {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+

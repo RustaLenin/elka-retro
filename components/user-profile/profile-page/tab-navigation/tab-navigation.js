@@ -18,9 +18,14 @@ export class TabNavigation extends BaseElement {
     super();
   }
 
-  connectedCallback() {
+  async connectedCallback() {
     super.connectedCallback();
-    this.render();
+    // Ждём, пока tab-nav-item будет определён как custom element
+    await customElements.whenDefined('tab-nav-item');
+    // Используем requestAnimationFrame, чтобы дать время tab-nav-item инициализироваться
+    requestAnimationFrame(() => {
+      this.render();
+    });
   }
 
   onStateChanged(key) {

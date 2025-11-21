@@ -44,7 +44,7 @@ function ensureImageGalleryOverlayArea() {
  */
 export class ImageGallery extends HTMLElement {
   static get observedAttributes() {
-    return ['state-path', 'images', 'image-ids'];
+    return ['state-path', 'images', 'image-ids', 'fullscreen-hint'];
   }
 
   constructor() {
@@ -57,7 +57,8 @@ export class ImageGallery extends HTMLElement {
       imageIds: [],
       currentIndex: 0,
       loading: false,
-      fullscreen: false
+      fullscreen: false,
+      fullscreenHint: false
     };
     
     // Флаг для предотвращения конфликтов при переключении изображений
@@ -209,6 +210,13 @@ export class ImageGallery extends HTMLElement {
         this._data.imageIds = Array.isArray(ids) ? ids : [];
         if (this.isConnected && this._data.imageIds.length > 0 && this._data.images.length === 0) {
           this._loadImagesByIds(this._data.imageIds);
+        }
+        break;
+      case 'fullscreen-hint':
+        // Атрибут может быть пустым (boolean атрибут) или содержать "true"/"false"
+        this._data.fullscreenHint = newValue !== null && newValue !== 'false';
+        if (this.isConnected) {
+          this._render();
         }
         break;
     }
@@ -682,6 +690,13 @@ export class ImageGallery extends HTMLElement {
       mainImage.removeEventListener('click', this._handleMainImageClick);
       mainImage.style.cursor = 'pointer';
       mainImage.addEventListener('click', this._handleMainImageClick);
+    }
+    
+    // Кнопка подсказки fullscreen (иконка лупы)
+    const fullscreenHintBtn = this.querySelector('.image-gallery_fullscreen-hint');
+    if (fullscreenHintBtn) {
+      fullscreenHintBtn.removeEventListener('click', this._handleMainImageClick);
+      fullscreenHintBtn.addEventListener('click', this._handleMainImageClick);
     }
     
     // Клики по миниатюрам

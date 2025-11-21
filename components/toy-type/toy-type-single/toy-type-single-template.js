@@ -3,6 +3,9 @@
  * Шаблон для отображения страницы типа игрушки
  */
 
+// Импортируем утилиту для формирования ссылок каталога
+import { getCatalogTaxonomyUrl } from '../../catalog/catalog-link-utils.js';
+
 // Экранируем HTML для безопасности (для текста)
 function escapeHtml(text) {
   if (!text) return '';
@@ -12,15 +15,32 @@ function escapeHtml(text) {
 }
 
 // Получить URL таксономии для кликабельности
-// Все ссылки ведут на страницу поиска с фильтром по таксономии
+// Все ссылки ведут в каталог с фильтром по таксономии
 function getTaxonomyUrl(taxonomySlug, termSlug, termId = null) {
-  // Формируем URL страницы поиска с параметрами фильтра
-  if (taxonomySlug && termSlug) {
-    // Используем ID термина, если доступен, иначе slug
-    const filterValue = termId || termSlug;
-    return `/?search=1&${taxonomySlug}=${encodeURIComponent(filterValue)}`;
+  if (!taxonomySlug) {
+    return '/catalog/';
   }
-  return '/?search=1';
+  
+  // Используем ID термина, если доступен
+  // ID всегда приоритетнее, так как бэкенд работает с ID
+  const termIdToUse = termId || null;
+  
+  if (!termIdToUse) {
+    // Если ID нет, пытаемся найти его по slug в window.taxonomy_terms
+    const taxonomyTerms = window.taxonomy_terms?.[taxonomySlug];
+    if (taxonomyTerms && termSlug) {
+      const foundTerm = Object.values(taxonomyTerms).find(
+        term => term && term.slug === termSlug
+      );
+      if (foundTerm && foundTerm.id) {
+        return getCatalogTaxonomyUrl(taxonomySlug, foundTerm.id, { mode: 'type' });
+      }
+    }
+    // Если не нашли, возвращаем базовый URL каталога
+    return '/catalog/';
+  }
+  
+  return getCatalogTaxonomyUrl(taxonomySlug, termIdToUse, { mode: 'type' });
 }
 
 // Форматировать значения таксономий для отображения
@@ -48,7 +68,7 @@ function formatTaxonomyValue(terms, taxonomySlug, taxonomyData) {
           id: term,
           name: termObj.name,
           slug: termObj.slug,
-          url: getTaxonomyUrl(taxonomySlug, termObj.slug)
+          url: getTaxonomyUrl(taxonomySlug, termObj.slug, termObj.id || term)
         };
       }
       
@@ -62,26 +82,27 @@ function formatTaxonomyValue(terms, taxonomySlug, taxonomyData) {
               id: term,
               name: found.name,
               slug: found.slug,
-              url: getTaxonomyUrl(taxonomySlug, found.slug)
+              url: getTaxonomyUrl(taxonomySlug, found.slug, found.id || found.term_id || term)
             };
           }
         }
       }
       
-      // Если совсем не нашли, формируем базовый объект
+      // Если совсем не нашли, формируем базовый объект с ID
       return {
         id: term,
         name: `Term ${term}`,
         slug: '',
-        url: `/?${taxonomySlug}=${term}`
+        url: getTaxonomyUrl(taxonomySlug, null, term)
       };
     } else {
       // Уже объект с данными (если REST вернул полные объекты)
+      const termId = term.id || term.term_id || null;
       return {
-        id: term.id || term.term_id,
+        id: termId,
         name: term.name,
         slug: term.slug,
-        url: term.link || getTaxonomyUrl(taxonomySlug, term.slug)
+        url: getTaxonomyUrl(taxonomySlug, term.slug, termId)
       };
     }
   });
@@ -173,6 +194,32 @@ function renderInstanceCard(instance, data) {
     }
   }
   
+  // Получаем аутентичность (authenticity) из дата-модели
+  // В JS уже нормализованы данные: authenticity всегда массив объектов или пусто
+  let authenticityName = '';
+  
+  // После нормализации в JS authenticity всегда массив объектов
+  if (instance.authenticity && Array.isArray(instance.authenticity) && instance.authenticity.length > 0) {
+    const firstAuthenticity = instance.authenticity[0];
+    if (typeof firstAuthenticity === 'object' && firstAuthenticity !== null) {
+      // Используем name для отображения (человекочитаемое название)
+      authenticityName = firstAuthenticity.name || firstAuthenticity.slug || '';
+    }
+  } else {
+    // Fallback: пробуем получить напрямую из поля authenticity_field (если не нормализовано)
+    const authenticityField = toyInstanceFields.authenticity_field?.slug || 'authenticity_field';
+    const authenticityFieldData = instance[authenticityField] || instance.authenticity_field || [];
+    
+    if (Array.isArray(authenticityFieldData) && authenticityFieldData.length > 0) {
+      const firstAuthenticity = authenticityFieldData[0];
+      if (typeof firstAuthenticity === 'object' && firstAuthenticity !== null) {
+        authenticityName = firstAuthenticity.name || firstAuthenticity.slug || '';
+      }
+    } else if (typeof authenticityFieldData === 'object' && authenticityFieldData !== null) {
+      authenticityName = authenticityFieldData.name || authenticityFieldData.slug || '';
+    }
+  }
+  
   // Статус экземпляра
   const instanceStatus = instance.post_status || instance.status || 'publish';
   
@@ -209,6 +256,7 @@ function renderInstanceCard(instance, data) {
   const safeImage = instanceImage ? escapeHtml(instanceImage) : '';
   const safeTubeCondition = tubeConditionSlug ? escapeHtml(tubeConditionSlug) : '';
   const safeCondition = conditionName ? escapeHtml(conditionName) : '';
+  const safeAuthenticity = authenticityName ? escapeHtml(authenticityName) : '';
   const safeInstanceIndex = instanceIndex ? escapeHtml(instanceIndex) : '';
   const safeStatus = instanceStatus ? escapeHtml(instanceStatus) : '';
   
@@ -220,6 +268,7 @@ function renderInstanceCard(instance, data) {
       ${safeImage ? `image="${safeImage}"` : ''}
       ${safeTubeCondition ? `tube-condition="${safeTubeCondition}"` : ''}
       ${safeCondition ? `condition="${safeCondition}"` : ''}
+      ${safeAuthenticity ? `authenticity="${safeAuthenticity}"` : ''}
       ${raritySlug ? `rarity="${raritySlug}"` : ''}
       ${safeInstanceIndex ? `instance-index="${safeInstanceIndex}"` : ''}
       ${safeStatus ? `status="${safeStatus}"` : ''}
@@ -496,14 +545,21 @@ export function toy_type_single_template(state) {
     <div class="toy-type-single_main">
       <div class="toy-type-single_main-left">
         <div class="toy-type-single_image">
-          <ui-image-gallery state-path="toyType.featured_image"></ui-image-gallery>
+          <ui-image-gallery state-path="toyType.featured_image" fullscreen-hint></ui-image-gallery>
         </div>
+        ${content ? `
+          <section class="toy-type-single_description">
+            <div class="toy-type-single_description-content">
+              ${content}
+            </div>
+          </section>
+        ` : ''}
       </div>
       
       <div class="toy-type-single_main-right">
         ${hasTechnicalInfo ? `
           <div class="toy-type-single_technical">
-            <h2 class="toy-type-single_section-title">Технические характеристики:</h2>
+            <h2 class="toy-type-single_section-title">Характеристики:</h2>
             <table class="toy-type-single_properties">
               <tbody>
                 ${technicalFields.map(field => `
@@ -518,17 +574,6 @@ export function toy_type_single_template(state) {
         ` : ''}
       </div>
     </div>
-    
-    ${content ? `
-      <div class="toy-type-single_body toy-type-single_body--full">
-        <section class="toy-type-single_description">
-          <h2 class="toy-type-single_section-title">Описание:</h2>
-          <div class="toy-type-single_description-content">
-            ${content}
-          </div>
-        </section>
-      </div>
-    ` : ''}
     
     ${renderInstancesSection(data, instancesByStatus)}
   `;

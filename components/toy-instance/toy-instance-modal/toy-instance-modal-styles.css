@@ -50,7 +50,7 @@ toy-instance-modal.modal--visible {
 .toy-instance-modal_gallery {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .toy-instance-modal_gallery ui-image-gallery {
@@ -63,10 +63,22 @@ toy-instance-modal.modal--visible {
 }
 
 .toy-instance-modal_description {
+  margin-top: 0.5rem;
+}
+
+.toy-instance-modal_description-content {
   font-family: var(--font-sans, inherit);
   font-size: 1rem;
   line-height: 1.7;
   color: var(--color-foreground, rgba(245, 247, 250, 0.9));
+}
+
+.toy-instance-modal_description-content p {
+  margin-bottom: 1rem;
+}
+
+.toy-instance-modal_description-content p:last-child {
+  margin-bottom: 0;
 }
 
 .toy-instance-modal_container .toy-instance-modal_gallery-placeholder {
@@ -133,9 +145,9 @@ toy-instance-modal.modal--visible {
 }
 
 .toy-instance-modal_container .toy-instance-modal_table .property-label {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  font-size: 1.0625rem;
+  font-weight: 400;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
   padding: 1rem 1.5rem 1rem 0;
   text-align: left;
   vertical-align: top;
@@ -143,21 +155,23 @@ toy-instance-modal.modal--visible {
 }
 
 .toy-instance-modal_container .toy-instance-modal_table .property-value {
-  font-size: 0.9375rem;
-  color: var(--color-foreground, rgba(245, 247, 250, 0.9));
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-accent, rgba(255, 232, 155, 1));
   padding: 1rem 0;
   text-align: right;
   vertical-align: top;
 }
 
 .toy-instance-modal_container .toy-instance-modal_table .taxonomy-link {
-  color: var(--color-primary, rgba(155, 140, 255, 1));
+  color: var(--color-accent, rgba(255, 232, 155, 1));
   text-decoration: underline;
   transition: color 0.2s;
+  font-weight: 600;
 }
 
 .toy-instance-modal_container .toy-instance-modal_table .taxonomy-link:hover {
-  color: var(--color-accent, rgba(255, 232, 155, 1));
+  color: var(--color-accent, rgba(255, 232, 155, 0.8));
 }
 
 .toy-instance-modal_container .toy-instance-modal_table .taxonomy-empty {

@@ -5,6 +5,47 @@
 
 .step-confirmation {
   width: 100%;
+  position: relative;
+}
+
+.step-confirmation_overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 12px;
+}
+
+.step-confirmation_loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  background: var(--color-card, #17181d);
+  border: 1px solid var(--color-border, #2a2d31);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.step-confirmation_loader ui-icon {
+  color: var(--color-primary, #9b8cff);
+}
+
+.step-confirmation_loader-text {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-foreground, #f5f7fa);
+  text-align: center;
 }
 
 .step-confirmation_content {
@@ -16,14 +57,14 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--color-text, #111827);
+  color: var(--color-foreground, #f5f7fa);
   text-align: center;
 }
 
 .step-confirmation_description {
   margin: 0 0 2rem 0;
   text-align: center;
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--color-muted-foreground, #8a8f99);
 }
 
 .step-confirmation_sections {
@@ -35,20 +76,20 @@
 
 .step-confirmation_section {
   padding: 1.5rem;
-  background: var(--color-background, #ffffff);
-  border: 1px solid var(--color-border, #e5e7eb);
-  border-radius: 0.5rem;
+  background: var(--color-card, #17181d);
+  border: 1px solid var(--color-border, #2a2d31);
+  border-radius: 12px;
 }
 
 .step-confirmation_section-title {
   margin: 0 0 1rem 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--color-text, #111827);
+  color: var(--color-foreground, #f5f7fa);
 }
 
 .step-confirmation_section-content {
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--color-muted-foreground, #8a8f99);
   line-height: 1.6;
 }
 
@@ -65,13 +106,13 @@
 }
 
 .step-confirmation_section-content strong {
-  color: var(--color-text, #111827);
+  color: var(--color-foreground, #f5f7fa);
   font-weight: 600;
 }
 
 .step-confirmation_section--totals {
-  background: var(--color-background-secondary, #f3f4f6);
-  border: 2px solid var(--color-primary, #2563eb);
+  background: var(--color-secondary, #202227);
+  border: 2px solid var(--color-primary, #9b8cff);
 }
 
 .step-confirmation_totals {
@@ -85,6 +126,7 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.9375rem;
+  color: var(--color-muted-foreground, #8a8f99);
 }
 
 .step-confirmation_total-row--discount {
@@ -94,32 +136,27 @@
 .step-confirmation_total-row--final {
   margin-top: 0.5rem;
   padding-top: 1rem;
-  border-top: 2px solid var(--color-border, #e5e7eb);
+  border-top: 2px solid var(--color-border, #2a2d31);
   font-size: 1.125rem;
+  color: var(--color-foreground, #f5f7fa);
 }
 
 .step-confirmation_total-row--final strong {
   font-size: 1.25rem;
-  color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #9b8cff);
 }
 
 .step-confirmation_error {
   padding: 1rem;
   margin-bottom: 1.5rem;
-  background: var(--color-error-light, #fee2e2);
+  background: rgba(239, 68, 68, 0.1);
   border: 1px solid var(--color-error, #ef4444);
   border-radius: 0.5rem;
   color: var(--color-error, #ef4444);
   text-align: center;
 }
 
-.step-confirmation_actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 2rem;
-}
-
-/* Стили для ui-button - специфичные размеры не требуются, используем стандартные */
+/* Кнопка подтверждения теперь в wizard footer */
 
 .step-confirmation_success {
   display: flex;
@@ -139,39 +176,39 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--color-text, #111827);
+  color: var(--color-foreground, #f5f7fa);
 }
 
 .step-confirmation_success-text {
   margin: 0 0 1rem 0;
   font-size: 1.125rem;
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--color-muted-foreground, #8a8f99);
 }
 
 .step-confirmation_success-text strong {
-  color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #9b8cff);
   font-weight: 700;
 }
 
 .step-confirmation_success-description {
   margin: 0 0 2rem 0;
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--color-muted-foreground, #8a8f99);
 }
 
 .step-confirmation_success-link {
   display: inline-block;
   padding: 0.75rem 1.5rem;
   font-weight: 500;
-  color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #9b8cff);
   text-decoration: none;
-  border: 2px solid var(--color-primary, #2563eb);
+  border: 2px solid var(--color-primary, #9b8cff);
   border-radius: 0.5rem;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .step-confirmation_success-link:hover {
-  background: var(--color-primary, #2563eb);
-  color: var(--color-background, #ffffff);
+  background: var(--color-primary, #9b8cff);
+  color: var(--color-foreground, #f5f7fa);
 }
 
 /* Адаптивность */
@@ -180,8 +217,5 @@
     padding: 1rem;
   }
 
-  .step-confirmation_submit-btn {
-    width: 100%;
-  }
 }
 

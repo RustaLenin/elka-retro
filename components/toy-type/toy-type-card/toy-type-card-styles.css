@@ -175,6 +175,12 @@ toy-type-card .toy-type-card_factory {
   position: relative;
 }
 
+toy-type-card .toy-type-card_rarity-label {
+  color: var(--color-muted-foreground);
+  font-size: 1rem;
+  margin-right: 0.5rem;
+}
+
 toy-type-card .toy-type-card_rarity {
   font-size: 0.8125rem;
   padding: 0.375rem 0.75rem;

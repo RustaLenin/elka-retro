@@ -81,7 +81,6 @@ function renderOption(option, selected, highlighted, decorators) {
       ${iconMarkup}
       <span class="ui-select-multi__option-content">
         <span class="ui-select-multi__option-label">${escapeHTML(option.label)}</span>
-        ${option.description ? `<span class="ui-select-multi__option-description">${escapeHTML(option.description)}</span>` : ''}
       </span>
       ${badgeMarkup}
     </li>

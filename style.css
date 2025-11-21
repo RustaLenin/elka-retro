@@ -315,13 +315,11 @@ button {
 }
 
 .catalog-link-card--toys {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Crect width='1600' height='900' fill='%2317181d'/%3E%3Ctext x='50%25' y='50%25' fill='%238a8f99' font-family='Inter, Arial, sans-serif' font-size='120' text-anchor='middle' dominant-baseline='middle'%3ETOY%20CATALOG%3C/text%3E%3C/svg%3E");
+  background-image: var(--catalog-toys-bg-image, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Crect width='1600' height='900' fill='%2317181d'/%3E%3Ctext x='50%25' y='50%25' fill='%238a8f99' font-family='Inter, Arial, sans-serif' font-size='120' text-anchor='middle' dominant-baseline='middle'%3ETOY%20CATALOG%3C/text%3E%3C/svg%3E"));
 }
 
 .catalog-link-card--accessories {
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Crect width='1600' height='900' fill='%2317181d'/%3E%3Ctext x='50%25' y='50%25' fill='%238a8f99' font-family='Inter, Arial, sans-serif' font-size='120' text-anchor='middle' dominant-baseline='middle'%3EACCESSORIES%3C/text%3E%3C/svg%3E");
+  background-image: var(--catalog-accessories-bg-image, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 900'%3E%3Crect width='1600' height='900' fill='%2317181d'/%3E%3Ctext x='50%25' y='50%25' fill='%238a8f99' font-family='Inter, Arial, sans-serif' font-size='120' text-anchor='middle' dominant-baseline='middle'%3EACCESSORIES%3C/text%3E%3C/svg%3E"));
 }
 
 /* NY Accessories Preview */

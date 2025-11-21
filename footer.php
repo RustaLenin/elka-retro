@@ -5,9 +5,10 @@
     $toy_catalog_link = home_url('/catalog/');
   }
 
-  $ny_accessory_link = function_exists('get_post_type_archive_link') ? get_post_type_archive_link('ny_accessory') : '';
+  // Ссылка на каталог аксессуаров
+  $ny_accessory_link = function_exists('elkaretro_get_accessory_catalog_page_url') ? elkaretro_get_accessory_catalog_page_url() : '';
   if (!$ny_accessory_link) {
-    $ny_accessory_link = home_url('/ny-accessory/');
+    $ny_accessory_link = home_url('/accessories/');
   }
 ?>
 

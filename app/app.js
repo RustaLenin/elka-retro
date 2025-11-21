@@ -55,7 +55,8 @@ window.app = {
         console.warn('[app.catalog] catalogStore not initialized yet');
         return;
       }
-      window.app.catalogStore.updateState({ mode, page: 1, filters: {} });
+      const perPage = window.app.catalogStore.getPerPage();
+      window.app.catalogStore.updateState({ mode, limit: perPage, filters: {} });
     },
 
     /**
@@ -67,7 +68,8 @@ window.app = {
         console.warn('[app.catalog] catalogStore not initialized yet');
         return;
       }
-      window.app.catalogStore.updateState({ search: search.trim(), page: 1 });
+      const perPage = window.app.catalogStore.getPerPage();
+      window.app.catalogStore.updateState({ search: search.trim(), limit: perPage });
     },
 
     /**
@@ -79,7 +81,8 @@ window.app = {
         console.warn('[app.catalog] catalogStore not initialized yet');
         return;
       }
-      window.app.catalogStore.updateState({ sort, page: 1 });
+      const perPage = window.app.catalogStore.getPerPage();
+      window.app.catalogStore.updateState({ sort, limit: perPage });
     },
 
     /**
@@ -91,7 +94,8 @@ window.app = {
         console.warn('[app.catalog] catalogStore not initialized yet');
         return;
       }
-      window.app.catalogStore.updateState({ filters, page: 1 });
+      const perPage = window.app.catalogStore.getPerPage();
+      window.app.catalogStore.updateState({ filters, limit: perPage });
     },
 
     /**
@@ -113,19 +117,33 @@ window.app = {
         filters[filterKey] = Array.isArray(values) ? values : [values];
       }
       
-      window.app.catalogStore.updateState({ filters, page: 1 });
+      const perPage = window.app.catalogStore.getPerPage();
+      window.app.catalogStore.updateState({ filters, limit: perPage });
     },
 
     /**
-     * Перейти на страницу
-     * @param {number} page - Номер страницы
+     * Установить limit (сколько всего элементов показано)
+     * @param {number} limit - Количество элементов
      */
-    setPage: function(page) {
+    setLimit: function(limit) {
       if (!window.app.catalogStore) {
         console.warn('[app.catalog] catalogStore not initialized yet');
         return;
       }
-      window.app.catalogStore.updateState({ page });
+      window.app.catalogStore.updateState({ limit: Math.max(1, parseInt(limit, 10) || 30) });
+    },
+
+    /**
+     * Перейти на страницу (устарело, используйте setLimit)
+     * @deprecated Используйте setLimit
+     * @param {number} page - Номер страницы
+     */
+    setPage: function(page) {
+      console.warn('[app.catalog] setPage is deprecated, use setLimit instead');
+      // Для обратной совместимости конвертируем page в limit
+      const perPage = window.app.catalogStore?.getPerPage() || 30;
+      const limit = page * perPage;
+      this.setLimit(limit);
     },
 
     /**
@@ -136,11 +154,11 @@ window.app = {
         console.warn('[app.catalog] catalogStore not initialized yet');
         return;
       }
-      const currentState = window.app.catalogStore.getCatalogState();
+      const perPage = window.app.catalogStore.getPerPage();
       window.app.catalogStore.updateState({
         filters: {},
         search: '',
-        page: 1,
+        limit: perPage,
       });
     },
 
@@ -155,6 +173,136 @@ window.app = {
         return;
       }
       window.app.catalogStore.reset(options);
+    },
+  },
+
+  // Accessory Catalog Management - Публичный API для работы с каталогом аксессуаров
+  // Все операции с каталогом аксессуаров выполняются через этот API
+  // Компоненты слушают события elkaretro:accessory-catalog:updated для обновления
+  accessoryCatalog: {
+    /**
+     * Получить текущее состояние каталога аксессуаров
+     * @returns {Object} Состояние каталога
+     */
+    getState: function() {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return null;
+      }
+      return window.app.accessoryCatalogStore.getCatalogState();
+    },
+
+    /**
+     * Получить метаданные каталога аксессуаров
+     * @returns {Object} Метаданные
+     */
+    getMeta: function() {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return null;
+      }
+      return window.app.accessoryCatalogStore.getMeta();
+    },
+
+    /**
+     * Установить поисковый запрос
+     * @param {string} search - Поисковый запрос
+     */
+    setSearch: function(search) {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return;
+      }
+      const perPage = window.app.accessoryCatalogStore.getPerPage();
+      window.app.accessoryCatalogStore.updateState({ search: search.trim(), limit: perPage });
+    },
+
+    /**
+     * Установить сортировку
+     * @param {string} sort - Значение сортировки (например, 'newest', 'oldest')
+     */
+    setSort: function(sort) {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return;
+      }
+      const perPage = window.app.accessoryCatalogStore.getPerPage();
+      window.app.accessoryCatalogStore.updateState({ sort, limit: perPage });
+    },
+
+    /**
+     * Установить фильтры
+     * @param {Object<string, string[]>} filters - Объект с фильтрами { filterKey: [values] }
+     */
+    setFilters: function(filters) {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return;
+      }
+      const perPage = window.app.accessoryCatalogStore.getPerPage();
+      window.app.accessoryCatalogStore.updateState({ filters, limit: perPage });
+    },
+
+    /**
+     * Обновить фильтр
+     * @param {string} filterKey - Ключ фильтра
+     * @param {string[]|null} values - Значения фильтра (null для удаления)
+     */
+    updateFilter: function(filterKey, values) {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return;
+      }
+      const currentState = window.app.accessoryCatalogStore.getCatalogState();
+      const filters = { ...currentState.filters };
+      
+      if (values === null || (Array.isArray(values) && values.length === 0)) {
+        delete filters[filterKey];
+      } else {
+        filters[filterKey] = Array.isArray(values) ? values : [values];
+      }
+      
+      const perPage = window.app.accessoryCatalogStore.getPerPage();
+      window.app.accessoryCatalogStore.updateState({ filters, limit: perPage });
+    },
+
+    /**
+     * Установить limit (сколько всего элементов показано)
+     * @param {number} limit - Количество элементов
+     */
+    setLimit: function(limit) {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return;
+      }
+      window.app.accessoryCatalogStore.updateState({ limit: Math.max(1, parseInt(limit, 10) || 30) });
+    },
+
+    /**
+     * Сбросить фильтры
+     */
+    resetFilters: function() {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return;
+      }
+      const perPage = window.app.accessoryCatalogStore.getPerPage();
+      window.app.accessoryCatalogStore.updateState({
+        filters: {},
+        search: '',
+        limit: perPage,
+      });
+    },
+
+    /**
+     * Сбросить состояние каталога
+     */
+    reset: function() {
+      if (!window.app.accessoryCatalogStore) {
+        console.warn('[app.accessoryCatalog] accessoryCatalogStore not initialized yet');
+        return;
+      }
+      window.app.accessoryCatalogStore.reset();
     },
   },
 
@@ -424,6 +572,18 @@ document.addEventListener('DOMContentLoaded', function() {
       window.app.catalogStore = catalogStore;
     }).catch(err => {
       console.error('[app] Failed to load catalog-store:', err);
+    });
+  }
+
+  // Инициализируем AccessoryCatalogStore только на страницах с accessory-catalog-page
+  if (document.querySelector('accessory-catalog-page')) {
+    import('../components/accessory-catalog/accessory-catalog-store.js').then(module => {
+      const { getAccessoryCatalogStore } = module;
+      const accessoryCatalogStore = getAccessoryCatalogStore();
+      // Делаем accessoryCatalogStore доступным глобально
+      window.app.accessoryCatalogStore = accessoryCatalogStore;
+    }).catch(err => {
+      console.error('[app] Failed to load accessory-catalog-store:', err);
     });
   }
 

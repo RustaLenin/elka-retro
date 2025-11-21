@@ -23,6 +23,7 @@ export class OrderWizard extends BaseElement {
     currentStep: { type: 'number', default: 1, attribute: { name: 'current-step', observed: true, reflect: true } },
     isAuthorized: { type: 'boolean', default: false, attribute: null, internal: true },
     orderData: { type: 'json', default: null, attribute: null, internal: true },
+    isSubmitting: { type: 'boolean', default: false, attribute: null, internal: true },
   };
 
   constructor() {
@@ -35,6 +36,12 @@ export class OrderWizard extends BaseElement {
       { id: 'confirmation', name: 'Подтверждение', component: 'step-confirmation', skipIfAuthorized: false },
     ];
     this._unsubscribe = null;
+    this._handleAuthSuccess = null;
+    this._useProfileData = null; // Флаг: использовать данные из профиля или заполнить с нуля
+    this._isNavigating = false; // Флаг для предотвращения множественных навигаций
+    this._handleStepNext = null;
+    this._handleStepPrev = null;
+    this._handleStepGoto = null;
   }
 
   connectedCallback() {
@@ -43,6 +50,7 @@ export class OrderWizard extends BaseElement {
     this.checkAuth();
     this.render();
     this.loadStep();
+    this.attachAuthListeners();
   }
 
   disconnectedCallback() {
@@ -50,6 +58,7 @@ export class OrderWizard extends BaseElement {
       this._unsubscribe();
       this._unsubscribe = null;
     }
+    this.detachAuthListeners();
   }
 
   /**
@@ -97,27 +106,14 @@ export class OrderWizard extends BaseElement {
           },
         },
       });
-      // Если авторизован, пропускаем шаг авторизации
+      // Если авторизован и мы на шаге 1, определяем следующий шаг
       if (this.state.currentStep === 1) {
-        // Проверяем, есть ли телефон в профиле (проверяем разные варианты структуры)
-        const userMeta = user.meta || {};
-        const phone = user.phone || userMeta.phone || userMeta.phone_number || '';
-        const hasPhone = phone && String(phone).trim() !== '';
-        
-        console.log('[OrderWizard] User phone check:', { 
-          userPhone: user.phone, 
-          metaPhone: userMeta.phone, 
-          metaPhoneNumber: userMeta.phone_number,
-          hasPhone 
-        });
-        
-        if (hasPhone) {
-          // Если телефон есть, переходим сразу к шагу доставки (шаг 3)
-          this.goToStep(3);
-        } else {
-          // Если телефона нет, показываем шаг "Личные данные" (шаг 2) для его заполнения
-          this.goToStep(2);
-        }
+        // Показываем вопрос: использовать данные из профиля или заполнить с нуля?
+        const useProfileData = await this.askUseProfileData();
+        this._useProfileData = useProfileData;
+        // Определяем следующий шаг
+        const nextStep = await this.determineNextStep(useProfileData);
+        this.goToStep(nextStep);
       }
     } else {
       // PHP вернул null - пользователь не авторизован, не делаем запросов
@@ -126,6 +122,146 @@ export class OrderWizard extends BaseElement {
       if (this.state.currentStep > 2) {
         this.goToStep(1);
       }
+    }
+  }
+
+  /**
+   * Обновить состояние авторизации без перезагрузки страницы
+   * @returns {Promise<Object|null>} Данные пользователя или null
+   */
+  async refreshAuthState() {
+    try {
+      const response = await fetch('/wp-json/elkaretro/v1/user/profile', {
+        credentials: 'same-origin',
+        headers: {
+          'X-WP-Nonce': window.wpApiSettings?.nonce || '',
+        },
+      });
+      
+      if (response.ok) {
+        const user = await response.json();
+        
+        // Обновляем window.app.auth
+        if (window.app) {
+          window.app.auth = {
+            authenticated: true,
+            user: user,
+          };
+        }
+        
+        // Обновляем состояние Wizard
+        this.setState({
+          isAuthorized: true,
+          orderData: {
+            ...this.state.orderData,
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name || user.display_name || '',
+            },
+          },
+        });
+        
+        return user;
+      }
+    } catch (error) {
+      console.error('[OrderWizard] Failed to refresh auth state:', error);
+    }
+    return null;
+  }
+
+  /**
+   * Спросить пользователя: использовать данные из профиля или заполнить с нуля?
+   * @returns {Promise<boolean>} true - использовать данные из профиля, false - заполнить с нуля
+   */
+  async askUseProfileData() {
+    // TODO: Реализовать UI для вопроса
+    // Временное решение: для авторизованных пользователей всегда используем данные из профиля
+    // В будущем можно добавить модальное окно или инлайн-вопрос
+    
+    // Если уже был выбран ранее - используем сохраненное значение
+    if (this._useProfileData !== null) {
+      return this._useProfileData;
+    }
+    
+    // По умолчанию используем данные из профиля
+    return true;
+  }
+
+  /**
+   * Определить следующий шаг на основе данных профиля
+   * @param {boolean} useProfileData - использовать данные из профиля или заполнить с нуля
+   * @returns {Promise<number>} Номер следующего шага
+   */
+  async determineNextStep(useProfileData = false) {
+    // Если пользователь выбрал "Заполнить с нуля" - начинаем с шага 2
+    if (!useProfileData) {
+      return 2; // Шаг личных данных
+    }
+    
+    // Проверка авторизации
+    if (!window.app?.auth?.user || !window.app.auth.authenticated) {
+      return 1; // Шаг авторизации
+    }
+    
+    // Всегда начинаем с шага 2 (Личные данные) для проверки/дополнения
+    // Данные будут предзаполнены из профиля
+    return 2;
+  }
+
+  /**
+   * Получить данные последнего заказа пользователя
+   * @returns {Promise<Object|null>} Данные последнего заказа или null
+   */
+  async getLastOrderData() {
+    try {
+      const response = await fetch('/wp-json/elkaretro/v1/orders?per_page=1', {
+        credentials: 'same-origin',
+        headers: {
+          'X-WP-Nonce': window.wpApiSettings?.nonce || '',
+        },
+      });
+      
+      if (response.ok) {
+        const orders = await response.json();
+        if (orders && orders.length > 0) {
+          return orders[0];
+        }
+      }
+    } catch (error) {
+      console.error('[OrderWizard] Failed to get last order:', error);
+    }
+    return null;
+  }
+
+  /**
+   * Прикрепить обработчики событий авторизации
+   */
+  attachAuthListeners() {
+    // Слушаем успешную авторизацию
+    this._handleAuthSuccess = async () => {
+      // Обновляем состояние авторизации
+      const user = await this.refreshAuthState();
+      if (user) {
+        // Показываем вопрос: использовать данные из профиля или заполнить с нуля?
+        const useProfileData = await this.askUseProfileData();
+        this._useProfileData = useProfileData;
+        // Определяем следующий шаг
+        const nextStep = await this.determineNextStep(useProfileData);
+        this.goToStep(nextStep);
+      }
+    };
+    
+    window.addEventListener('elkaretro:auth:login', this._handleAuthSuccess);
+  }
+
+  /**
+   * Открепить обработчики событий авторизации
+   */
+  detachAuthListeners() {
+    if (this._handleAuthSuccess) {
+      window.removeEventListener('elkaretro:auth:login', this._handleAuthSuccess);
+      this._handleAuthSuccess = null;
     }
   }
 
@@ -140,6 +276,13 @@ export class OrderWizard extends BaseElement {
 
     const container = this.querySelector('.order-wizard_step-container');
     if (!container) {
+      return;
+    }
+
+    // Проверяем, не загружен ли уже этот шаг
+    const existingStep = container.querySelector(step.component);
+    if (existingStep && existingStep.getAttribute('step-number') === String(this.state.currentStep)) {
+      console.log('[OrderWizard] Step already loaded, skipping');
       return;
     }
 
@@ -212,9 +355,23 @@ export class OrderWizard extends BaseElement {
    */
   goToStep(stepNumber) {
     const step = Math.max(1, Math.min(stepNumber, this.steps.length));
+    
+    // Предотвращаем множественные вызовы для одного и того же шага
+    if (this._isNavigating || this.state.currentStep === step) {
+      console.log('[OrderWizard] Navigation already in progress or already on step', step);
+      return;
+    }
+    
+    this._isNavigating = true;
     this.setState({ currentStep: step });
     this.saveProgress();
-    this.loadStep();
+    // Обновляем шаблон перед загрузкой шага
+    this.render();
+    
+    // Сбрасываем флаг после завершения навигации
+    requestAnimationFrame(() => {
+      this._isNavigating = false;
+    });
   }
 
   /**
@@ -233,12 +390,30 @@ export class OrderWizard extends BaseElement {
    * Валидация шага
    */
   async validateStep(step) {
+    // Если уже идет отправка заказа, блокируем
+    if (this.state.isSubmitting) {
+      console.log('[OrderWizard] Order submission in progress, blocking validation');
+      return false;
+    }
+
     const stepElement = this.querySelector(step.component);
     if (!stepElement || typeof stepElement.validate !== 'function') {
       return true;
     }
 
-    return await stepElement.validate();
+    // Если это последний шаг (подтверждение), устанавливаем флаг isSubmitting
+    if (this.state.currentStep === this.steps.length) {
+      this.setState({ isSubmitting: true });
+    }
+
+    const result = await stepElement.validate();
+
+    // Если валидация не прошла, сбрасываем флаг
+    if (!result) {
+      this.setState({ isSubmitting: false });
+    }
+
+    return result;
   }
 
   /**
@@ -247,10 +422,18 @@ export class OrderWizard extends BaseElement {
   async saveStepData(step) {
     const stepElement = this.querySelector(step.component);
     if (!stepElement || typeof stepElement.getData !== 'function') {
+      console.log(`[OrderWizard] Step ${step.id} has no getData() method`);
       return;
     }
 
     const stepData = await stepElement.getData();
+    console.log(`[OrderWizard] Saving step data for ${step.id}:`, {
+      stepId: step.id,
+      stepDataKeys: stepData ? Object.keys(stepData) : [],
+      hasPassword: !!(stepData?.password),
+      stepData,
+    });
+    
     this.setState({
       orderData: {
         ...this.state.orderData,
@@ -281,8 +464,21 @@ export class OrderWizard extends BaseElement {
     localStorage.removeItem('elkaretro_order_wizard_progress');
   }
 
+  /**
+   * Обработка изменений состояния
+   */
+  onStateChanged(key) {
+    if (key === 'isSubmitting') {
+      // Обновляем disabled состояние кнопки "Завершить заказ"
+      const nextBtn = this.querySelector('.order-wizard_next-btn');
+      if (nextBtn && nextBtn.setDisabled) {
+        nextBtn.setDisabled(this.state.isSubmitting);
+      }
+    }
+  }
+
   render() {
-    const { currentStep, isAuthorized } = this.state;
+    const { currentStep, isAuthorized, isSubmitting } = this.state;
     const currentStepInfo = this.steps[currentStep - 1];
 
     this.innerHTML = order_wizard_template({
@@ -290,11 +486,17 @@ export class OrderWizard extends BaseElement {
       currentStep,
       currentStepInfo,
       isAuthorized,
+      isSubmitting: this.state.isSubmitting,
     });
 
-    // После рендера загружаем шаг
-    this.loadStep();
+    // Прикрепляем обработчики событий перед загрузкой шага
     this.attachEventListeners();
+    
+    // После рендера загружаем шаг (только если контейнер существует)
+    const container = this.querySelector('.order-wizard_step-container');
+    if (container) {
+      this.loadStep();
+    }
   }
 
   /**
@@ -303,7 +505,17 @@ export class OrderWizard extends BaseElement {
   attachEventListeners() {
     // Обработка кликов через кастомные события от ui-button
     this.removeEventListener('order-wizard:next-click', this._handleNext);
-    this._handleNext = () => this.nextStep();
+    this._handleNext = () => {
+      // Если это последний шаг, сразу дизейблим кнопку
+      if (this.state.currentStep === this.steps.length) {
+        const nextBtn = this.querySelector('.order-wizard_next-btn');
+        if (nextBtn && nextBtn.setDisabled) {
+          nextBtn.setDisabled(true);
+        }
+        this.setState({ isSubmitting: true });
+      }
+      this.nextStep();
+    };
     this.addEventListener('order-wizard:next-click', this._handleNext);
 
     this.removeEventListener('order-wizard:prev-click', this._handlePrev);
@@ -311,13 +523,32 @@ export class OrderWizard extends BaseElement {
     this.addEventListener('order-wizard:prev-click', this._handlePrev);
 
     // Слушаем события от шагов
-    this.addEventListener('wizard:step:next', () => this.nextStep());
-    this.addEventListener('wizard:step:prev', () => this.prevStep());
-    this.addEventListener('wizard:step:goto', (e) => {
+    // Удаляем старые обработчики перед добавлением новых
+    if (this._handleStepNext) {
+      this.removeEventListener('wizard:step:next', this._handleStepNext);
+    }
+    this._handleStepNext = () => this.nextStep();
+    this.addEventListener('wizard:step:next', this._handleStepNext);
+
+    if (this._handleStepPrev) {
+      this.removeEventListener('wizard:step:prev', this._handleStepPrev);
+    }
+    this._handleStepPrev = () => this.prevStep();
+    this.addEventListener('wizard:step:prev', this._handleStepPrev);
+
+    if (this._handleStepGoto) {
+      this.removeEventListener('wizard:step:goto', this._handleStepGoto);
+    }
+    this._handleStepGoto = (e) => {
+      console.log('[OrderWizard] Received wizard:step:goto event:', e.detail);
+      // Останавливаем всплытие после обработки
+      e.stopPropagation();
       if (e.detail && e.detail.step) {
+        console.log('[OrderWizard] Going to step:', e.detail.step);
         this.goToStep(e.detail.step);
       }
-    });
+    };
+    this.addEventListener('wizard:step:goto', this._handleStepGoto);
   }
 }
 

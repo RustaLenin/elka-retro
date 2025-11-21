@@ -114,7 +114,7 @@ Class THEME_REGISTER {
         }
         
         // Проверяем, что это наш кастомный тип поста
-        $custom_post_types = array('toy_type', 'toy_instance');
+        $custom_post_types = array('toy_type', 'toy_instance', 'ny_accessory');
         if (!in_array($post->post_type, $custom_post_types)) {
             return;
         }
@@ -143,10 +143,14 @@ Class THEME_REGISTER {
                     $show_in_dropdown = isset($status_config['show_in_admin_dropdown']) ? $status_config['show_in_admin_dropdown'] : true;
                     
                     // Проверяем, применяется ли статус к текущему типу поста
-                    $post_types = isset($status_config['post_types']) ? $status_config['post_types'] : array('toy_type', 'toy_instance');
+                    $post_types = isset($status_config['post_types']) ? $status_config['post_types'] : array('toy_type', 'toy_instance', 'ny_accessory');
                     $applies_to_post_type = in_array($post->post_type, $post_types);
                     
-                    if ($show_in_dropdown && $applies_to_post_type):
+                    // Добавляем статус если: он должен быть в dropdown ИЛИ это текущий статус записи
+                    $is_current_status = ($post->post_status === $status_slug);
+                    $should_add = ($show_in_dropdown || $is_current_status) && $applies_to_post_type;
+                    
+                    if ($should_add):
                     ?>
                     // Проверяем, что опция еще не добавлена
                     if (!statusSelect.find('option[value="<?php echo esc_js($status_slug); ?>"]').length) {
@@ -180,12 +184,29 @@ Class THEME_REGISTER {
                 // Обновляем отображение текущего статуса
                 var currentStatus = '<?php echo esc_js($post->post_status); ?>';
                 <?php foreach ($statuses as $status_slug => $status_config): ?>
+                    <?php
+                    // Проверяем, применяется ли статус к текущему типу поста
+                    $post_types = isset($status_config['post_types']) ? $status_config['post_types'] : array('toy_type', 'toy_instance', 'ny_accessory');
+                    $applies_to_post_type = in_array($post->post_type, $post_types);
+                    ?>
+                    <?php if ($applies_to_post_type): ?>
                     if (currentStatus === '<?php echo esc_js($status_slug); ?>') {
+                        // Если статус не был добавлен в dropdown (show_in_admin_dropdown: false),
+                        // но это текущий статус - добавляем его для отображения
+                        var show_in_dropdown = <?php echo isset($status_config['show_in_admin_dropdown']) && $status_config['show_in_admin_dropdown'] ? 'true' : 'false'; ?>;
+                        if (!show_in_dropdown && !statusSelect.find('option[value="<?php echo esc_js($status_slug); ?>"]').length) {
+                            var option = $('<option></option>')
+                                .attr('value', '<?php echo esc_js($status_slug); ?>')
+                                .text('<?php echo esc_js($status_config['label']); ?>');
+                            statusSelect.append(option);
+                        }
+                        
                         if (statusDisplay.length) {
                             statusDisplay.text('<?php echo esc_js($status_config['label']); ?>');
                         }
                         statusSelect.val('<?php echo esc_js($status_slug); ?>');
                     }
+                    <?php endif; ?>
                 <?php endforeach; ?>
                 
                 // Обновляем отображение при изменении статуса
@@ -214,7 +235,7 @@ Class THEME_REGISTER {
         }
         
         $screen = get_current_screen();
-        if (!$screen || !in_array($screen->post_type, array('toy_type', 'toy_instance'))) {
+        if (!$screen || !in_array($screen->post_type, array('toy_type', 'toy_instance', 'ny_accessory'))) {
             return;
         }
         
@@ -244,7 +265,7 @@ Class THEME_REGISTER {
                     $show_in_dropdown = isset($status_config['show_in_admin_dropdown']) ? $status_config['show_in_admin_dropdown'] : true;
                     
                     // Проверяем, применяется ли статус к текущему типу поста
-                    $post_types = isset($status_config['post_types']) ? $status_config['post_types'] : array('toy_type', 'toy_instance');
+                    $post_types = isset($status_config['post_types']) ? $status_config['post_types'] : array('toy_type', 'toy_instance', 'ny_accessory');
                     $applies_to_post_type = in_array($current_post_type, $post_types);
                     
                     if ($show_in_dropdown && $applies_to_post_type):
@@ -323,7 +344,7 @@ Class THEME_REGISTER {
             return $states;
         }
         
-        $custom_post_types = array('toy_type', 'toy_instance');
+        $custom_post_types = array('toy_type', 'toy_instance', 'ny_accessory');
         if (!in_array($post->post_type, $custom_post_types)) {
             return $states;
         }
@@ -334,7 +355,7 @@ Class THEME_REGISTER {
         foreach ($statuses as $status_slug => $status_config) {
             if ($post->post_status === $status_slug) {
                 // Проверяем, применяется ли статус к текущему типу поста
-                $post_types = isset($status_config['post_types']) ? $status_config['post_types'] : array('toy_type', 'toy_instance');
+                $post_types = isset($status_config['post_types']) ? $status_config['post_types'] : array('toy_type', 'toy_instance', 'ny_accessory');
                 if (!in_array($post->post_type, $post_types)) {
                     continue;
                 }
@@ -374,7 +395,7 @@ Class THEME_REGISTER {
             return;
         }
         
-        $custom_post_types = array('toy_type', 'toy_instance');
+        $custom_post_types = array('toy_type', 'toy_instance', 'ny_accessory');
         if (!in_array($screen->post_type, $custom_post_types)) {
             return;
         }

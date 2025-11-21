@@ -12,7 +12,7 @@ function escapeHtml(text) {
 }
 
 export function image_gallery_template(state) {
-  const { images, currentIndex, loading, fullscreen } = state;
+  const { images, currentIndex, loading, fullscreen, fullscreenHint } = state;
   
   if (loading) {
     return `
@@ -61,6 +61,11 @@ export function image_gallery_template(state) {
             loading="lazy"
             style="display: none;"
           />
+          ${fullscreenHint ? `
+            <button class="image-gallery_fullscreen-hint" aria-label="Открыть в полноэкранном режиме" title="Открыть в полноэкранном режиме">
+              <ui-icon name="search"></ui-icon>
+            </button>
+          ` : ''}
           ${hasMultipleImages ? `
             <button class="image-gallery_nav image-gallery_next" aria-label="Следующее изображение">
               <ui-icon name="chevron_right" size="medium"></ui-icon>

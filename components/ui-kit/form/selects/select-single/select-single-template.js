@@ -28,7 +28,6 @@ function renderOption(option, isSelected, highlighted, decorators) {
       ${iconMarkup}
       <span class="ui-select-single__option-content">
         <span class="ui-select-single__option-label">${escapeHTML(label)}</span>
-        ${description ? `<span class="ui-select-single__option-description">${escapeHTML(description)}</span>` : ''}
       </span>
       ${badgeMarkup}
     </li>

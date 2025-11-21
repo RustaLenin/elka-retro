@@ -154,11 +154,12 @@ function getConditionColorClass(condition) {
 }
 
 export function toy_instance_card_template(state) {
-  const { id, title, price, image, rarity, tubeCondition, condition, status } = state;
+  const { id, title, price, image, rarity, tubeCondition, condition, authenticity, status } = state;
   
   const safeTitle = title ? escapeHtml(title) : '';
   const safeImage = image ? escapeHtml(image) : '';
   const safeCondition = condition ? escapeHtml(condition) : '';
+  const safeAuthenticity = authenticity ? escapeHtml(authenticity) : '';
   const conditionClass = getConditionColorClass(condition);
   const rarityClass = getRarityColorClass(rarity);
   
@@ -189,9 +190,17 @@ export function toy_instance_card_template(state) {
       ${safeTitle ? `
         <h3 class="toy-instance-card_title">${safeTitle}</h3>
       ` : ''}
-      <div class="toy-instance-card_condition">
-        <span class="toy-instance-card_condition-label">Состояние:</span>
-        <span class="toy-instance-card_condition-value ${conditionClass}">${safeCondition || '—'}</span>
+      <div class="toy-instance-card_properties">
+        <div class="toy-instance-card_condition">
+          <span class="toy-instance-card_condition-label">Состояние:</span>
+          <span class="toy-instance-card_condition-value ${conditionClass}">${safeCondition || '—'}</span>
+        </div>
+        ${safeAuthenticity ? `
+          <div class="toy-instance-card_condition">
+            <span class="toy-instance-card_condition-label">Аутентичность:</span>
+            <span class="toy-instance-card_condition-value">${safeAuthenticity}</span>
+          </div>
+        ` : ''}
       </div>
       <div class="toy-instance-card_price-row">
         ${formattedPrice ? `

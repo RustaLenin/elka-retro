@@ -15,6 +15,9 @@ export const renderSidebarShell = () => {
   return `
     <div class="catalog-sidebar" data-catalog-sidebar-inner>
       <div class="catalog-sidebar__fixed">
+        <!-- Кнопки действий (Применить фильтры, Сбросить) - sticky сверху -->
+        <div class="catalog-sidebar__section catalog-sidebar__section--actions" data-sidebar-actions></div>
+        
         <!-- Переключатель режимов (Типы / Экземпляры) -->
         <div class="catalog-sidebar__section catalog-sidebar__section--mode-toggle" data-sidebar-mode-toggle></div>
         
@@ -25,9 +28,6 @@ export const renderSidebarShell = () => {
         <div class="catalog-sidebar__filters-scroll">
           <div class="catalog-sidebar__section catalog-sidebar__section--filters" data-sidebar-filters></div>
         </div>
-        
-        <!-- Кнопки действий (Применить фильтры, Сбросить) -->
-        <div class="catalog-sidebar__section catalog-sidebar__section--actions" data-sidebar-actions></div>
       </div>
     </div>
   `;

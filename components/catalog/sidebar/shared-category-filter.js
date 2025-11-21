@@ -23,7 +23,7 @@ export const initSharedCategoryFilter = (container) => {
   return {
     /**
      * Получить выбранные категории
-     * @returns {Array<string>} Массив slugs выбранных категорий
+     * @returns {Array<string>} Массив ID выбранных категорий (как строки)
      */
     getValue() {
       if (!filterElement || !filterElement._categoriesMap) {
@@ -31,28 +31,29 @@ export const initSharedCategoryFilter = (container) => {
       }
 
       const selectedIds = filterElement.state.selectedCategories || [];
-      return selectedIds
-        .map(id => {
-          const node = filterElement._categoriesMap.get(id);
-          return node ? node.slug : null;
-        })
-        .filter(Boolean);
+      return selectedIds.map(id => String(id));
     },
 
     /**
      * Установить выбранные категории
-     * @param {Array<string>} slugs - Массив slugs категорий
+     * @param {Array<string|number>} idsOrSlugs - Массив ID или slugs категорий
      */
-    setValue(slugs) {
-      if (!filterElement || !Array.isArray(slugs)) {
+    setValue(idsOrSlugs) {
+      if (!filterElement || !Array.isArray(idsOrSlugs)) {
         return;
       }
 
-      // Преобразуем slugs в IDs и устанавливаем выбранные
-      const selectedIds = slugs
-        .map(slug => {
+      // Преобразуем в IDs - теперь работаем с ID, но поддерживаем slugs для обратной совместимости
+      const selectedIds = idsOrSlugs
+        .map(val => {
+          // Если это число или строка с числом - используем как ID
+          const id = typeof val === 'number' ? val : parseInt(val, 10);
+          if (!isNaN(id)) {
+            return id;
+          }
+          // Если это не число, пытаемся найти по slug (обратная совместимость)
           const found = Array.from(filterElement._categoriesMap.values()).find(
-            cat => cat.slug === slug
+            cat => cat.slug === val
           );
           return found ? found.id : null;
         })

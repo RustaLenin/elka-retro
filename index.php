@@ -18,9 +18,10 @@ get_header(); ?>
           $toy_catalog_link = home_url('/catalog/');
         }
 
-        $ny_accessory_link = function_exists('get_post_type_archive_link') ? get_post_type_archive_link('ny_accessory') : '';
+        // Ссылка на каталог аксессуаров
+        $ny_accessory_link = function_exists('elkaretro_get_accessory_catalog_page_url') ? elkaretro_get_accessory_catalog_page_url() : '';
         if (!$ny_accessory_link) {
-          $ny_accessory_link = home_url('/ny-accessory/');
+          $ny_accessory_link = home_url('/accessories/');
         }
       ?>
       <div class="catalog-links-grid">
@@ -162,15 +163,32 @@ get_header(); ?>
       <!-- <hero-section></hero-section> -->
     </div>
     
-    <!-- NY Accessories Preview -->
+    <!-- Homepage Tabs Section (Steam-style) -->
     <div class="section_container">
-      <?php get_template_part('template-parts/latest-ny-accessories'); ?>
-    </div>
-    
-    <!-- Latest Toy Types (New Arrivals) -->
-    <div class="section_container">
-      <div id="new-arrivals" class="product_section">
-        <?php get_template_part('template-parts/latest-toy-types'); ?>
+      <div id="new-arrivals" class="homepage-tabs-wrapper">
+        <ui-tabs active-tab="toys" size="large">
+          <ui-tab-item id="toys" label="Новинки ёлочных игрушек"></ui-tab-item>
+          <ui-tab-item id="accessories" label="Новинки новогодних аксессуаров"></ui-tab-item>
+          <ui-tab-item id="sale" label="Распродажа"></ui-tab-item>
+          <ui-tab-item id="auction" label="Аукцион"></ui-tab-item>
+        </ui-tabs>
+        
+        <homepage-tabs-content active-tab="toys">
+          <div class="homepage-tabs-content-wrapper">
+            <div class="tab-panel" data-tab-id="toys">
+              <?php get_template_part('template-parts/homepage-tab-toys'); ?>
+            </div>
+            <div class="tab-panel" data-tab-id="accessories" style="display: none;">
+              <?php get_template_part('template-parts/homepage-tab-accessories'); ?>
+            </div>
+            <div class="tab-panel" data-tab-id="sale" style="display: none;">
+              <div class="tab-placeholder">Распродажа - скоро</div>
+            </div>
+            <div class="tab-panel" data-tab-id="auction" style="display: none;">
+              <div class="tab-placeholder">Аукцион - скоро</div>
+            </div>
+          </div>
+        </homepage-tabs-content>
       </div>
     </div>
     

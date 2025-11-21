@@ -24,7 +24,7 @@ export function step_personal_template(state) {
   return `
     <div class="step-personal">
       <div class="step-personal_content">
-        <ui-form-controller config-path="${configPath}"></ui-form-controller>
+        <ui-form-controller config-path="${configPath}" background></ui-form-controller>
         ${isSubmitting ? `
           <div class="step-personal_loading">
             <ui-loader></ui-loader>

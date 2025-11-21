@@ -91,14 +91,14 @@
       "slug": "ny_category",
       "type": "taxonomy",
       "public_description": "Категория новогоднего аксессуара",
-      "arch_description": "Плоская таксономия для группировки новогодних аксессуаров по категориям",
+      "arch_description": "Иерархическая таксономия для группировки новогодних аксессуаров по категориям",
       "show_on_card": false,
       "show_in_description": true,
       "show_in_cart_list": false,
       "show_in_filters": true,
       "required": false,
       "multi_choose": false,
-      "hierarchical": false
+      "hierarchical": true
     },
     "material": {
       "display_name": "Материалы",
@@ -888,6 +888,22 @@
           "required": false,
           "multi_choose": false,
           "meta_field": "ny_property_field"
+        },
+        "stock": {
+          "display_name": "Остаток",
+          "slug": "stock",
+          "field_type": "number",
+          "public_description": "Количество доступных единиц аксессуара",
+          "arch_description": "Pods поле типа number для хранения остатка товара. При создании заказа остаток уменьшается. Статус меняется на reserved только если остаток стал 0",
+          "show_on_card": true,
+          "show_in_description": true,
+          "show_in_cart_list": false,
+          "show_in_filters": false,
+          "required": false,
+          "multi_choose": false,
+          "meta_field": "stock",
+          "default_value": 0,
+          "number_format_type": "integer"
         }
       },
       "publishing_requirements": {
@@ -968,6 +984,21 @@
       "show_in_admin_dropdown": true,
       "post_types": ["toy_type", "toy_instance", "ny_accessory"],
       "description": "Запись имеет данные, но требует фотографий или доработки описания"
+    },
+    "booked": {
+      "display_name": "Бронируется",
+      "label": "Бронируется",
+      "label_count": {
+        "singular": "Бронируется (%s)",
+        "plural": "Бронируется (%s)"
+      },
+      "public": false,
+      "exclude_from_search": true,
+      "show_in_admin_all_list": true,
+      "show_in_admin_status_list": true,
+      "show_in_admin_dropdown": true,
+      "post_types": ["toy_instance", "ny_accessory"],
+      "description": "Временный статус во время валидации заказа для защиты от race conditions"
     },
     "reserved": {
       "display_name": "Зарезервировано",

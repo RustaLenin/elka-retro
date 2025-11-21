@@ -1,0 +1,112 @@
+/* Accessory Catalog Toolbar Styles */
+
+.accessory-catalog-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--accessory-catalog-toolbar-border, rgba(228, 231, 236, 0.4));
+}
+
+/* Верхняя строка: поиск и сортировка */
+.accessory-catalog-toolbar__row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Секции toolbar */
+.accessory-catalog-toolbar__section {
+  display: block;
+}
+
+.accessory-catalog-toolbar__section--search {
+  flex: 1;
+  min-width: 0; /* Позволяет input сжиматься */
+}
+
+.accessory-catalog-toolbar__section--sort {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+
+.accessory-catalog-toolbar__section--chips {
+  width: 100%;
+  margin-top: 0;
+}
+
+/* Скрываем чипсы, если их нет */
+.accessory-catalog-toolbar__section--chips:empty {
+  display: none;
+}
+
+/* Search Box Styles */
+.accessory-catalog-search-box {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem; /* Отступ между полем ввода и кнопкой */
+  width: 100%;
+}
+
+.accessory-catalog-search-box ui-input-text {
+  flex: 1;
+  max-width: 600px; /* Ограничиваем максимальную ширину инпута */
+}
+
+.accessory-catalog-search-box__submit {
+  flex-shrink: 0;
+  min-width: 120px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+/* Sort Control Styles */
+.accessory-catalog-sort-control {
+  display: flex;
+  width: 100%;
+}
+
+/* Чипсы фильтров */
+.accessory-catalog-toolbar__section--chips ui-filters-summary {
+  display: block;
+  width: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .accessory-catalog-toolbar {
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+  }
+
+  .accessory-catalog-toolbar__row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .accessory-catalog-toolbar__section--search,
+  .accessory-catalog-toolbar__section--sort {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .accessory-catalog-search-box {
+    flex-direction: column;
+    gap: 0.75rem; /* Уменьшенный отступ на мобильных */
+  }
+
+  .accessory-catalog-search-box ui-input-text {
+    max-width: 100%; /* На мобильных инпут занимает всю ширину */
+  }
+
+  .accessory-catalog-search-box__submit {
+    width: 100%;
+    height: 44px;
+  }
+}
+

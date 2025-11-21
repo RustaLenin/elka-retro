@@ -14,6 +14,7 @@ export class UIFormController extends BaseElement {
     debug:     { type: 'boolean', default: false, attribute: { name: 'debug', observed: true, reflect: true } },
     configPath:{ type: 'string',  default: '', attribute: { name: 'config-path', observed: true, reflect: true } },
     mode:      { type: 'string',  default: 'page', attribute: { name: 'mode', observed: true, reflect: true } },
+    background:{ type: 'boolean', default: false, attribute: { name: 'background', observed: true, reflect: true } },
     icon:      { type: 'json',    default: null, attribute: null },
     actions:   { type: 'json',    default: null, attribute: null },
     layout:    { type: 'json',    default: null, attribute: null },

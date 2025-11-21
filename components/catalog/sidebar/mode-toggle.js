@@ -135,7 +135,8 @@ export const createModeToggle = ({ container, onChange } = {}) => {
     }
 
     // Обновляем через стор (это вызовет handleStoreStateChange и обновит UI)
-    store.updateState({ mode, page: 1, filters: {} });
+    const perPage = store.getPerPage ? store.getPerPage() : 30;
+    store.updateState({ mode, limit: perPage, filters: {} });
   };
 
   /**

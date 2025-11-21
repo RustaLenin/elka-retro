@@ -9,11 +9,11 @@ export function renderProfilePageTemplate(state) {
     <div class="profile-page">
       <div class="profile-page__wrapper">
         <div class="profile-page__tabs">
-          <tab-navigation active-tab="${activeTab}">
-            <tab-nav-item id="settings" label="Настройки профиля"></tab-nav-item>
-            <tab-nav-item id="orders" label="История заказов"></tab-nav-item>
-            <tab-nav-item id="contact" label="Обратная связь"></tab-nav-item>
-          </tab-navigation>
+          <ui-tabs active-tab="${activeTab}">
+            <ui-tab-item id="settings" label="Настройки профиля"></ui-tab-item>
+            <ui-tab-item id="orders" label="История заказов"></ui-tab-item>
+            <ui-tab-item id="contact" label="Обратная связь"></ui-tab-item>
+          </ui-tabs>
         </div>
         
         <div class="profile-page__card">

@@ -434,6 +434,10 @@ export class UIFormField extends BaseElement {
       case 'ui-checkbox:change':
       case 'ui-segmented-toggle:change':
         update.touched = true;
+        // Синхронизируем значение из контрола с state поля
+        if (detail.value !== undefined) {
+          update.value = detail.value;
+        }
         break;
       case 'ui-select:close':
         update.touched = true;
@@ -499,6 +503,22 @@ export class UIFormField extends BaseElement {
       return control.value || null;
     }
     
+    // Для веб-компонентов получаем значение напрямую из контрола для актуальности
+    if (control) {
+      // Проверяем, есть ли у контрола метод value()
+      if (typeof control.value === 'function') {
+        const controlValue = control.value();
+        if (controlValue !== null && controlValue !== undefined) {
+          return controlValue;
+        }
+      }
+      // Или получаем из state контрола
+      if (control.state && control.state.value !== undefined) {
+        return control.state.value ?? null;
+      }
+    }
+    
+    // Fallback на state поля
     return this.state.value ?? null;
   }
 

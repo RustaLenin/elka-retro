@@ -8,6 +8,7 @@ export function ny_accessory_card_template(state) {
     title,
     index,
     price,
+    stock,
     condition,
     conditionSlug,
     material,
@@ -69,7 +70,8 @@ export function ny_accessory_card_template(state) {
           </div>
         `}
       </a>
-      ${safeIndex ? `<span class="ny-accessory-card__badge">${safeIndex}</span>` : ''}
+      ${safeIndex ? `<span class="ny-accessory-card__badge ny-accessory-card__badge--index">${safeIndex}</span>` : ''}
+      ${stock !== null && stock !== undefined && stock > 0 ? `<span class="ny-accessory-card__badge ny-accessory-card__badge--stock">Остаток: ${stock}</span>` : ''}
     </div>
     <div class="ny-accessory-card__content">
       ${safeTitle ? `

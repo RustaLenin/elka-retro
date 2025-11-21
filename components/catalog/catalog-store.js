@@ -19,15 +19,14 @@ import {
   parse as parseUrlState,
   applyStateToUrl,
   subscribe as subscribeToUrlState,
-} from './catalog-url-state.js';
+} from '../catalog-shared/catalog-url-state.js';
 
 const CATALOG_STORAGE_KEY = 'elkaretro_catalog_state';
 
 /**
  * @typedef {Object} CatalogState
  * @property {string} mode - 'type' | 'instance'
- * @property {number} page - текущая страница
- * @property {number} perPage - элементов на странице
+ * @property {number} limit - сколько всего элементов показано (в URL)
  * @property {string} search - поисковый запрос
  * @property {string} sort - сортировка
  * @property {Object<string, string[]>} filters - активные фильтры { filterKey: [values] }
@@ -37,8 +36,6 @@ const CATALOG_STORAGE_KEY = 'elkaretro_catalog_state';
  * @typedef {Object} CatalogMetadata
  * @property {number} total - общее количество результатов
  * @property {number} totalPages - общее количество страниц
- * @property {Object<string, Object>} availableFilters - доступные фильтры с counts
- * @property {Object} facetCounts - счётчики для каждого значения фильтра
  */
 
 /**
@@ -47,6 +44,8 @@ const CATALOG_STORAGE_KEY = 'elkaretro_catalog_state';
  * @property {CatalogMetadata} meta - метаданные результатов
  * @property {boolean} isLoading - флаг загрузки
  * @property {Error|null} error - ошибка загрузки
+ * @property {number} loadedCount - сколько элементов уже загружено (для вычисления offset)
+ * @property {number} perPage - элементов на странице (для infinite scroll)
  */
 
 class CatalogStore {
@@ -58,6 +57,8 @@ class CatalogStore {
       isLoading: false,
       error: null,
       draftFilters: null,
+      loadedCount: 0, // Сколько элементов уже загружено (для вычисления offset)
+      perPage: 30, // Элементов на странице (для infinite scroll)
     };
 
     /** @type {Set<Function>} */
@@ -107,8 +108,7 @@ class CatalogStore {
   _getDefaultState() {
     return {
       mode: 'type',
-      page: 1,
-      perPage: 30,
+      limit: 30, // Сколько всего показано элементов (в URL)
       search: '',
       sort: 'newest',
       filters: {},
@@ -124,8 +124,6 @@ class CatalogStore {
     return {
       total: 0,
       totalPages: 0,
-      availableFilters: {},
-      facetCounts: {},
     };
   }
 
@@ -139,8 +137,15 @@ class CatalogStore {
     const defaultState = this._getDefaultState();
     const normalized = {
       mode: state.mode === 'instance' ? 'instance' : 'type',
-      page: Math.max(1, parseInt(state.page, 10) || defaultState.page),
-      perPage: Math.max(1, parseInt(state.perPage, 10) || defaultState.perPage),
+      // Ограничиваем limit максимумом, чтобы предотвратить ошибки от старых больших значений
+      limit: (() => {
+        const MAX_LIMIT = 1000; // Максимальное значение limit для backend API
+        const requestedLimit = Math.max(1, parseInt(state.limit, 10) || defaultState.limit);
+        if (requestedLimit > MAX_LIMIT) {
+          console.warn(`[catalog-store] Limit ${requestedLimit} from state exceeds maximum ${MAX_LIMIT}, normalized to ${MAX_LIMIT}`);
+        }
+        return Math.min(requestedLimit, MAX_LIMIT);
+      })(),
       search: typeof state.search === 'string' ? state.search.trim() : defaultState.search,
       sort: typeof state.sort === 'string' && state.sort.trim() ? state.sort.trim() : defaultState.sort,
       filters: {},
@@ -174,8 +179,7 @@ class CatalogStore {
   _hasStateChanged(oldState, newState) {
     return (
       oldState.mode !== newState.mode ||
-      oldState.page !== newState.page ||
-      oldState.perPage !== newState.perPage ||
+      oldState.limit !== newState.limit ||
       oldState.search !== newState.search ||
       oldState.sort !== newState.sort ||
       JSON.stringify(oldState.filters) !== JSON.stringify(newState.filters)
@@ -201,7 +205,24 @@ class CatalogStore {
       meta: updates.meta ? { ...updates.meta } : this._state.meta,
     };
 
+    // Если изменились фильтры, поиск или сортировка - сбрасываем loadedCount
     if (updates.state) {
+      const prevCatalogState = prevState.state;
+      const nextCatalogState = this._state.state;
+      const filtersChanged = JSON.stringify(prevCatalogState.filters) !== JSON.stringify(nextCatalogState.filters);
+      const searchChanged = prevCatalogState.search !== nextCatalogState.search;
+      const sortChanged = prevCatalogState.sort !== nextCatalogState.sort;
+      const modeChanged = prevCatalogState.mode !== nextCatalogState.mode;
+
+      if (filtersChanged || searchChanged || sortChanged || modeChanged) {
+        // Сбрасываем счётчик загруженных элементов и limit при изменении фильтров/поиска/сортировки
+        this._state.loadedCount = 0;
+        // Если limit не был явно указан, сбрасываем на perPage
+        if (nextCatalogState.limit === prevCatalogState.limit) {
+          this._state.state.limit = this._state.perPage;
+        }
+      }
+
       this._state.draftFilters = null;
     }
 
@@ -351,6 +372,7 @@ class CatalogStore {
         meta: this._getDefaultMeta(),
         error: null,
         isLoading: false,
+        loadedCount: 0,
       },
       { syncUrl: true, replace: false }
     );
@@ -538,6 +560,41 @@ class CatalogStore {
       cloned[key] = Array.isArray(values) ? [...values] : [];
     });
     return cloned;
+  }
+
+  /**
+   * Получить текущий loadedCount (сколько элементов уже загружено)
+   * @returns {number}
+   */
+  getLoadedCount() {
+    return this._state.loadedCount || 0;
+  }
+
+  /**
+   * Получить offset для следующего запроса
+   * @returns {number}
+   */
+  getOffset() {
+    return this.getLoadedCount();
+  }
+
+  /**
+   * Увеличить loadedCount после успешной загрузки элементов
+   * @param {number} amount - количество загруженных элементов
+   */
+  incrementLoadedCount(amount) {
+    if (typeof amount !== 'number' || amount < 0) {
+      return;
+    }
+    this._state.loadedCount = (this._state.loadedCount || 0) + amount;
+  }
+
+  /**
+   * Получить perPage (количество элементов на странице для infinite scroll)
+   * @returns {number}
+   */
+  getPerPage() {
+    return this._state.perPage || 30;
   }
 }
 

@@ -212,7 +212,7 @@ import { taxonomyOptionAdapter } from './helpers/field-config-adapter.js';
 
 // Преобразование терминов таксономии в опции
 const options = taxonomyOptionAdapter.adaptOptions(window.taxonomy_terms['occurrence']);
-// Результат: [{ value: 'slug', label: 'Name', description: '...' }]
+// Результат: [{ value: '123', label: 'Name' }] - value это ID термина как строка
 ```
 
 ## Data Sanitizer

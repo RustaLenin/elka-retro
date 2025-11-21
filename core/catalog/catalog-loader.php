@@ -45,26 +45,43 @@ class Catalog_Loader {
 	 * @return void
 	 */
 	public static function enqueue_assets() {
-		if ( ! is_page_template( 'page-catalog.php' ) ) {
-			return;
-		}
-
 		$theme_uri  = get_template_directory_uri();
 		$theme_path = get_template_directory();
 
-		$styles = array(
-			'elkaretro-catalog-page'    => '/components/catalog/catalog-page-styles.css',
-			'elkaretro-catalog-results' => '/components/catalog/results/results-styles.css',
-		);
-
-		foreach ( $styles as $handle => $relative_path ) {
-			$absolute_path = $theme_path . $relative_path;
-			wp_enqueue_style(
-				$handle,
-				$theme_uri . $relative_path,
-				array(),
-				file_exists( $absolute_path ) ? filemtime( $absolute_path ) : null
+		// Enqueue assets for toy catalog
+		if ( is_page_template( 'page-catalog.php' ) ) {
+			$styles = array(
+				'elkaretro-catalog-page'    => '/components/catalog/catalog-page-styles.css',
+				'elkaretro-catalog-results' => '/components/catalog/results/results-styles.css',
 			);
+
+			foreach ( $styles as $handle => $relative_path ) {
+				$absolute_path = $theme_path . $relative_path;
+				wp_enqueue_style(
+					$handle,
+					$theme_uri . $relative_path,
+					array(),
+					file_exists( $absolute_path ) ? filemtime( $absolute_path ) : null
+				);
+			}
+		}
+
+		// Enqueue assets for accessory catalog
+		if ( is_page_template( 'page-accessory-catalog.php' ) ) {
+			$styles = array(
+				'elkaretro-accessory-catalog-page'    => '/components/accessory-catalog/accessory-catalog-page-styles.css',
+				'elkaretro-accessory-catalog-results' => '/components/accessory-catalog/results/results-styles.css',
+			);
+
+			foreach ( $styles as $handle => $relative_path ) {
+				$absolute_path = $theme_path . $relative_path;
+				wp_enqueue_style(
+					$handle,
+					$theme_uri . $relative_path,
+					array(),
+					file_exists( $absolute_path ) ? filemtime( $absolute_path ) : null
+				);
+			}
 		}
 	}
 }

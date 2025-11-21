@@ -15,7 +15,17 @@ if (window.app?.toolkit?.loadCSSOnce) {
  * Не является полем формы, работает напрямую с catalog-store.
  */
 export class CategoryTreeFilter extends BaseElement {
+  // Отключаем автоматический рендер, управляем вручную для оптимизации
+  static autoRender = false;
+  
   static stateSchema = {
+    // Конфигурация через атрибуты
+    taxonomy: { type: 'string', default: 'category-of-toys', attribute: { name: 'taxonomy', observed: true } },
+    filterKey: { type: 'string', default: 'category-of-toys', attribute: { name: 'filter-key', observed: true } },
+    storeApi: { type: 'string', default: 'catalog', attribute: { name: 'store-api', observed: true } },
+    updateEvent: { type: 'string', default: 'elkaretro:catalog:updated', attribute: { name: 'update-event', observed: true } },
+    storageKey: { type: 'string', default: 'elkaretro_category_filter_expanded', attribute: { name: 'storage-key', observed: true } },
+    
     // Внутренние состояния (не атрибуты)
     selectedCategories: { type: 'json', default: [], attribute: null, internal: true },
     expandedNodes: { type: 'json', default: [], attribute: null, internal: true },
@@ -58,7 +68,9 @@ export class CategoryTreeFilter extends BaseElement {
     this._loadSelectedFromStore();
     
     // Подписываемся на обновления каталога
-    window.addEventListener('elkaretro:catalog:updated', this._onCatalogUpdate);
+    const updateEvent = this.state.updateEvent || 'elkaretro:catalog:updated';
+    this._currentUpdateEvent = updateEvent;
+    window.addEventListener(updateEvent, this._onCatalogUpdate);
     
     // Рендерим компонент
     this.render();
@@ -70,7 +82,12 @@ export class CategoryTreeFilter extends BaseElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._detachEvents();
-    window.removeEventListener('elkaretro:catalog:updated', this._onCatalogUpdate);
+    
+    // Отписываемся от событий
+    if (this._currentUpdateEvent) {
+      window.removeEventListener(this._currentUpdateEvent, this._onCatalogUpdate);
+      this._currentUpdateEvent = null;
+    }
     
     // Сохраняем состояние раскрытия в localStorage
     this._saveExpandedState();
@@ -86,9 +103,10 @@ export class CategoryTreeFilter extends BaseElement {
       return;
     }
 
-    const flatTerms = window.taxonomy_terms['category-of-toys'];
+    const taxonomySlug = this.state.taxonomy || 'category-of-toys';
+    const flatTerms = window.taxonomy_terms[taxonomySlug];
     if (!flatTerms || typeof flatTerms !== 'object') {
-      console.warn('[category-tree-filter] category-of-toys terms not found');
+      console.warn(`[category-tree-filter] ${taxonomySlug} terms not found`);
       return;
     }
 
@@ -116,7 +134,8 @@ export class CategoryTreeFilter extends BaseElement {
         slug: term.slug,
         parent: term.parent || 0,
         children: [],
-        toy_types_count: term.toy_types_count || 0, // Количество типов в категории
+        toy_types_count: term.toy_types_count || 0, // Количество типов в категории (прямой счет)
+        category_index: term.category_index || 0, // Индекс категории для сортировки
         _original: term, // Сохраняем оригинальные данные
       };
       nodes.set(term.id, node);
@@ -138,9 +157,52 @@ export class CategoryTreeFilter extends BaseElement {
       }
     });
     
-    // Сортируем узлы по имени (рекурсивно)
+    // Рекурсивно суммируем счетчики для родительских категорий
+    // Логика: каждый узел показывает прямой счетчик + сумму всех дочерних (рекурсивно)
+    const sumCountsRecursive = (node) => {
+      // Сохраняем прямой счетчик
+      const directCount = node.toy_types_count || 0;
+      let childrenCount = 0;
+      
+      // Рекурсивно обрабатываем детей и суммируем их счетчики
+      if (node.children && node.children.length > 0) {
+        node.children.forEach(child => {
+          sumCountsRecursive(child);
+          // К счетчику родителя добавляем итоговый счетчик дочернего (который уже включает всех потомков)
+          childrenCount += child.toy_types_count || 0;
+        });
+      }
+      
+      // Итоговый счетчик: прямой + сумма всех дочерних (которые уже включают своих потомков)
+      node.toy_types_count = directCount + childrenCount;
+    };
+    
+    // Применяем суммирование ко всем корневым узлам
+    rootNodes.forEach(node => {
+      sumCountsRecursive(node);
+    });
+    
+    // Сортируем узлы по индексу категории, затем по имени (рекурсивно)
     const sortNodes = (nodes) => {
-      nodes.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+      nodes.sort((a, b) => {
+        // Сначала по индексу категории (если есть и больше 0)
+        const aIndex = a.category_index || 0;
+        const bIndex = b.category_index || 0;
+        
+        if (aIndex > 0 && bIndex > 0) {
+          // Если у обоих есть индекс, сортируем по индексу
+          return aIndex - bIndex;
+        } else if (aIndex > 0) {
+          // Если только у первого есть индекс, он идёт первым
+          return -1;
+        } else if (bIndex > 0) {
+          // Если только у второго есть индекс, он идёт первым
+          return 1;
+        } else {
+          // Если у обоих нет индекса, сортируем по имени
+          return a.name.localeCompare(b.name, 'ru');
+        }
+      });
       nodes.forEach(node => {
         if (node.children.length > 0) {
           sortNodes(node.children);
@@ -155,19 +217,54 @@ export class CategoryTreeFilter extends BaseElement {
 
   /**
    * Загрузить состояние раскрытия из localStorage
+   * Если нет сохраненного состояния, автоматически раскрываем первый и второй уровень
    * @private
    */
   _loadExpandedState() {
     try {
-      const stored = localStorage.getItem('elkaretro_category_filter_expanded');
+      const storageKey = this.state.storageKey || 'elkaretro_category_filter_expanded';
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         const expanded = JSON.parse(stored);
-        if (Array.isArray(expanded)) {
+        if (Array.isArray(expanded) && expanded.length > 0) {
           this.setState({ expandedNodes: expanded });
+          return;
         }
       }
+      
+      // Если нет сохраненного состояния, раскрываем первый и второй уровень
+      this._expandDefaultLevels();
     } catch (e) {
       console.warn('[category-tree-filter] Failed to load expanded state:', e);
+      // При ошибке также раскрываем уровни по умолчанию
+      this._expandDefaultLevels();
+    }
+  }
+
+  /**
+   * Раскрыть первый и второй уровень категорий по умолчанию
+   * @private
+   */
+  _expandDefaultLevels() {
+    const tree = this.state.categoryTree || [];
+    const expanded = new Set();
+    
+    // Раскрываем первый уровень (корневые категории)
+    tree.forEach(rootNode => {
+      if (rootNode.children && rootNode.children.length > 0) {
+        expanded.add(rootNode.id);
+        
+        // Раскрываем второй уровень (дети корневых категорий)
+        rootNode.children.forEach(childNode => {
+          if (childNode.children && childNode.children.length > 0) {
+            expanded.add(childNode.id);
+          }
+        });
+      }
+    });
+    
+    if (expanded.size > 0) {
+      this.setState({ expandedNodes: Array.from(expanded) });
     }
   }
 
@@ -177,10 +274,35 @@ export class CategoryTreeFilter extends BaseElement {
    */
   _saveExpandedState() {
     try {
+      const storageKey = this.state.storageKey || 'elkaretro_category_filter_expanded';
       const expanded = Array.from(this.state.expandedNodes || []);
-      localStorage.setItem('elkaretro_category_filter_expanded', JSON.stringify(expanded));
+      localStorage.setItem(storageKey, JSON.stringify(expanded));
     } catch (e) {
       console.warn('[category-tree-filter] Failed to save expanded state:', e);
+    }
+  }
+  
+  /**
+   * Обработчик изменений состояния
+   * @param {string} key - Ключ изменённого свойства
+   */
+  onStateChanged(key) {
+    super.onStateChanged(key);
+    
+    // При изменении таксономии перезагружаем дерево
+    if (key === 'taxonomy') {
+      this._loadCategoryTree();
+      this.render();
+    }
+    
+    // При изменении события обновления - переподписываемся
+    if (key === 'updateEvent') {
+      if (this._currentUpdateEvent) {
+        window.removeEventListener(this._currentUpdateEvent, this._onCatalogUpdate);
+      }
+      const updateEvent = this.state.updateEvent || 'elkaretro:catalog:updated';
+      this._currentUpdateEvent = updateEvent;
+      window.addEventListener(updateEvent, this._onCatalogUpdate);
     }
   }
 
@@ -189,22 +311,28 @@ export class CategoryTreeFilter extends BaseElement {
    * @private
    */
   _loadSelectedFromStore() {
-    if (!window.app?.catalogStore) {
+    const storeApi = this.state.storeApi || 'catalog';
+    const filterKey = this.state.filterKey || 'category-of-toys';
+    const store = window.app?.[`${storeApi}Store`] || window.app?.[storeApi];
+    
+    if (!store) {
       return;
     }
 
-    const catalogState = window.app.catalogStore.getCatalogState();
-    const selected = catalogState.filters?.['category-of-toys'] || [];
+    const catalogState = store.getCatalogState ? store.getCatalogState() : (store.getState ? store.getState() : {});
+    const selected = catalogState.filters?.[filterKey] || [];
     
     if (Array.isArray(selected) && selected.length > 0) {
-      // Преобразуем slugs/IDs в числа (IDs)
+      // Преобразуем в числа (IDs) - теперь всегда работаем с ID
       const selectedIds = selected.map(val => {
-        // Если это slug, находим ID по slug
-        if (typeof val === 'string' && !/^\d+$/.test(val)) {
+        // Если это число или строка с числом - используем как ID
+        const id = typeof val === 'number' ? val : parseInt(val, 10);
+        // Если это не число, пытаемся найти по slug (обратная совместимость)
+        if (isNaN(id)) {
           const found = Array.from(this._categoriesMap.values()).find(cat => cat.slug === val);
           return found ? found.id : null;
         }
-        return parseInt(val, 10);
+        return id;
       }).filter(id => id && !isNaN(id));
       
       this.setState({ selectedCategories: selectedIds });
@@ -225,7 +353,8 @@ export class CategoryTreeFilter extends BaseElement {
     const { state } = event.detail || {};
     if (!state) return;
 
-    const selected = state.filters?.['category-of-toys'] || [];
+    const filterKey = this.state.filterKey || 'category-of-toys';
+    const selected = state.filters?.[filterKey] || [];
     const selectedIds = Array.isArray(selected) ? selected.map(val => {
       if (typeof val === 'string' && !/^\d+$/.test(val)) {
         const found = Array.from(this._categoriesMap.values()).find(cat => cat.slug === val);
@@ -241,7 +370,8 @@ export class CategoryTreeFilter extends BaseElement {
     if (currentSelected.size !== newSelected.size || 
         !Array.from(currentSelected).every(id => newSelected.has(id))) {
       this.setState({ selectedCategories: selectedIds });
-      this.render();
+      this._updateCheckboxes();
+      // _updateCheckboxes уже вызывает _updateNodeAttributes и _updateRootAttributes
     }
   }
 
@@ -384,8 +514,9 @@ export class CategoryTreeFilter extends BaseElement {
    */
   _toggleNode(categoryId) {
     const expanded = new Set(this.state.expandedNodes || []);
+    const wasExpanded = expanded.has(categoryId);
     
-    if (expanded.has(categoryId)) {
+    if (wasExpanded) {
       expanded.delete(categoryId);
     } else {
       expanded.add(categoryId);
@@ -393,7 +524,40 @@ export class CategoryTreeFilter extends BaseElement {
     
     this.setState({ expandedNodes: Array.from(expanded) });
     this._saveExpandedState();
-    this.render();
+    
+    // Обновляем только видимость дочерних узлов и иконку без полного рендера
+    this._updateNodeExpandedState(categoryId, !wasExpanded);
+  }
+  
+  /**
+   * Обновить состояние раскрытия узла без полного рендера
+   * @param {number} categoryId
+   * @param {boolean} isExpanded
+   * @private
+   */
+  _updateNodeExpandedState(categoryId, isExpanded) {
+    const node = this.querySelector(`[data-category-id="${categoryId}"]`);
+    if (!node) return;
+    
+    // Находим контейнер с дочерними узлами (теперь всегда должен быть в DOM)
+    const childrenContainer = node.querySelector('.category-tree-filter__children');
+    if (childrenContainer) {
+      childrenContainer.style.display = isExpanded ? '' : 'none';
+    }
+    
+    // Обновляем иконку в кнопке раскрытия
+    const toggleBtn = node.querySelector('[data-toggle-node]');
+    if (toggleBtn) {
+      const icon = toggleBtn.querySelector('ui-icon');
+      if (icon) {
+        icon.setAttribute('name', isExpanded ? 'chevron_down' : 'chevron_right');
+      }
+      toggleBtn.setAttribute('aria-expanded', String(isExpanded));
+      
+      // Обновляем aria-label с учетом названия категории
+      const categoryName = node.querySelector('.category-tree-filter__checkbox-label')?.textContent?.trim() || 'категорию';
+      toggleBtn.setAttribute('aria-label', `${isExpanded ? 'Свернуть' : 'Развернуть'} ${categoryName}`);
+    }
   }
 
   /**
@@ -402,8 +566,16 @@ export class CategoryTreeFilter extends BaseElement {
    */
   toggleExpanded() {
     const isExpanded = !this.state.isExpanded;
+    
+    // Если разворачиваем каталог - автоматически разворачиваем все категории
+    if (isExpanded) {
+      this._expandAllCategories();
+    }
+    
     this.setState({ isExpanded });
-    this.render();
+    
+    // Обновляем только класс и иконку без полного рендера
+    this._updateExpandedState(isExpanded);
     
     // Эмитим событие для сайдбара, чтобы скрыть/показать другие фильтры
     this.dispatchEvent(new CustomEvent('category-filter:expanded', {
@@ -411,6 +583,69 @@ export class CategoryTreeFilter extends BaseElement {
       composed: true,
       detail: { isExpanded }
     }));
+  }
+  
+  /**
+   * Развернуть все категории в дереве (рекурсивно)
+   * @private
+   */
+  _expandAllCategories() {
+    const tree = this.state.categoryTree || [];
+    const expanded = new Set(this.state.expandedNodes || []);
+    
+    // Рекурсивная функция для добавления всех категорий в expanded
+    const addAllToExpanded = (nodes) => {
+      nodes.forEach(node => {
+        if (node.children && node.children.length > 0) {
+          expanded.add(node.id);
+          addAllToExpanded(node.children);
+        }
+      });
+    };
+    
+    addAllToExpanded(tree);
+    
+    if (expanded.size > 0) {
+      this.setState({ expandedNodes: Array.from(expanded) });
+      // Обновляем видимость всех дочерних узлов в DOM
+      expanded.forEach(categoryId => {
+        this._updateNodeExpandedState(categoryId, true);
+      });
+    }
+  }
+  
+  /**
+   * Обновить состояние разворота без полного рендера
+   * @param {boolean} isExpanded
+   * @private
+   */
+  _updateExpandedState(isExpanded) {
+    const root = this.querySelector('.category-tree-filter');
+    if (root) {
+      if (isExpanded) {
+        root.classList.add('category-tree-filter--expanded');
+      } else {
+        root.classList.remove('category-tree-filter--expanded');
+      }
+    }
+    
+    // Обновляем атрибуты корневого элемента (вызовет CSS правила видимости)
+    this._updateRootAttributes();
+    
+    // Обновляем иконку и текст в кнопке разворота
+    const expandBtn = this.querySelector('[data-toggle-expanded]');
+    if (expandBtn) {
+      const icon = expandBtn.querySelector('ui-icon');
+      if (icon) {
+        icon.setAttribute('name', isExpanded ? 'chevron_left' : 'chevron_right');
+      }
+      const text = expandBtn.querySelector('.category-tree-filter__expand-btn-text');
+      if (text) {
+        text.textContent = isExpanded ? 'Свернуть' : 'Развернуть';
+      }
+      expandBtn.setAttribute('aria-expanded', String(isExpanded));
+      expandBtn.setAttribute('aria-label', `${isExpanded ? 'Свернуть' : 'Развернуть'} фильтр категорий`);
+    }
   }
 
   /**
@@ -428,6 +663,7 @@ export class CategoryTreeFilter extends BaseElement {
    */
   _selectCategory(categoryId) {
     const selected = new Set(this.state.selectedCategories || []);
+    const expanded = new Set(this.state.expandedNodes || []);
     const node = this._categoriesMap.get(categoryId);
     
     if (!node) return;
@@ -438,11 +674,34 @@ export class CategoryTreeFilter extends BaseElement {
       n.children.forEach(child => selectRecursive(child));
     };
     
-    selectRecursive(node);
+    // Рекурсивно раскрываем все дочерние узлы
+    const expandRecursive = (n) => {
+      if (n.children && n.children.length > 0) {
+        expanded.add(n.id);
+        n.children.forEach(child => expandRecursive(child));
+      }
+    };
     
-    this.setState({ selectedCategories: Array.from(selected) });
+    selectRecursive(node);
+    expandRecursive(node);
+    
+    this.setState({ 
+      selectedCategories: Array.from(selected),
+      expandedNodes: Array.from(expanded)
+    });
+    
+    // Обновляем видимость дочерних узлов в DOM без полного рендера
+    const expandNodeRecursive = (n) => {
+      if (n.children && n.children.length > 0) {
+        this._updateNodeExpandedState(n.id, true);
+        n.children.forEach(child => expandNodeRecursive(child));
+      }
+    };
+    expandNodeRecursive(node);
+    
+    this._saveExpandedState();
     this._syncWithStore();
-    this.render();
+    this._updateCheckboxes();
   }
 
   /**
@@ -478,7 +737,7 @@ export class CategoryTreeFilter extends BaseElement {
     
     this.setState({ selectedCategories: Array.from(selected) });
     this._syncWithStore();
-    this.render();
+    this._updateCheckboxes();
   }
 
   /**
@@ -486,25 +745,30 @@ export class CategoryTreeFilter extends BaseElement {
    * @private
    */
   _syncWithStore() {
-    if (!window.app?.catalogStore) {
+    const storeApi = this.state.storeApi || 'catalog';
+    const filterKey = this.state.filterKey || 'category-of-toys';
+    const store = window.app?.[`${storeApi}Store`] || window.app?.[storeApi];
+    
+    if (!store || !store.updateState) {
       return;
     }
 
     const selectedIds = this.state.selectedCategories || [];
     
-    // Преобразуем IDs в slugs для URL
-    const selectedSlugs = selectedIds
-      .map(id => {
-        const node = this._categoriesMap.get(id);
-        return node ? node.slug : null;
-      })
+    // Отправляем ID как строки (для единообразия с остальными фильтрами)
+    const selectedIdsAsStrings = selectedIds
+      .map(id => String(id))
       .filter(Boolean);
 
+    // Получаем текущее состояние
+    const currentState = store.getCatalogState ? store.getCatalogState() : (store.getState ? store.getState() : {});
+    const currentFilters = currentState.filters || {};
+
     // Обновляем стор
-    window.app.catalogStore.updateState({
+    store.updateState({
       filters: {
-        ...window.app.catalogStore.getCatalogState().filters,
-        'category-of-toys': selectedSlugs.length > 0 ? selectedSlugs : undefined,
+        ...currentFilters,
+        [filterKey]: selectedIdsAsStrings.length > 0 ? selectedIdsAsStrings : undefined,
       }
     });
   }
@@ -609,13 +873,174 @@ export class CategoryTreeFilter extends BaseElement {
     return result;
   }
 
+  /**
+   * Обновить состояние чекбоксов без полной перерисовки
+   * @private
+   */
+  _updateCheckboxes() {
+    const selected = new Set(this.state.selectedCategories || []);
+    
+    // Обновляем состояние всех чекбоксов
+    this.querySelectorAll('[data-category-checkbox]').forEach(checkbox => {
+      const categoryId = parseInt(checkbox.dataset.categoryId, 10);
+      if (isNaN(categoryId)) return;
+      
+      const node = this._categoriesMap.get(categoryId);
+      if (!node) return;
+      
+      const isSelected = selected.has(categoryId);
+      const hasChildren = node.children && node.children.length > 0;
+      
+      // Определяем состояние чекбокса (логика должна совпадать с шаблоном)
+      if (isSelected) {
+        if (hasChildren) {
+          // Проверяем, все ли дочерние выбраны
+          const allChildrenSelected = node.children.every(child => selected.has(child.id));
+          checkbox.checked = allChildrenSelected;
+          checkbox.indeterminate = !allChildrenSelected;
+          // Обновляем атрибут для indeterminate
+          if (allChildrenSelected) {
+            checkbox.removeAttribute('data-indeterminate');
+          } else {
+            checkbox.setAttribute('data-indeterminate', 'true');
+          }
+        } else {
+          // Категория выбрана и нет детей - просто checked
+          checkbox.checked = true;
+          checkbox.indeterminate = false;
+          checkbox.removeAttribute('data-indeterminate');
+        }
+      } else {
+        // Категория не выбрана
+        checkbox.checked = false;
+        checkbox.indeterminate = false;
+        checkbox.removeAttribute('data-indeterminate');
+      }
+    });
+    
+    // Обновляем атрибуты видимости узлов и корневого элемента
+    this._updateNodeAttributes();
+    this._updateRootAttributes();
+  }
+  
+  /**
+   * Обновить атрибуты видимости узлов (selected, has-selected-descendant)
+   * @private
+   */
+  _updateNodeAttributes() {
+    const selected = new Set(this.state.selectedCategories || []);
+    
+    // Сначала находим все узлы с выбранными потомками (рекурсивно)
+    const nodesWithSelectedDescendants = new Set();
+    
+    const checkDescendants = (nodeId) => {
+      const node = this._categoriesMap.get(nodeId);
+      if (!node) return false;
+      
+      // Проверяем, выбран ли сам узел
+      if (selected.has(nodeId)) {
+        return true;
+      }
+      
+      // Проверяем дочерние узлы
+      let hasSelectedChild = false;
+      if (node.children && node.children.length > 0) {
+        for (const child of node.children) {
+          if (checkDescendants(child.id)) {
+            hasSelectedChild = true;
+          }
+        }
+      }
+      
+      // Если есть выбранный потомок, добавляем в список
+      if (hasSelectedChild) {
+        nodesWithSelectedDescendants.add(nodeId);
+      }
+      
+      return hasSelectedChild || selected.has(nodeId);
+    };
+    
+    // Проверяем все категории в дереве
+    const rootTree = this.state.categoryTree || [];
+    const traverse = (nodes) => {
+      for (const node of nodes) {
+        checkDescendants(node.id);
+        if (node.children && node.children.length > 0) {
+          traverse(node.children);
+        }
+      }
+    };
+    traverse(rootTree);
+    
+    // Обновляем атрибуты на DOM узлах
+    this.querySelectorAll('[data-category-id]').forEach(nodeEl => {
+      const categoryId = parseInt(nodeEl.dataset.categoryId, 10);
+      if (isNaN(categoryId)) return;
+      
+      const isSelected = selected.has(categoryId);
+      const hasDescendant = nodesWithSelectedDescendants.has(categoryId) && !isSelected;
+      
+      // Обновляем атрибут selected
+      if (isSelected) {
+        nodeEl.setAttribute('selected', 'true');
+        nodeEl.removeAttribute('has-selected-descendant');
+      } else {
+        nodeEl.removeAttribute('selected');
+      }
+      
+      // Обновляем атрибут has-selected-descendant
+      if (hasDescendant) {
+        nodeEl.setAttribute('has-selected-descendant', 'true');
+      } else {
+        nodeEl.removeAttribute('has-selected-descendant');
+      }
+    });
+  }
+  
+  /**
+   * Обновить атрибуты корневого элемента (any-selected, expanded)
+   * @private
+   */
+  _updateRootAttributes() {
+    const root = this.querySelector('.category-tree-filter');
+    if (!root) return;
+    
+    const selected = this.state.selectedCategories || [];
+    const hasSelection = selected.length > 0;
+    const isExpanded = this.state.isExpanded || false;
+    
+    // Обновляем any-selected
+    if (hasSelection) {
+      root.setAttribute('any-selected', 'true');
+    } else {
+      root.removeAttribute('any-selected');
+    }
+    
+    // Обновляем expanded
+    if (isExpanded) {
+      root.setAttribute('expanded', 'true');
+    } else {
+      root.removeAttribute('expanded');
+    }
+  }
+
   render() {
-    const visibleTree = this._getVisibleCategories();
+    // Для поиска используем фильтрованное дерево, для остальных случаев - полное дерево
+    const searchQuery = (this.state.searchQuery || '').toLowerCase().trim();
+    let tree = this.state.categoryTree || [];
+    
+    // Если есть поиск, фильтруем дерево
+    if (searchQuery) {
+      const expanded = new Set(this.state.expandedNodes || []);
+      tree = this._filterTreeForSearch(tree, searchQuery, expanded);
+    }
+    // В остальных случаях рендерим полное дерево (видимость управляется через CSS)
+    
     const selected = new Set(this.state.selectedCategories || []);
     const expanded = new Set(this.state.expandedNodes || []);
     
     this.innerHTML = renderCategoryTreeFilterTemplate({
-      tree: visibleTree,
+      tree,
       selected,
       expanded,
       searchQuery: this.state.searchQuery || '',
@@ -645,6 +1070,10 @@ export class CategoryTreeFilter extends BaseElement {
     this.querySelectorAll('[data-indeterminate="true"]').forEach(checkbox => {
       checkbox.indeterminate = true;
     });
+    
+    // Обновляем атрибуты видимости после рендера
+    this._updateNodeAttributes();
+    this._updateRootAttributes();
   }
 }
 

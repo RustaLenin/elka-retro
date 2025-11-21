@@ -89,11 +89,11 @@ const getTaxonomyOptions = (taxonomySlug) => {
 
   // window.taxonomy_terms имеет структуру { taxonomy_slug: { term_id: { id, name, slug, description } } }
   Object.values(terms).forEach((term) => {
-    if (term && term.slug && term.name) {
+    if (term && term.id && term.name) {
       options.push({
-        value: term.slug, // Используем slug как значение (совместимо с бэкендом)
+        value: String(term.id), // Используем ID как значение (для совместимости с бэкендом и категориями)
         label: term.name,
-        description: term.description || undefined,
+        // description убираем - он не нужен в опциях и излишне усложняет интерфейс
       });
     }
   });
@@ -217,9 +217,20 @@ const createFilterFieldConfig = (fieldSlug, fieldConfig, postType) => {
     // СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ ФИЛЬТРОВ КАТАЛОГА:
     // Для фильтров каталога разрешаем множественный выбор даже если в data-model указано multi_choose: false
     // Это позволяет пользователю фильтровать по нескольким значениям, хотя у самой игрушки может быть только одно
-    // Особенно важно для "Встречаемость" - пользователь может хотеть видеть и "Редко" и "Часто"
-    if (taxonomySlug === 'occurrence') {
-      // Принудительно делаем множественный выбор для фильтра встречаемости
+    
+    // Таксономии для мультивыбора в режиме типов
+    const multiSelectForTypes = ['occurrence'];
+    
+    // Таксономии для мультивыбора в режиме экземпляров
+    const multiSelectForInstances = ['authenticity', 'lot_configurations', 'condition', 'tube_condition'];
+    
+    // Определяем, нужно ли принудительно делать мультивыбор
+    const shouldForceMultiSelect = 
+      (postType === 'toy_type' && multiSelectForTypes.includes(taxonomySlug)) ||
+      (postType === 'toy_instance' && multiSelectForInstances.includes(taxonomySlug));
+    
+    if (shouldForceMultiSelect) {
+      // Принудительно делаем множественный выбор для определенных фильтров
       fieldDef.type = 'select-multi';
       fieldDef.placeholder = `Выберите ${fieldDef.label.toLowerCase()}`;
       fieldDef.allowSelectAll = false; // Пока отключаем "выбрать все"
@@ -284,10 +295,21 @@ export const getFiltersForMode = (mode = 'type') => {
 
   const filters = [];
 
+  // Поля, которые нужно исключить из фильтров для экземпляров
+  const excludedFieldsForInstances = [
+    'connection_type_of_toy', // Связь: Тип игрушки
+    'property_field' // Собственность
+  ];
+
   // Проходим по всем полям типа поста
   Object.entries(postTypeConfig.fields).forEach(([fieldSlug, fieldConfig]) => {
     // Пропускаем поля, которые не должны отображаться в фильтрах
     if (!fieldConfig || fieldConfig.show_in_filters !== true) {
+      return;
+    }
+
+    // Для экземпляров исключаем определенные поля
+    if (postType === 'toy_instance' && excludedFieldsForInstances.includes(fieldSlug)) {
       return;
     }
 

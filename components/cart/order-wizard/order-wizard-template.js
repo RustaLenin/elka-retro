@@ -4,7 +4,7 @@
  */
 
 export function order_wizard_template(state) {
-  const { steps, currentStep, currentStepInfo, isAuthorized } = state;
+  const { steps, currentStep, currentStepInfo, isAuthorized, isSubmitting } = state;
 
   return `
     <div class="order-wizard">
@@ -34,18 +34,20 @@ export function order_wizard_template(state) {
       </div>
 
       <footer class="order-wizard_footer">
+        ${currentStep > 1 ? `
         <ui-button 
           type="ghost"
           label="Назад"
           event="order-wizard:prev-click"
-          ${currentStep === 1 ? 'disabled' : ''}
           class="order-wizard_prev-btn"
         ></ui-button>
+        ` : ''}
         <ui-button 
           type="primary"
           label="${currentStep === steps.length ? 'Завершить заказ' : 'Далее'}"
           event="order-wizard:next-click"
           class="order-wizard_next-btn"
+          ${isSubmitting ? 'disabled' : ''}
         ></ui-button>
       </footer>
     </div>

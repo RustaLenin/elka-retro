@@ -3,6 +3,9 @@
  * Шаблон для модального окна с детальной информацией об экземпляре
  */
 
+// Импортируем утилиту для формирования ссылок каталога
+import { getCatalogTaxonomyUrl } from '../../catalog/catalog-link-utils.js';
+
 // Экранируем HTML для безопасности
 function escapeHtml(text) {
   if (!text) return '';
@@ -12,11 +15,35 @@ function escapeHtml(text) {
 }
 
 // Получить URL таксономии
-function getTaxonomyUrl(taxonomySlug, termSlug) {
-  if (taxonomySlug && termSlug) {
-    return `/taxonomy/${taxonomySlug}/${termSlug}/`;
+// Все ссылки ведут в каталог с фильтром по таксономии
+// Для экземпляров используем режим 'instance', так как фильтруем экземпляры напрямую
+function getTaxonomyUrl(taxonomySlug, termSlug, termId = null) {
+  if (!taxonomySlug) {
+    return '/catalog/';
   }
-  return '#';
+  
+  // Используем ID термина, если доступен
+  // ID всегда приоритетнее, так как бэкенд работает с ID
+  const termIdToUse = termId || null;
+  
+  if (!termIdToUse) {
+    // Если ID нет, пытаемся найти его по slug в window.taxonomy_terms
+    const taxonomyTerms = window.taxonomy_terms?.[taxonomySlug];
+    if (taxonomyTerms && termSlug) {
+      const foundTerm = Object.values(taxonomyTerms).find(
+        term => term && term.slug === termSlug
+      );
+      if (foundTerm && foundTerm.id) {
+        // Для экземпляров используем mode='instance', так как фильтруем экземпляры
+        return getCatalogTaxonomyUrl(taxonomySlug, foundTerm.id, { mode: 'instance' });
+      }
+    }
+    // Если не нашли, возвращаем базовый URL каталога
+    return '/catalog/';
+  }
+  
+  // Для экземпляров используем mode='instance', так как фильтруем экземпляры напрямую
+  return getCatalogTaxonomyUrl(taxonomySlug, termIdToUse, { mode: 'instance' });
 }
 
 // Форматировать значения таксономий
@@ -61,7 +88,7 @@ function formatTaxonomyValue(terms, taxonomySlug, taxonomyData) {
           id: term,
           name: termObj.name,
           slug: termObj.slug,
-          url: getTaxonomyUrl(taxonomySlug, termObj.slug)
+          url: getTaxonomyUrl(taxonomySlug, termObj.slug, termObj.id || term)
         };
       }
       
@@ -78,26 +105,27 @@ function formatTaxonomyValue(terms, taxonomySlug, taxonomyData) {
               id: term,
               name: found.name,
               slug: found.slug,
-              url: getTaxonomyUrl(taxonomySlug, found.slug)
+              url: getTaxonomyUrl(taxonomySlug, found.slug, found.id || found.term_id || term)
             };
           }
         }
       }
       
-      // Если не нашли, возвращаем минимальный объект
+      // Если не нашли, возвращаем минимальный объект с ID
       return {
         id: term,
         name: `Term ${term}`,
         slug: '',
-        url: `/?${taxonomySlug}=${term}`
+        url: getTaxonomyUrl(taxonomySlug, null, term)
       };
     } else if (typeof term === 'object' && term !== null) {
       // Уже объект термина (из Pods развернутых данных)
+      const termId = term.id || term.term_id || null;
       return {
-        id: term.id || term.term_id || '',
+        id: termId,
         name: term.name || '',
         slug: term.slug || '',
-        url: term.link || getTaxonomyUrl(taxonomySlug, term.slug || '')
+        url: getTaxonomyUrl(taxonomySlug, term.slug || '', termId)
       };
     } else {
       // Неизвестный формат
@@ -277,7 +305,14 @@ export function toy_instance_modal_template(data) {
     <div class="toy-instance-modal_content">
       <div class="toy-instance-modal_main">
         <div class="toy-instance-modal_gallery">
-          <ui-image-gallery state-path="toyInstance.images" ${galleryImagesJson ? `images="${galleryImagesJson}"` : ''} ${imageIdsJson ? `image-ids="${imageIdsJson}"` : ''}></ui-image-gallery>
+          <ui-image-gallery state-path="toyInstance.images" ${galleryImagesJson ? `images="${galleryImagesJson}"` : ''} ${imageIdsJson ? `image-ids="${imageIdsJson}"` : ''} fullscreen-hint></ui-image-gallery>
+          ${description && description.trim() ? `
+            <div class="toy-instance-modal_description">
+              <div class="toy-instance-modal_description-content">
+                ${description}
+              </div>
+            </div>
+          ` : ''}
         </div>
         <div class="toy-instance-modal_details">
           <div class="toy-instance-modal_properties">
@@ -331,11 +366,6 @@ export function toy_instance_modal_template(data) {
           </div>
         </div>
       </div>
-      ${description && description.trim() ? `
-        <div class="toy-instance-modal_description">
-          ${description}
-        </div>
-      ` : ''}
     </div>
     
     <div class="toy-instance-modal_footer">

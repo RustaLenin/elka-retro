@@ -190,7 +190,7 @@ export class ProfilePage extends BaseElement {
   }
 
   _updateTabNavigation() {
-    const nav = this.querySelector('tab-navigation');
+    const nav = this.querySelector('ui-tabs');
     if (nav) {
       nav.setAttribute('active-tab', this.state.activeTab);
       // Обновляем навигацию, если у неё есть метод render
@@ -248,10 +248,10 @@ export class ProfilePage extends BaseElement {
 
   async _initComponents() {
     // Инициализируем навигацию по вкладкам
-    const tabNav = this.querySelector('tab-navigation');
+    const tabNav = this.querySelector('ui-tabs');
     if (tabNav) {
-      // Ждём, пока компонент tab-navigation загрузится и определится
-      await customElements.whenDefined('tab-navigation');
+      // Ждём, пока компонент ui-tabs загрузится и определится
+      await customElements.whenDefined('ui-tabs');
       
       // Убеждаемся, что навигация отрендерилась с вкладками из шаблона
       if (typeof tabNav.render === 'function') {
@@ -259,7 +259,7 @@ export class ProfilePage extends BaseElement {
       }
       
       // Добавляем обработчик смены вкладки
-      tabNav.addEventListener('tab-navigation:change', (e) => this._handleTabChange(e));
+      tabNav.addEventListener('ui-tabs:change', (e) => this._handleTabChange(e));
       this._updateTabNavigation();
     }
 

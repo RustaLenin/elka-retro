@@ -253,10 +253,11 @@ export class StepPersonal extends BaseElement {
           last_name: formData.last_name || '',
         };
       } else {
-        // Для неавторизованных: возвращаем все данные
+        // Для неавторизованных: возвращаем все данные, включая пароль для регистрации
         return {
           email: formData.email,
           username: formData.username,
+          password: formData.password, // Пароль нужен для регистрации на BackEnd
           phone: formData.phone,
           first_name: formData.first_name || '',
           last_name: formData.last_name || '',

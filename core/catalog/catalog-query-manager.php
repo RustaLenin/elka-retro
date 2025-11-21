@@ -46,6 +46,14 @@ class Catalog_Query_Manager {
 		'back_color'        => 'back_color',
 	);
 
+	private const ACCESSORY_TAXONOMY_FILTERS = array(
+		'ny_category'        => 'ny_category',
+		'lot_configurations' => 'lot_configurations',
+		'condition'          => 'condition',
+		'material'           => 'material',
+		'year_of_production' => 'year_of_production',
+	);
+
 	private const TYPE_SORTS = array(
 		'default' => array(
 			'label'   => 'Новые поступления',
@@ -113,6 +121,43 @@ class Catalog_Query_Manager {
 		),
 	);
 
+	private const ACCESSORY_SORTS = array(
+		'default' => array(
+			'label'   => 'Новые поступления',
+			'orderby' => 'date',
+			'order'   => 'DESC',
+		),
+		'newest' => array(
+			'label'   => 'Сначала новые',
+			'orderby' => 'date',
+			'order'   => 'DESC',
+		),
+		'oldest' => array(
+			'label'   => 'Сначала старые',
+			'orderby' => 'date',
+			'order'   => 'ASC',
+		),
+		'price_low_high' => array(
+			'label'    => 'Сначала дешёвые',
+			'meta_key' => 'ny_cost',
+			'orderby'  => 'meta_value_num',
+			'order'    => 'ASC',
+			'meta_type'=> 'DECIMAL',
+		),
+		'price_high_low' => array(
+			'label'    => 'Сначала дорогие',
+			'meta_key' => 'ny_cost',
+			'orderby'  => 'meta_value_num',
+			'order'    => 'DESC',
+			'meta_type'=> 'DECIMAL',
+		),
+		'alphabetical' => array(
+			'label'   => 'По алфавиту',
+			'orderby' => 'title',
+			'order'   => 'ASC',
+		),
+	);
+
 	/**
 	 * Builds query args for toy type mode.
 	 *
@@ -129,6 +174,33 @@ class Catalog_Query_Manager {
 		$filters = isset( $state['filters'] ) && is_array( $state['filters'] ) ? $state['filters'] : array();
 
 		$tax_query = self::build_tax_query( $filters, self::TYPE_TAXONOMY_FILTERS );
+		if ( ! empty( $tax_query ) ) {
+			$args['tax_query'] = $tax_query;
+		}
+
+		$args = self::apply_search( $args, $state );
+		$args = self::apply_sorting( $args, $state );
+		$args = self::apply_pagination( $args, $state );
+
+		return $args;
+	}
+
+	/**
+	 * Builds query args for accessory mode.
+	 *
+	 * @param array $state Normalized filter state from request.
+	 * @return array
+	 */
+	public static function build_accessory_query_args( array $state ) {
+		$args = array(
+			'post_type'           => 'ny_accessory',
+			'post_status'         => 'publish',
+			'ignore_sticky_posts' => true,
+		);
+
+		$filters = isset( $state['filters'] ) && is_array( $state['filters'] ) ? $state['filters'] : array();
+
+		$tax_query = self::build_tax_query( $filters, self::ACCESSORY_TAXONOMY_FILTERS );
 		if ( ! empty( $tax_query ) ) {
 			$args['tax_query'] = $tax_query;
 		}
@@ -211,7 +283,13 @@ class Catalog_Query_Manager {
 		$mode = isset( $state['mode'] ) ? $state['mode'] : 'type';
 		$key  = isset( $state['sort'] ) ? sanitize_key( $state['sort'] ) : '';
 
-		$sorts = 'instance' === $mode ? self::INSTANCE_SORTS : self::TYPE_SORTS;
+		if ( 'instance' === $mode ) {
+			$sorts = self::INSTANCE_SORTS;
+		} elseif ( 'accessory' === $mode ) {
+			$sorts = self::ACCESSORY_SORTS;
+		} else {
+			$sorts = self::TYPE_SORTS;
+		}
 
 		if ( empty( $key ) || ! isset( $sorts[ $key ] ) ) {
 			$key = self::get_default_sort_key( $mode );
@@ -253,24 +331,28 @@ class Catalog_Query_Manager {
 	}
 
 	/**
-	 * Applies pagination/infinite scroll parameters.
+	 * Applies pagination/infinite scroll parameters using offset + limit.
 	 *
 	 * @param array $args
 	 * @param array $state
 	 * @return array
 	 */
 	public static function apply_pagination( array $args, array $state ) {
-		$page     = isset( $state['page'] ) ? max( 1, (int) $state['page'] ) : 1;
-		$per_page = isset( $state['per_page'] ) ? (int) $state['per_page'] : (int) get_option( 'posts_per_page', 10 );
+		$offset = isset( $state['offset'] ) ? max( 0, (int) $state['offset'] ) : 0;
+		$limit  = isset( $state['limit'] ) ? (int) $state['limit'] : (int) get_option( 'posts_per_page', 10 );
 
-		if ( -1 === $per_page ) {
+		if ( $limit <= 0 ) {
+			$limit = (int) get_option( 'posts_per_page', 10 );
+		}
+
+		if ( -1 === $limit ) {
 			$args['posts_per_page'] = -1;
-			$args['paged']          = 1;
+			$args['offset']         = 0;
 			$args['no_found_rows']  = true;
 		} else {
-			$per_page                = max( 1, $per_page );
-			$args['posts_per_page']  = $per_page;
-			$args['paged']           = $page;
+			$limit                   = max( 1, $limit );
+			$args['posts_per_page']  = $limit;
+			$args['offset']          = $offset;
 			$args['no_found_rows']   = false;
 		}
 
@@ -302,7 +384,12 @@ class Catalog_Query_Manager {
 	 * @return array
 	 */
 	public static function get_sort_definitions( $mode ) {
-		return 'instance' === $mode ? self::INSTANCE_SORTS : self::TYPE_SORTS;
+		if ( 'instance' === $mode ) {
+			return self::INSTANCE_SORTS;
+		} elseif ( 'accessory' === $mode ) {
+			return self::ACCESSORY_SORTS;
+		}
+		return self::TYPE_SORTS;
 	}
 
 	/**
@@ -366,13 +453,28 @@ class Catalog_Query_Manager {
 				$active_raw
 			);
 
+			// Проверяем, являются ли активные значения ID или slug
+			$active_are_ids = ! empty( $active_flat ) && count(
+				array_filter(
+					$active_flat,
+					static function ( $value ) {
+						return is_numeric( $value ) && ctype_digit( ltrim( $value, '-' ) );
+					}
+				)
+			) === count( $active_flat );
+
 			$options = array();
 			foreach ( $terms as $term ) {
 				if ( ! $term instanceof WP_Term ) {
 					continue;
 				}
 
-				$is_active = in_array( (string) $term->slug, $active_flat, true ) || in_array( (string) $term->term_id, $active_flat, true );
+				// Если активные значения - это ID, сравниваем по ID, иначе по slug (обратная совместимость)
+				if ( $active_are_ids ) {
+					$is_active = in_array( (string) $term->term_id, $active_flat, true );
+				} else {
+					$is_active = in_array( (string) $term->slug, $active_flat, true ) || in_array( (string) $term->term_id, $active_flat, true );
+				}
 
 				$options[] = array(
 					'id'     => (int) $term->term_id,
@@ -426,20 +528,32 @@ class Catalog_Query_Manager {
 				continue;
 			}
 
+			// Проверяем, являются ли все значения числовыми (ID)
+			// Улучшенная проверка: учитываем строковые представления чисел
+			// ID терминов всегда положительные целые числа
 			$is_numeric = ! empty( $values ) && count(
 				array_filter(
 					$values,
 					static function ( $value ) {
-						return is_numeric( $value );
+						// Преобразуем в строку для проверки
+						$value_str = trim( (string) $value );
+						// Проверяем, что строка содержит только цифры (положительное целое число)
+						// is_numeric проверяет числа и строки с числами, включая научную нотацию
+						// ctype_digit проверяет только цифры, что идеально для ID
+						return ! empty( $value_str ) && ctype_digit( $value_str );
 					}
 				)
 			) === count( $values );
 
+			// Для всех таксономий предпочитаем использовать ID вместо slug
+			// Это делает URL короче и устраняет проблемы с кодированием
 			$field = $is_numeric ? 'term_id' : 'slug';
 
 			if ( $is_numeric ) {
+				// Преобразуем строки с ID в целые числа для WordPress
 				$values = array_map( 'intval', $values );
 			} else {
+				// Для slug используем санитизацию текста
 				$values = array_map( 'sanitize_text_field', $values );
 			}
 

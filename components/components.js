@@ -11,6 +11,7 @@ import "./ui-kit/button/button.js";
 import "./ui-kit/tooltip/tooltip.js";
 import "./ui-kit/modal/modal.js";
 import "./ui-kit/image-gallery/image-gallery.js";
+import "./ui-kit/tabs/ui-tabs.js";
 import "./ui-kit/form/controller/form-controller.js";
 import "./ui-kit/form/field/form-field.js";
 import "./ui-kit/form/inputs/text-input/text-input.js";
@@ -49,6 +50,9 @@ const registry = {
   // Catalog
   'catalog-page': () => import('./catalog/index.js'),
   
+  // Accessory Catalog
+  'accessory-catalog-page': () => import('./accessory-catalog/index.js'),
+  
   // Category
   'category-breadcrumbs': () => import('./category-breadcrumbs/category-breadcrumbs.js'),
   'category-catalog': () => import('./category-catalog/category-catalog.js'),
@@ -56,7 +60,9 @@ const registry = {
   // User Profile
   'user-menu': () => import('./user-profile/user-menu/user-menu.js'),
   'profile-page': () => import('./user-profile/profile-page/profile-page.js'),
-  'tab-navigation': () => import('./user-profile/profile-page/tab-navigation/tab-navigation.js'),
+  
+  // Homepage Tabs
+  'homepage-tabs-content': () => import('./homepage-tabs/homepage-tabs-content.js'),
   
   // Cart
   'cart-page': () => import('./cart/index.js'),

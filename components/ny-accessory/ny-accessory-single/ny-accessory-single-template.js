@@ -3,6 +3,8 @@
  * Страница новогоднего аксессуара
  */
 
+import { getAccessoryCatalogTaxonomyUrl } from '../../catalog/catalog-link-utils.js';
+
 function escapeHtml(text) {
   if (!text) return '';
   const div = document.createElement('div');
@@ -23,11 +25,12 @@ function formatPrice(value) {
 }
 
 function getTaxonomyUrl(taxonomySlug, termSlug, termId = null) {
-  if (taxonomySlug && termSlug) {
-    const filterValue = termId || termSlug;
-    return `/?search=1&${taxonomySlug}=${encodeURIComponent(filterValue)}`;
+  // Используем ID термина для формирования ссылки на каталог аксессуаров
+  if (taxonomySlug && termId) {
+    return getAccessoryCatalogTaxonomyUrl(taxonomySlug, termId);
   }
-  return '/?search=1';
+  // Fallback: если ID нет, возвращаем базовую ссылку на каталог аксессуаров
+  return '/accessories/';
 }
 
 function renderTermLinks(terms, taxonomySlug) {
@@ -39,7 +42,7 @@ function renderTermLinks(terms, taxonomySlug) {
     .map(term => {
       const name = escapeHtml(term.name || '');
       const slug = term.slug || '';
-      const id = term.id || null;
+      const id = term.id || term.term_id || null;
       const link = term.link || getTaxonomyUrl(taxonomySlug, slug, id);
       return `<a href="${link}" class="ny-accessory-single__taxonomy-link">${name}</a>`;
     })
@@ -111,9 +114,11 @@ export function ny_accessory_single_template(state) {
   }
 
   if (conditionValue) {
+    const conditionId = primaryCondition.id || primaryCondition.term_id || null;
+    const conditionLink = conditionId ? getAccessoryCatalogTaxonomyUrl('condition', conditionId) : '/accessories/';
     tableRows.push({
       label: 'Состояние',
-      value: `<a href="${getTaxonomyUrl('condition', primaryCondition.slug || '', primaryCondition.id || primaryCondition.term_id || null)}" class="ny-accessory-single__taxonomy-link ${conditionClass ? `ny-accessory-single__condition ny-accessory-single__condition--${conditionClass}` : 'ny-accessory-single__condition'}">${conditionValue}</a>`
+      value: `<a href="${conditionLink}" class="ny-accessory-single__taxonomy-link ${conditionClass ? `ny-accessory-single__condition ny-accessory-single__condition--${conditionClass}` : 'ny-accessory-single__condition'}">${conditionValue}</a>`
     });
   }
 
@@ -138,7 +143,7 @@ export function ny_accessory_single_template(state) {
     <div class="ny-accessory-single__main">
       <div class="ny-accessory-single__main-left">
         <div class="ny-accessory-single__media">
-          <ui-image-gallery images="${galleryAttr}"></ui-image-gallery>
+          <ui-image-gallery images="${galleryAttr}" fullscreen-hint></ui-image-gallery>
         </div>
       </div>
 

@@ -49,13 +49,8 @@ export function toy_type_card_template(state) {
           <h3 class="toy-type-card_title">${safeTitle}</h3>
         ` : ''}
         <div class="toy-type-card_meta">
-          ${safeYear ? `
-            <span class="toy-type-card_year">${safeYear}</span>
-          ` : ''}
-          ${safeFactory ? `
-            <span class="toy-type-card_factory" data-hint="${safeFactory}">${safeFactory}</span>
-          ` : ''}
           ${rarityLabel ? `
+            <span class="toy-type-card_rarity-label">Встречаемость:</span>
             <span class="toy-type-card_rarity rarity--${rarity || ''}">${rarityLabel}</span>
           ` : ''}
         </div>

@@ -17,78 +17,62 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--color-text, #111827);
+  color: var(--color-foreground, #f5f7fa);
 }
 
 .step-auth_description {
   margin: 0 0 2rem 0;
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--color-muted-foreground, #8a8f99);
   line-height: 1.6;
 }
 
-.step-auth_choices {
+.step-auth_actions {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
-/* Стили для ui-button в виде карточки выбора */
-.step-auth_choice {
-  display: flex !important;
-  align-items: center !important;
-  gap: 1rem !important;
-  padding: 1.5rem !important;
-  background: var(--color-background, #ffffff) !important;
-  border: 2px solid var(--color-border, #e5e7eb) !important;
-  border-radius: 0.5rem !important;
-  text-align: left !important;
-  transition: all 0.2s ease !important;
-  width: 100% !important;
-  justify-content: flex-start !important;
+.step-auth_login-btn {
+  width: 100%;
 }
 
-.step-auth_choice:hover {
-  border-color: var(--color-primary, #2563eb) !important;
-  background: var(--color-background-secondary, #f3f4f6) !important;
-}
-
-.step-auth_choice--active {
-  border-color: var(--color-primary, #2563eb) !important;
-  background: var(--color-primary-light, #eff6ff) !important;
-}
-
-/* Переопределяем структуру контента ui-button для карточного вида */
-.step-auth_choice .content {
-  display: flex !important;
-  align-items: center !important;
-  gap: 1rem !important;
-  flex: 1 !important;
-  width: 100% !important;
-  flex-direction: row !important;
-}
-
-.step-auth_choice .label {
-  font-size: 1.125rem !important;
-  font-weight: 600 !important;
-  color: var(--color-text, #111827) !important;
-  margin: 0 !important;
-}
-
-/* Добавляем описание через псевдоэлемент после label */
-.step-auth_choice[data-description]::after {
-  content: attr(data-description);
-  display: block;
-  position: absolute;
-  left: 4.5rem; /* Отступ для иконки + gap */
-  top: 2.5rem; /* Под заголовком */
-  font-size: 0.875rem;
-  color: var(--color-text-secondary, #6b7280);
-  font-weight: normal;
-  white-space: nowrap;
-}
-
-.step-auth_choice {
+.step-auth_divider {
   position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.step-auth_divider::before,
+.step-auth_divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border, #2a2d31);
+}
+
+.step-auth_divider-text {
+  padding: 0 1rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  font-size: 0.875rem;
+}
+
+.step-auth_continue-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.step-auth_continue-btn {
+  width: 100%;
+}
+
+.step-auth_hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  text-align: center;
+  line-height: 1.4;
 }
 
 .step-auth_authorized {

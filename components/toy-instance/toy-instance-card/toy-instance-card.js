@@ -22,6 +22,7 @@ export class ToyInstanceCard extends BaseElement {
     rarity: { type: 'string', default: '', attribute: { name: 'rarity', observed: true, reflect: true } },
     tubeCondition: { type: 'string', default: '', attribute: { name: 'tube-condition', observed: true, reflect: true } },
     condition: { type: 'string', default: '', attribute: { name: 'condition', observed: true, reflect: true } },
+    authenticity: { type: 'string', default: '', attribute: { name: 'authenticity', observed: true, reflect: true } },
     available: { type: 'boolean', default: true, attribute: { name: 'available', observed: true, reflect: true } },
     // Дополнительные поля из дата-модели (для будущего использования)
     instanceIndex: { type: 'string', default: '', attribute: { name: 'instance-index', observed: true, reflect: true } },

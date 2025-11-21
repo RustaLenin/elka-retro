@@ -55,12 +55,7 @@ export const orderPersonalAuthorizedFormConfig = {
     }
   ],
   actions: {
-    submit: {
-      label: 'Продолжить',
-      type: 'primary',
-      loadingLabel: 'Сохранение...',
-      successLabel: 'Сохранено'
-    }
+    submit: null, // Кнопка отправки скрыта, используется кнопка "Далее" из wizard
   },
   pipeline: {
     sanitize: (payload) => {

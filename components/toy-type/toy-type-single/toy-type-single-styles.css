@@ -140,7 +140,7 @@ toy-type-single .toy-type-single_image {
   position: relative;
   width: 100%;
   max-width: 100%;
-  margin-bottom: 0;
+  margin-bottom: 1rem;
 }
 
 /* Галерея внутри контейнера */
@@ -168,7 +168,11 @@ toy-type-single .toy-type-single_section-title {
 }
 
 toy-type-single .toy-type-single_description {
-  margin-bottom: 2rem;
+  margin-top: 0;
+}
+
+toy-type-single .toy-type-single_description .toy-type-single_description-content {
+  margin-top: 0;
 }
 
 toy-type-single .toy-type-single_description-content {
@@ -214,9 +218,9 @@ toy-type-single .toy-type-single_properties tbody tr:last-child {
 
 toy-type-single .toy-type-single_properties .property-label {
   font-family: var(--font-sans, inherit);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  font-size: 1.0625rem;
+  font-weight: 400;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
   padding: 1rem 1.5rem 1rem 0;
   text-align: left;
   vertical-align: top;
@@ -225,8 +229,9 @@ toy-type-single .toy-type-single_properties .property-label {
 
 toy-type-single .toy-type-single_properties .property-value {
   font-family: var(--font-sans, inherit);
-  font-size: 0.9375rem;
-  color: var(--color-foreground, rgba(245, 247, 250, 0.9));
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-accent, rgba(255, 232, 155, 1));
   padding: 1rem 0;
   text-align: right;
   vertical-align: top;
@@ -235,13 +240,14 @@ toy-type-single .toy-type-single_properties .property-value {
 
 /* Ссылки на таксономии - кликабельные */
 toy-type-single .toy-type-single_properties .taxonomy-link {
-  color: var(--color-primary, rgba(155, 140, 255, 1));
+  color: var(--color-accent, rgba(255, 232, 155, 1));
   text-decoration: underline;
   transition: color 0.2s;
+  font-weight: 600;
 }
 
 toy-type-single .toy-type-single_properties .taxonomy-link:hover {
-  color: var(--color-accent, rgba(255, 232, 155, 1));
+  color: var(--color-accent, rgba(255, 232, 155, 0.8));
 }
 
 toy-type-single .toy-type-single_properties .taxonomy-empty {

@@ -99,6 +99,10 @@ function createInstanceCard(item) {
     element.setAttribute('condition', toStringOrEmpty(item.condition));
   }
 
+  if (item.authenticity) {
+    element.setAttribute('authenticity', toStringOrEmpty(item.authenticity));
+  }
+
   if (item.status) {
     element.setAttribute('status', toStringOrEmpty(item.status));
   }

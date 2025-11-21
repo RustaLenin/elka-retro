@@ -1,0 +1,62 @@
+/**
+ * Homepage Tabs Content Styles
+ * 
+ * Стили для компонента управления табами на главной странице
+ * 
+ * @package ElkaRetro
+ */
+
+homepage-tabs-content {
+  display: block;
+}
+
+.homepage-tabs-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* Обёртка для контента табов */
+.homepage-tabs-content-wrapper {
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-border-accent);
+  border-radius: 0.5rem;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.tab-panel {
+  display: none;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-panel[style*="display: block"] {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Заглушки для будущих табов */
+.tab-placeholder {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--color-muted-foreground);
+  font-size: 1.125rem;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .homepage-tabs-content-wrapper {
+    padding: 1.5rem;
+  }
+}
+

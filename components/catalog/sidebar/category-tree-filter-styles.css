@@ -39,20 +39,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  gap: 6px;
+  min-width: 32px;
   height: 32px;
-  padding: 0;
+  padding: 0 8px;
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: var(--catalog-sidebar-text-muted, #98a2b3);
+  color: #4ade80; /* Яркий зелёный акцентный цвет */
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.category-tree-filter__expand-btn ui-icon {
+  color: #4ade80; /* Яркий зелёный акцентный цвет для иконки */
+}
+
+.category-tree-filter__expand-btn-text {
+  white-space: nowrap;
+  color: #4ade80; /* Яркий зелёный акцентный цвет для текста */
 }
 
 .category-tree-filter__expand-btn:hover {
   background: var(--catalog-sidebar-hover-bg, rgba(255, 255, 255, 0.1));
-  color: var(--catalog-sidebar-text, #f5f7fa);
+  color: #6ee7b7; /* Более светлый зелёный при наведении */
+}
+
+.category-tree-filter__expand-btn:hover ui-icon {
+  color: #6ee7b7; /* Более светлый зелёный для иконки при наведении */
+}
+
+.category-tree-filter__expand-btn:hover .category-tree-filter__expand-btn-text {
+  color: #6ee7b7; /* Более светлый зелёный для текста при наведении */
 }
 
 /* Search */
@@ -127,6 +147,34 @@
 .category-tree-filter__node {
   position: relative;
   margin: 2px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Логика видимости через CSS */
+/* По умолчанию все узлы видны */
+.category-tree-filter .category-tree-filter__node {
+  display: flex;
+}
+
+/* Если что-то выбрано и компонент не развёрнут - скрываем все узлы */
+.category-tree-filter[any-selected="true"]:not([expanded="true"]) .category-tree-filter__node {
+  display: none;
+}
+
+/* Показываем выбранные узлы */
+.category-tree-filter[any-selected="true"]:not([expanded="true"]) .category-tree-filter__node[selected="true"] {
+  display: flex;
+}
+
+/* Показываем родительские узлы выбранных (для отображения пути) */
+.category-tree-filter[any-selected="true"]:not([expanded="true"]) .category-tree-filter__node[has-selected-descendant="true"] {
+  display: flex;
+}
+
+/* Если компонент развёрнут - показываем всё */
+.category-tree-filter[expanded="true"] .category-tree-filter__node {
+  display: flex;
 }
 
 .category-tree-filter__node-content {
@@ -173,12 +221,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  text-transform: capitalize;
 }
 
 .category-tree-filter__count {
   font-size: 12px;
   color: var(--catalog-sidebar-text-muted, #98a2b3);
   font-weight: normal;
+  display: none; /* Скрываем количество доступных типов игрушек */
 }
 
 /* Disabled состояние */
@@ -196,6 +246,9 @@
 
 .category-tree-filter__checkbox-wrapper--disabled {
   cursor: not-allowed;
+}
+
+.category-tree-filter__checkbox-wrapper--disabled .category-tree-filter__checkbox {
   pointer-events: none;
 }
 

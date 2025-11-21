@@ -50,6 +50,14 @@ export function step_confirmation_template(state) {
 
   return `
     <div class="step-confirmation">
+      ${isSubmitting ? `
+        <div class="step-confirmation_overlay">
+          <div class="step-confirmation_loader">
+            <ui-icon name="loader" size="large" spin></ui-icon>
+            <p class="step-confirmation_loader-text">Создание заказа...</p>
+          </div>
+        </div>
+      ` : ''}
       <div class="step-confirmation_content">
         <h3 class="step-confirmation_title">Подтверждение заказа</h3>
         <p class="step-confirmation_description">
@@ -128,16 +136,6 @@ export function step_confirmation_template(state) {
             <p>${error}</p>
           </div>
         ` : ''}
-
-        <div class="step-confirmation_actions">
-          <ui-button 
-            type="primary"
-            label="Подтвердить заказ"
-            event="step-confirmation:submit-click"
-            ${isSubmitting ? 'disabled' : ''}
-            class="step-confirmation_submit-btn"
-          ></ui-button>
-        </div>
       </div>
     </div>
   `;

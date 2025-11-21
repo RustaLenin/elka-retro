@@ -128,12 +128,7 @@ export const orderPersonalFormConfig = {
     }
   ],
   actions: {
-    submit: {
-      label: 'Продолжить',
-      type: 'primary',
-      loadingLabel: 'Регистрация...',
-      successLabel: 'Успешно'
-    }
+    submit: null, // Кнопка отправки скрыта, используется кнопка "Далее" из wizard
   },
   pipeline: {
     sanitize: (context) => {

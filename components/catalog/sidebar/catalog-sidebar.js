@@ -401,11 +401,79 @@ export default class CatalogSidebar {
     }
     this._stopCountdown();
     
-    // Вызываем submit формы напрямую
-    if (typeof this.formController.submit === 'function') {
-      this.formController.submit();
+    // Получаем текущий режим для определения конфигурации полей
+    const currentState = window.app?.catalog?.getState();
+    if (!currentState) {
+      return;
+    }
+    
+    const currentMode = currentState.mode || 'type';
+    
+    // Загружаем конфигурации фильтров для режима
+    const filterConfigs = getFiltersForMode(currentMode);
+    
+    // Преобразуем значения формы в формат стора
+    const filters = {};
+    
+    // Получаем значения напрямую из полей формы для актуальности
+    if (Array.isArray(filterConfigs)) {
+      filterConfigs.forEach((filterConfig) => {
+        const filterKey = getFilterKey(filterConfig.id);
+        
+        // Получаем поле напрямую и его актуальное значение
+        const field = this.formController.getField ? this.formController.getField(filterConfig.id) : null;
+        if (!field) {
+          console.debug('[catalog-sidebar] Field not found for filter:', filterConfig.id);
+          return;
+        }
+        
+        const formValue = field && typeof field.value === 'function' ? field.value() : null;
+        console.debug('[catalog-sidebar] Field value for', filterConfig.id, ':', formValue);
+        
+        // Нормализуем значение для стора
+        let storeValue = null;
+        
+        if (formValue !== null && formValue !== undefined && formValue !== '') {
+          if (filterConfig.type === 'select-multi') {
+            // Для множественного выбора значение уже массив
+            if (Array.isArray(formValue) && formValue.length > 0) {
+              // Нормализуем значения в строки и убираем пустые
+              storeValue = formValue
+                .map(v => String(v).trim())
+                .filter(v => v !== '');
+            }
+          } else {
+            // Для одиночного выбора или других типов - одиночное значение
+            // В сторе всегда храним как массив для единообразия
+            const normalized = String(formValue).trim();
+            if (normalized !== '') {
+              storeValue = [normalized];
+            }
+          }
+        }
+        
+        if (storeValue !== null && storeValue.length > 0) {
+          filters[filterKey] = storeValue;
+        }
+      });
+    }
+    
+    console.debug('[catalog-sidebar] Collected filters:', filters);
+    
+    // Получаем значения из фильтра категорий
+    const categoryValues = this.categoryFilter && this.categoryFilter.getValue ? this.categoryFilter.getValue() : [];
+    
+    // Добавляем категории, если они выбраны
+    if (categoryValues && categoryValues.length > 0) {
+      // Категории должны возвращаться как ID, но на всякий случай конвертируем в строки
+      filters['category-of-toys'] = categoryValues.map(v => String(v));
+    }
+    
+    // Обновляем фильтры через публичный API
+    if (window.app && window.app.catalog) {
+      window.app.catalog.setFilters(filters);
     } else {
-      console.warn('[catalog-sidebar] Form controller does not have submit method');
+      console.warn('[catalog-sidebar] window.app.catalog not available');
     }
   }
 
@@ -497,15 +565,57 @@ export default class CatalogSidebar {
           let normalizedValue = null;
           
           if (Array.isArray(filterValue) && filterValue.length > 0) {
-            if (filterConfig.type === 'select-single') {
-              // Для одиночного выбора берём первое значение
-              normalizedValue = filterValue[0];
-            } else if (filterConfig.type === 'select-multi') {
-              // Для множественного выбора берём весь массив
-              normalizedValue = filterValue;
+            // Для таксономий (select-single, select-multi) конвертируем slug в ID если нужно
+            if ((filterConfig.type === 'select-single' || filterConfig.type === 'select-multi') && filterConfig.dataSource) {
+              // Проверяем, является ли поле таксономией (есть dataSource с path taxonomy_terms)
+              const dataSource = filterConfig.dataSource;
+              if (dataSource.path && dataSource.path.startsWith('taxonomy_terms.')) {
+                const taxonomySlug = dataSource.path.replace('taxonomy_terms.', '');
+                const taxonomyTerms = window.taxonomy_terms?.[taxonomySlug];
+                
+                if (taxonomyTerms) {
+                  // Конвертируем slug в ID для каждого значения
+                  const convertedValues = filterValue.map((value) => {
+                    // Если значение уже число (ID), оставляем как есть
+                    if (!isNaN(parseInt(value, 10)) && /^\d+$/.test(String(value))) {
+                      return String(value);
+                    }
+                    
+                    // Ищем термин по slug и возвращаем его ID
+                    const foundTerm = Object.values(taxonomyTerms).find(term => term && term.slug === value);
+                    return foundTerm ? String(foundTerm.id) : value;
+                  });
+                  
+                  if (filterConfig.type === 'select-single') {
+                    normalizedValue = convertedValues[0];
+                  } else {
+                    normalizedValue = convertedValues;
+                  }
+                } else {
+                  // Если не удалось найти таксономию, используем значения как есть
+                  if (filterConfig.type === 'select-single') {
+                    normalizedValue = filterValue[0];
+                  } else {
+                    normalizedValue = filterValue;
+                  }
+                }
+              } else {
+                // Не таксономия, используем значения как есть
+                if (filterConfig.type === 'select-single') {
+                  normalizedValue = filterValue[0];
+                } else {
+                  normalizedValue = filterValue;
+                }
+              }
             } else {
-              // Для других типов берём первое значение
-              normalizedValue = filterValue[0];
+              // Для других типов полей
+              if (filterConfig.type === 'select-single') {
+                normalizedValue = filterValue[0];
+              } else if (filterConfig.type === 'select-multi') {
+                normalizedValue = filterValue;
+              } else {
+                normalizedValue = filterValue[0];
+              }
             }
           }
           

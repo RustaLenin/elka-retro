@@ -104,6 +104,47 @@ ui-image-gallery .image-gallery_next {
   right: 1rem;
 }
 
+/* Иконка подсказки полноэкранного режима (лупа) */
+ui-image-gallery .image-gallery_fullscreen-hint {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  transition: background-color 0.2s, transform 0.2s;
+  z-index: 11;
+  padding: 0;
+}
+
+ui-image-gallery .image-gallery_fullscreen-hint:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+ui-image-gallery .image-gallery_fullscreen-hint:active {
+  transform: scale(0.95);
+}
+
+ui-image-gallery .image-gallery_fullscreen-hint ui-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+ui-image-gallery .image-gallery_fullscreen-hint ui-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* Подпись к изображению */
 ui-image-gallery .image-gallery_caption {
   margin-top: 0.75rem;

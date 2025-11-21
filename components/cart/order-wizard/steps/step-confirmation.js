@@ -76,10 +76,27 @@ export class StepConfirmation extends BaseElement {
    * Создать заказ
    */
   async createOrder() {
+    console.log('[StepConfirmation] createOrder() called');
+    
+    // Сразу дизейблим кнопку в wizard
+    const wizard = this.closest('order-wizard');
+    if (wizard) {
+      wizard.setState({ isSubmitting: true });
+    }
+    
     this.setState({ isSubmitting: true, error: '' });
 
     try {
       const orderData = this.prepareOrderData();
+
+      console.log('[StepConfirmation] Sending order data to backend:', {
+        url: '/wp-json/elkaretro/v1/orders',
+        hasPersonal: !!orderData.personal,
+        personalEmail: orderData.personal?.email,
+        personalUsername: orderData.personal?.username,
+        hasPassword: !!(orderData.personal?.password),
+        cartItems: orderData.cart?.items?.length || 0,
+      });
 
       const response = await fetch('/wp-json/elkaretro/v1/orders', {
         method: 'POST',
@@ -91,12 +108,16 @@ export class StepConfirmation extends BaseElement {
         body: JSON.stringify(orderData),
       });
 
+      console.log('[StepConfirmation] Response status:', response.status, response.statusText);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('[StepConfirmation] Backend error:', errorData);
         throw new Error(errorData.message || 'Ошибка создания заказа');
       }
 
       const result = await response.json();
+      console.log('[StepConfirmation] Backend response:', result);
 
       if (result.success && result.order) {
         this.setState({
@@ -129,6 +150,13 @@ export class StepConfirmation extends BaseElement {
         isSubmitting: false,
         error: error.message || 'Ошибка создания заказа',
       });
+      
+      // Сбрасываем флаг isSubmitting в wizard при ошибке
+      const wizard = this.closest('order-wizard');
+      if (wizard) {
+        wizard.setState({ isSubmitting: false });
+      }
+      
       this.render();
     }
   }
@@ -142,7 +170,7 @@ export class StepConfirmation extends BaseElement {
     const cart = store.getCart();
     const totals = calculateTotal();
 
-    return {
+    const preparedData = {
       cart: {
         items: cart.items.map((item) => ({
           id: item.id,
@@ -161,14 +189,52 @@ export class StepConfirmation extends BaseElement {
         total: totals.total,
       },
     };
+
+    console.log('[StepConfirmation] Prepared order data:', {
+      hasCart: !!preparedData.cart?.items?.length,
+      cartItemsCount: preparedData.cart?.items?.length || 0,
+      hasPersonal: !!preparedData.personal,
+      personalKeys: preparedData.personal ? Object.keys(preparedData.personal) : [],
+      hasPassword: !!(preparedData.personal?.password),
+      hasDelivery: !!preparedData.delivery,
+      hasPayment: !!preparedData.payment,
+      hasTotals: !!preparedData.totals,
+    });
+
+    return preparedData;
   }
 
   /**
    * Валидация шага
+   * На шаге подтверждения создаем заказ
    */
   async validate() {
-    // На шаге подтверждения валидация не требуется
-    return true;
+    console.log('[StepConfirmation] validate() called', {
+      orderId: this.state.orderId,
+      isSubmitting: this.state.isSubmitting,
+      hasOrderData: !!this.state.orderData,
+    });
+
+    // Если заказ уже создан, пропускаем
+    if (this.state.orderId) {
+      console.log('[StepConfirmation] Order already created, skipping');
+      return true;
+    }
+    
+    // Если уже идет создание заказа, ждем
+    if (this.state.isSubmitting) {
+      console.log('[StepConfirmation] Order creation in progress, waiting...');
+      return false;
+    }
+    
+    // Создаем заказ
+    console.log('[StepConfirmation] Starting order creation...');
+    await this.createOrder();
+    
+    // Возвращаем true только если заказ успешно создан
+    const success = !!this.state.orderId;
+    console.log('[StepConfirmation] Order creation result:', { success, orderId: this.state.orderId });
+    return success;
   }
 
   /**
@@ -208,16 +274,7 @@ export class StepConfirmation extends BaseElement {
       error: null,
     });
 
-    // Прикрепляем обработчик кнопки подтверждения через кастомное событие
-    this.removeEventListener('step-confirmation:submit-click', this._handleSubmit);
-    this._handleSubmit = () => this.createOrder();
-    this.addEventListener('step-confirmation:submit-click', this._handleSubmit);
-
-    // Устанавливаем состояние loading на ui-button
-    const confirmBtn = this.querySelector('.step-confirmation_submit-btn');
-    if (confirmBtn && confirmBtn.setState) {
-      confirmBtn.setState({ loading: isSubmitting, disabled: isSubmitting });
-    }
+    // Кнопка подтверждения теперь в wizard footer, обработка через validateStep()
   }
 }
 

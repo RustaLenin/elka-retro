@@ -1,0 +1,104 @@
+/* Accessory Catalog Sidebar specific styling */
+
+/* Основной контейнер сайдбара */
+.accessory-catalog-sidebar {
+  display: flex;
+  width: 100%;
+  transition: width 0.3s ease;
+}
+
+.accessory-catalog-sidebar__fixed {
+  position: sticky;
+  top: 96px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0;
+}
+
+.accessory-catalog-sidebar__section {
+  width: 100%;
+}
+
+.accessory-catalog-sidebar__filters-scroll {
+  padding-bottom: 12px;
+}
+
+.accessory-catalog-sidebar__section--filters {
+  display: flex;
+  flex-direction: column;
+  gap: 2px; /* Минимальный gap для экономии места */
+}
+
+.accessory-catalog-sidebar__section--actions {
+  position: sticky;
+  top: 96px;
+  z-index: 10;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  background: var(--accessory-catalog-sidebar-bg, rgba(0, 0, 0, 0.6));
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid var(--accessory-catalog-sidebar-border, rgba(228, 231, 236, 0.4));
+}
+
+.accessory-catalog-sidebar__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.accessory-catalog-sidebar__apply-button {
+  flex: 1;
+}
+
+.accessory-catalog-sidebar__reset-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--accessory-catalog-sidebar-border, rgba(228, 231, 236, 0.4));
+  border-radius: 6px;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.accessory-catalog-sidebar__reset-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(228, 231, 236, 0.6);
+}
+
+.accessory-catalog-sidebar__empty-filters {
+  padding: 24px;
+  text-align: center;
+  color: var(--accessory-catalog-sidebar-text-muted, rgba(245, 247, 250, 0.65));
+  font-size: 14px;
+}
+
+/* Стили для ui-form-controller внутри сайдбара */
+.accessory-catalog-sidebar ui-form-controller {
+  width: 100%;
+}
+
+/* Скрываем заголовок и статус формы */
+.accessory-catalog-sidebar ui-form-controller .ui-form-controller__header,
+.accessory-catalog-sidebar ui-form-controller .ui-form-controller__status {
+  display: none;
+}
+
+/* Gap между полями в форме - 2px для экономии места */
+.accessory-catalog-sidebar ui-form-controller .ui-form-controller__layout {
+  --ui-form-layout-gap: 2px;
+  gap: var(--ui-form-layout-gap);
+}
+
+/* Отступ между лейблом и полем */
+.accessory-catalog-sidebar ui-form-field .ui-form-field__label-wrapper {
+  margin-bottom: 4px;
+}
+

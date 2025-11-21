@@ -23,6 +23,9 @@ import CatalogToolbar from './toolbar/catalog-toolbar.js';
 
 const SCROLL_PREFETCH_OFFSET = 0.6;
 
+// Максимальное значение limit для backend API (ограничение на стороне сервера)
+const MAX_LIMIT = 1000;
+
 /**
  * Catalog Page Orchestrator
  * 
@@ -107,10 +110,12 @@ export default class CatalogPage {
     }
 
     // Инициализируем компонент результатов
+    const endMessageEl = rootElement.querySelector('[data-catalog-end-message]');
     this.resultsComponent = new CatalogResults({
       container: resultsContainer,
       emptyElement: emptyStateEl,
       errorElement: errorEl,
+      endMessageElement: endMessageEl,
     });
 
     // Подписываемся на события каталога для реактивного обновления
@@ -149,67 +154,126 @@ export default class CatalogPage {
 
   async fetchAndRender() {
     const catalogState = window.app?.catalog?.getState();
-    if (!catalogState) {
+    const catalogStore = window.app?.catalogStore;
+    if (!catalogState || !catalogStore) {
       return;
     }
     
+    // Сбрасываем loadedCount при первой загрузке
+    catalogStore._state.loadedCount = 0;
+    
+    // Отключаем IntersectionObserver во время загрузки, чтобы предотвратить второй запрос
+    this.teardownObserver();
+    
     // Устанавливаем флаг загрузки через стор (т.к. setLoading - метод стора, не API)
-    if (window.app?.catalogStore) {
-      window.app.catalogStore.setLoading(true);
-    }
+    catalogStore.setLoading(true);
     this.resultsComponent.showSkeleton(renderLoadingSkeleton());
 
     try {
-      const payload = await this.fetchData({ append: false, page: catalogState.page });
+      // При первой загрузке используем limit из URL, но ограничиваем максимумом backend'а
+      const requestedLimit = catalogState.limit || 30;
+      const limit = Math.min(requestedLimit, MAX_LIMIT);
+      
+      // Если запрошенный limit больше максимума, предупреждаем в консоли
+      if (requestedLimit > MAX_LIMIT) {
+        console.warn(`[catalog] Requested limit ${requestedLimit} exceeds backend maximum ${MAX_LIMIT}, using ${MAX_LIMIT} instead`);
+      }
+      
+      const payload = await this.fetchData({ append: false, offset: 0, limit });
 
       this.resultsComponent.hideSkeleton();
-      if (window.app?.catalogStore) {
-        window.app.catalogStore.setLoading(false);
-      }
+      catalogStore.setLoading(false);
 
+      // Диагностика: логируем payload для отладки
+      console.log('[catalog] Payload received:', payload);
+      console.log('[catalog] Payload items:', payload?.items?.length || 0, payload?.items);
+      
       const items = Array.isArray(payload.items) ? payload.items : [];
+      
+      // Диагностика: логируем данные для отладки
+      console.log('[catalog] Fetched items:', items.length, items);
+      console.log('[catalog] Mode:', catalogState.mode);
+      console.log('[catalog] Results component:', this.resultsComponent);
+      
       this.resultsComponent.renderInitial(items, catalogState.mode);
       
+      // Обновляем loadedCount после успешной загрузки
+      if (items.length > 0) {
+        catalogStore.incrementLoadedCount(items.length);
+      }
+      
       // Обновляем метаданные в сторе (updateMeta - метод стора, не API)
-      if (window.app?.catalogStore) {
-        window.app.catalogStore.updateMeta({
-          total: payload.meta?.total || 0,
-          totalPages: payload.meta?.total_pages || 1,
-          availableFilters: payload.meta?.available_filters || {},
-          facetCounts: payload.meta?.facet_counts || {},
-        });
+      // Убрали availableFilters и facetCounts - фильтры не возвращаются из API,
+      // frontend использует window.taxonomy_terms для опций фильтров
+      catalogStore.updateMeta({
+        total: payload.meta?.total || 0,
+        totalPages: payload.meta?.total_pages || 1,
+      });
+      
+      // Проверяем, все ли элементы загружены при первой загрузке
+      const total = payload.meta?.total || 0;
+      const loadedCount = catalogStore.getLoadedCount();
+      
+      if (loadedCount >= total && total > 0) {
+        // Все элементы загружены, показываем плашку "Больше загружать нечего"
+        if (this.resultsComponent && typeof this.resultsComponent.showEndMessage === 'function') {
+          this.resultsComponent.showEndMessage();
+        }
+        // Не включаем observer, так как больше нечего загружать
+      } else {
+        // Включаем IntersectionObserver обратно только если есть что загружать
+        this.setupObserver();
       }
     } catch (error) {
+      // Игнорируем AbortError - это нормальное поведение при отмене запроса
+      if (error.name === 'AbortError') {
+        return; // Просто выходим, не показываем ошибку
+      }
+      
       console.error('[catalog] Failed to fetch data', error);
       this.resultsComponent.hideSkeleton();
-      if (window.app?.catalogStore) {
-        window.app.catalogStore.setLoading(false);
-        window.app.catalogStore.setError(error);
-      }
+      catalogStore.setLoading(false);
+      catalogStore.setError(error);
+      
+      // Включаем IntersectionObserver обратно даже при ошибке
+      this.setupObserver();
     }
   }
 
-  async fetchData({ append = false, page } = {}) {
+  async fetchData({ append = false, offset, limit } = {}) {
+    // Если уже есть активный запрос, отменяем его
     if (this.pendingRequest) {
       this.pendingRequest.abort();
-      this.pendingRequest = null;
     }
-
+    
+    // Создаём новый controller для текущего запроса
     const controller = new AbortController();
     this.pendingRequest = controller;
 
     const catalogState = window.app?.catalog?.getState();
-    if (!catalogState) {
+    const catalogStore = window.app?.catalogStore;
+    if (!catalogState || !catalogStore) {
+      this.pendingRequest = null;
       return { items: [], meta: {} };
     }
     const endpointBase = (this.options.endpoint || '').replace(/\/$/, '');
     const modePath = catalogState.mode === 'instance' ? 'instances' : 'types';
     const params = new URLSearchParams();
 
-    const perPage = this.normalizePerPage(catalogState.perPage);
-
-    params.set('per_page', perPage);
-    params.set('page', page || catalogState.page);
+    // Определяем offset и limit
+    if (append) {
+      // Infinite scroll: используем offset из loadedCount и limit из perPage
+      const loadedCount = catalogStore.getLoadedCount();
+      const perPage = catalogStore.getPerPage();
+      params.set('offset', String(loadedCount));
+      params.set('limit', String(perPage));
+    } else {
+      // Первая загрузка: используем offset=0 и limit из URL, ограниченный максимумом
+      params.set('offset', String(offset !== undefined ? offset : 0));
+      const requestedLimit = limit !== undefined ? limit : (catalogState.limit || 30);
+      const safeLimit = Math.min(requestedLimit, MAX_LIMIT);
+      params.set('limit', String(safeLimit));
+    }
 
     if (catalogState.search) {
       params.set('search', catalogState.search);
@@ -241,20 +305,52 @@ export default class CatalogPage {
       params.set(key, normalized.join(','));
     });
 
-    const url = `${endpointBase}/${modePath}?${params.toString()}`;
-    const response = await fetch(url, { credentials: 'same-origin', signal: controller.signal });
+    // Получаем строку запроса и заменяем закодированные запятые на обычные
+    // для читаемости URL (запятая в значении параметра безопасна)
+    const queryString = params.toString().replace(/%2C/g, ',');
+    const url = `${endpointBase}/${modePath}?${queryString}`;
+    
+    // Диагностика: логируем параметры запроса
+    console.log('[catalog] Fetching data:', { append, offset, limit, url });
+    
+    try {
+      const response = await fetch(url, { credentials: 'same-origin', signal: controller.signal });
 
-    if (!response.ok) {
-      throw new Error(`Catalog request failed with status ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Catalog request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Диагностика: логируем сырой ответ от API
+      console.log('[catalog] Raw API response:', data);
+      console.log('[catalog] Response items:', data?.items?.length || 0, data?.items);
+      
+      // Очищаем pendingRequest только если это всё ещё наш запрос (защита от race condition)
+      if (this.pendingRequest === controller) {
+        this.pendingRequest = null;
+      }
+
+      return data;
+    } catch (fetchError) {
+      // Если запрос был отменён, просто выходим без ошибки
+      if (fetchError.name === 'AbortError') {
+        console.log('[catalog] Fetch aborted (AbortError)');
+        // Очищаем pendingRequest только если это наш запрос (защита от race condition)
+        if (this.pendingRequest === controller) {
+          this.pendingRequest = null;
+        }
+        return { items: [], meta: {} };
+      }
+      
+      // Очищаем pendingRequest перед пробросом ошибки (защита от race condition)
+      if (this.pendingRequest === controller) {
+        this.pendingRequest = null;
+      }
+      
+      // Пробрасываем другие ошибки
+      throw fetchError;
     }
-
-    const data = await response.json();
-
-    if (this.pendingRequest === controller) {
-      this.pendingRequest = null;
-    }
-
-    return data;
   }
 
   setLoading(isLoading) {
@@ -305,10 +401,10 @@ export default class CatalogPage {
 
     const catalogState = detail.state;
 
-    // Проверяем, изменилось ли состояние каталога (filters, search, sort, mode, page)
+    // Проверяем, изменилось ли состояние каталога (filters, search, sort, mode, limit)
     const currentStateStr = JSON.stringify({
       mode: catalogState.mode,
-      page: catalogState.page,
+      limit: catalogState.limit,
       search: catalogState.search,
       sort: catalogState.sort,
       filters: catalogState.filters,
@@ -317,7 +413,7 @@ export default class CatalogPage {
     const previousStateStr = this._previousState
       ? JSON.stringify({
           mode: this._previousState.mode,
-          page: this._previousState.page,
+          limit: this._previousState.limit,
           search: this._previousState.search,
           sort: this._previousState.sort,
           filters: this._previousState.filters,
@@ -416,14 +512,23 @@ export default class CatalogPage {
 
   shouldLoadMore() {
     const meta = window.app?.catalogStore?.getMeta();
-    const catalogState = window.app?.catalog?.getState();
+    const catalogStore = window.app?.catalogStore;
     
-    if (!meta || !catalogState) {
+    if (!meta || !catalogStore) {
       return false;
     }
     
-    const totalPages = meta.totalPages || 1;
-    return catalogState.page < totalPages && !this.pendingAppend;
+    // Не загружаем следующую страницу, если идет загрузка (защита на случай раннего включения observer)
+    const storeState = catalogStore.getState();
+    if (storeState.isLoading) {
+      return false;
+    }
+    
+    const total = meta.total || 0;
+    const loadedCount = catalogStore.getLoadedCount();
+    
+    // Проверяем, есть ли ещё элементы для загрузки
+    return loadedCount < total && !this.pendingAppend;
   }
 
   async loadNextPage() {
@@ -433,41 +538,59 @@ export default class CatalogPage {
 
     this.pendingAppend = true;
     const catalogState = window.app?.catalog?.getState();
-    if (!catalogState) {
+    const catalogStore = window.app?.catalogStore;
+    if (!catalogState || !catalogStore) {
       this.pendingAppend = false;
       return;
     }
 
-    const nextPage = catalogState.page + 1;
-
     try {
-      const payload = await this.fetchData({ page: nextPage });
+      // Infinite scroll: используем offset из loadedCount и limit из perPage
+      const payload = await this.fetchData({ append: true });
 
       const items = Array.isArray(payload.items) ? payload.items : [];
       if (items.length) {
         this.resultsComponent.appendItems(items, catalogState.mode);
+        
+        // Обновляем loadedCount после успешной загрузки
+        catalogStore.incrementLoadedCount(items.length);
+        
+        // Не обновляем limit в URL - он остается для первой загрузки
+        // Для infinite scroll мы используем offset, а не увеличиваем limit
       }
 
       // Обновляем метаданные в сторе (updateMeta - метод стора, не API)
-      if (window.app?.catalogStore) {
-        const currentMeta = window.app.catalogStore.getMeta();
-        window.app.catalogStore.updateMeta({
-          total: payload.meta?.total || currentMeta.total,
-          totalPages: payload.meta?.total_pages || currentMeta.totalPages,
-          availableFilters: payload.meta?.available_filters || currentMeta.availableFilters,
-          facetCounts: payload.meta?.facet_counts || currentMeta.facetCounts,
-        });
-      }
-
-      // Обновляем страницу через API (replace: true не поддерживается, но это не критично)
-      if (window.app?.catalog) {
-        window.app.catalog.setPage(nextPage);
+      // Убрали availableFilters и facetCounts - фильтры не возвращаются из API
+      const currentMeta = catalogStore.getMeta();
+      catalogStore.updateMeta({
+        total: payload.meta?.total || currentMeta.total,
+        totalPages: payload.meta?.total_pages || currentMeta.totalPages,
+      });
+      
+      // Проверяем, все ли элементы загружены
+      const total = payload.meta?.total || currentMeta.total || 0;
+      const loadedCount = catalogStore.getLoadedCount();
+      
+      if (loadedCount >= total && total > 0) {
+        // Все элементы загружены, показываем плашку "Больше загружать нечего"
+        if (this.resultsComponent && typeof this.resultsComponent.showEndMessage === 'function') {
+          this.resultsComponent.showEndMessage();
+        }
+        
+        // Отключаем observer, так как больше нечего загружать
+        this.teardownObserver();
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error('[catalog] Failed to load next page', error);
-        if (window.app?.catalogStore) {
-          window.app.catalogStore.setError(error);
+        catalogStore.setError(error);
+        
+        // Если ошибка 400 (например, limit превышает максимум), останавливаем infinite scroll
+        // чтобы предотвратить бесконечные повторные запросы
+        if (error.message && error.message.includes('400')) {
+          console.warn('[catalog] Received 400 error, stopping infinite scroll to prevent recursion');
+          // Отключаем observer, чтобы предотвратить дальнейшие попытки загрузки
+          this.teardownObserver();
         }
       }
     } finally {

@@ -20,6 +20,12 @@ export const renderResultsContainer = () => `
     <div class="catalog-results__error" data-catalog-error hidden>
       <p></p>
     </div>
+    <div class="catalog-results__end-message" data-catalog-end-message hidden>
+      <div class="catalog-results__end-message-content">
+        <ui-icon name="info" size="medium"></ui-icon>
+        <span>Больше загружать нечего</span>
+      </div>
+    </div>
     <div class="catalog-results__sentinel" data-catalog-sentinel></div>
   </div>
 `;

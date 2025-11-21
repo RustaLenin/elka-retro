@@ -466,11 +466,11 @@ export const taxonomyOptionAdapter = {
 
     const options = [];
     Object.values(taxonomyTerms).forEach((term) => {
-      if (term && (term.slug || term.id) && term.name) {
+      if (term && term.id && term.name) {
         options.push({
-          value: term.slug || String(term.id),
+          value: String(term.id), // Используем ID как значение (для совместимости с бэкендом)
           label: term.name,
-          description: term.description || undefined,
+          // description убираем - он не нужен в опциях и излишне усложняет интерфейс
           icon: term.icon || undefined,
           color: term.color || undefined,
           meta: term.meta || undefined

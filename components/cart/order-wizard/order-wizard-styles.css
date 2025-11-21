@@ -17,7 +17,7 @@
   margin: 0 0 1.5rem 0;
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--color-text, #111827);
+  color: var(--color-foreground, #f5f7fa);
   text-align: center;
 }
 
@@ -36,7 +36,7 @@
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--color-border, #e5e7eb);
+  background: var(--color-border, #2a2d31);
   z-index: 0;
 }
 
@@ -57,40 +57,41 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: var(--color-background-secondary, #f3f4f6);
-  color: var(--color-text-secondary, #6b7280);
+  background: var(--color-secondary, #202227);
+  color: var(--color-muted-foreground, #8a8f99);
   font-weight: 600;
   font-size: 1rem;
-  border: 2px solid var(--color-border, #e5e7eb);
+  border: 2px solid var(--color-border, #2a2d31);
   transition: all 0.2s ease;
 }
 
 .order-wizard_step_label {
   font-size: 0.875rem;
-  color: var(--color-text-secondary, #6b7280);
+  color: var(--color-muted-foreground, #8a8f99);
   text-align: center;
   transition: color 0.2s ease;
 }
 
 .order-wizard_step--active .order-wizard_step_number {
-  background: var(--color-primary, #2563eb);
-  color: var(--color-background, #ffffff);
-  border-color: var(--color-primary, #2563eb);
+  background: var(--color-primary, #9b8cff);
+  color: var(--color-foreground, #f5f7fa);
+  border-color: var(--color-primary, #9b8cff);
 }
 
 .order-wizard_step--active .order-wizard_step_label {
-  color: var(--color-primary, #2563eb);
+  color: var(--color-primary, #9b8cff);
   font-weight: 600;
 }
 
 .order-wizard_step--completed .order-wizard_step_number {
   background: var(--color-success, #22c55e);
-  color: var(--color-background, #ffffff);
+  color: var(--color-foreground, #f5f7fa);
   border-color: var(--color-success, #22c55e);
 }
 
 .order-wizard_step--completed .order-wizard_step_label {
-  color: var(--color-text, #111827);
+  color: var(--color-foreground, #f5f7fa);
+  font-weight: 500;
 }
 
 .order-wizard_step--disabled {
@@ -112,7 +113,7 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 2rem;
-  border-top: 1px solid var(--color-border, #e5e7eb);
+  border-top: 1px solid var(--color-border, #2a2d31);
   gap: 1rem;
 }
 

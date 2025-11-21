@@ -85,8 +85,8 @@ function renderCategoryNode(node, selected, expanded, level = 0) {
         ` : ''}
       </div>
       
-      ${hasChildren && isExpanded ? `
-        <div class="category-tree-filter__children">
+      ${hasChildren ? `
+        <div class="category-tree-filter__children" style="${!isExpanded ? 'display: none;' : ''}">
           ${node.children.map(child => renderCategoryNode(child, selected, expanded, level + 1)).join('')}
         </div>
       ` : ''}
@@ -148,6 +148,7 @@ export function renderCategoryTreeFilterTemplate(state) {
               name="${isExpanded ? 'chevron_left' : 'chevron_right'}" 
               size="small"
             ></ui-icon>
+            <span class="category-tree-filter__expand-btn-text">${isExpanded ? 'Свернуть' : 'Развернуть'}</span>
           </button>
         </div>
         

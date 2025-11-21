@@ -1,0 +1,78 @@
+/* Accessory Catalog Page Base Layout */
+.accessory-catalog-page {
+  --accessory-catalog-gap: 32px;
+  --accessory-catalog-sidebar-width: 310px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--accessory-catalog-gap);
+  width: 100%;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.accessory-catalog-page__sidebar {
+  display: none;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.accessory-catalog-page__content {
+  min-height: 320px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.accessory-catalog-page__toolbar {
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.accessory-catalog-page__loader {
+  margin-bottom: 24px;
+}
+
+.accessory-catalog-page__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 120px;
+  color: rgba(245, 247, 250, 0.65);
+  font-size: 0.95rem;
+}
+
+.accessory-catalog-page__loader[hidden] {
+  display: none !important;
+}
+
+@media (min-width: 992px) {
+  .accessory-catalog-page {
+    grid-template-columns: var(--accessory-catalog-sidebar-width) minmax(0, 1fr);
+  }
+
+  .accessory-catalog-page__sidebar {
+    display: block;
+  }
+  
+  /* Увеличение ширины сайдбара при развороте фильтра категорий */
+  .accessory-catalog-page__sidebar.expanded {
+    width: 50vw; /* На FullHD это ~960px */
+  }
+  
+  /* Также обновляем CSS-переменную для grid-template-columns */
+  .accessory-catalog-page:has(.accessory-catalog-page__sidebar.expanded) {
+    --accessory-catalog-sidebar-width: 50vw;
+  }
+}
+
+.site_content--accessory-catalog {
+  padding-top: 48px;
+  padding-bottom: 64px;
+}
+

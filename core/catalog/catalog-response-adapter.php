@@ -34,6 +34,12 @@ class Catalog_Response_Adapter {
 					$items[] = self::map_instance_post( $post );
 				}
 			}
+		} elseif ( 'accessory' === $mode ) {
+			foreach ( $query->posts as $post ) {
+				if ( $post instanceof WP_Post ) {
+					$items[] = self::adapt_accessory( $post );
+				}
+			}
 		} else {
 			foreach ( $query->posts as $post ) {
 				if ( $post instanceof WP_Post ) {
@@ -123,6 +129,9 @@ class Catalog_Response_Adapter {
 
 		$tube_condition = self::get_first_term_slug( $post_id, 'tube_condition' );
 		$condition_name = self::get_first_term_name( $post_id, 'condition' );
+		
+		$authenticity_taxonomy = self::get_related_taxonomy_slug( 'toy_instance', 'authenticity_field', 'authenticity' );
+		$authenticity_name      = self::get_first_term_name( $post_id, $authenticity_taxonomy );
 
 		$price_meta = get_post_meta( $post_id, 'cost', true );
 		$price      = '' !== $price_meta ? (float) $price_meta : null;
@@ -144,6 +153,7 @@ class Catalog_Response_Adapter {
 			'rarity'        => $rarity,
 			'tubeCondition' => $tube_condition,
 			'condition'     => $condition_name,
+			'authenticity'  => $authenticity_name,
 			'status'        => get_post_status( $post_id ),
 			'instanceIndex' => get_post_meta( $post_id, 'toy_instance_index', true ),
 			'parentType'    => array(
@@ -235,7 +245,15 @@ class Catalog_Response_Adapter {
 			}
 		}
 
-		$field_slug = 'toy_type' === $post_type ? 'toy_type_photos' : 'photos_of_the_toy_instance';
+		// Определяем поле для галереи в зависимости от типа поста
+		if ( 'toy_type' === $post_type ) {
+			$field_slug = 'toy_type_photos';
+		} elseif ( 'ny_accessory' === $post_type ) {
+			$field_slug = 'ny_images';
+		} else {
+			$field_slug = 'photos_of_the_toy_instance';
+		}
+
 		$config     = \elkaretro_get_field_config( $post_type, $field_slug );
 		$meta_key   = isset( $config['meta_field'] ) ? $config['meta_field'] : $field_slug;
 
@@ -329,6 +347,50 @@ class Catalog_Response_Adapter {
 		$cache[ $post_id ][ $field_slug ] = $data;
 
 		return $data;
+	}
+
+	/**
+	 * Adapts accessory post to catalog item format.
+	 *
+	 * @param WP_Post $post Post object.
+	 * @return array
+	 */
+	public static function adapt_accessory( WP_Post $post ) {
+		$post_id = $post->ID;
+
+		$image = self::get_primary_image_url( $post_id, 'ny_accessory' );
+
+		$price_meta = get_post_meta( $post_id, 'ny_cost', true );
+		$price      = '' !== $price_meta ? (float) $price_meta : null;
+
+		$stock_meta = get_post_meta( $post_id, 'stock', true );
+		$stock      = '' !== $stock_meta ? (int) $stock_meta : 0;
+
+		$index_meta = get_post_meta( $post_id, 'ny_accecory_index', true );
+		$index      = '' !== $index_meta ? (string) $index_meta : '';
+
+		// Получаем condition для отображения
+		$condition_taxonomy = self::get_related_taxonomy_slug( 'ny_accessory', 'ny_condition_field', 'condition' );
+		$condition_name    = self::get_first_term_name( $post_id, $condition_taxonomy );
+		$condition_slug    = self::get_first_term_slug( $post_id, $condition_taxonomy );
+
+		// Получаем material для отображения
+		$material_taxonomy = self::get_related_taxonomy_slug( 'ny_accessory', 'ny_material_field', 'material' );
+		$material_name     = self::get_first_term_name( $post_id, $material_taxonomy );
+
+		return array(
+			'id'         => $post_id,
+			'title'      => get_the_title( $post_id ),
+			'link'       => get_permalink( $post_id ),
+			'image'      => $image,
+			'price'      => $price,
+			'stock'      => $stock,
+			'index'      => $index,
+			'condition'  => $condition_name,
+			'conditionSlug' => $condition_slug,
+			'material'   => $material_name,
+			'status'     => get_post_status( $post_id ),
+		);
 	}
 }
 

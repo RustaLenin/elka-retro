@@ -1,5 +1,6 @@
 import { BaseElement } from '../../base-element.js';
 import { ny_accessory_single_template } from './ny-accessory-single-template.js';
+import { getAccessoryCatalogTaxonomyUrl } from '../../catalog/catalog-link-utils.js';
 
 /**
  * Ny Accessory Single Component
@@ -53,11 +54,12 @@ export class NyAccessorySingle extends BaseElement {
 
   async _performLoad(id) {
     const getTaxonomyUrl = (taxonomySlug, termSlug, termId = null) => {
-      if (taxonomySlug && termSlug) {
-        const filterValue = termId || termSlug;
-        return `/?search=1&${taxonomySlug}=${encodeURIComponent(filterValue)}`;
+      // Используем ID термина для формирования ссылки на каталог аксессуаров
+      if (taxonomySlug && termId) {
+        return getAccessoryCatalogTaxonomyUrl(taxonomySlug, termId);
       }
-      return '/?search=1';
+      // Fallback: если ID нет, возвращаем базовую ссылку на каталог аксессуаров
+      return '/accessories/';
     };
 
     const hydrateTermsFromIds = (ids, taxonomySlug) => {

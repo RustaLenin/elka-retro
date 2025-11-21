@@ -3,6 +3,9 @@
  * Шаблон для отображения хлебных крошек категорий
  */
 
+// Импортируем утилиту для формирования ссылок каталога
+import { getCatalogTaxonomyUrl } from '../catalog/catalog-link-utils.js';
+
 function escapeHtml(text) {
   if (!text) return '';
   const div = document.createElement('div');
@@ -26,16 +29,18 @@ export function category_breadcrumbs_template(state) {
   }
   
   // Формируем хлебные крошки
-  // Все ссылки ведут на страницу поиска с фильтром по категории
+  // Все ссылки ведут в каталог с фильтром по категории
   // Все элементы - ссылки, даже последний
   const items = categories.map((category, index) => {
     const isLast = index === categories.length - 1;
     const safeName = escapeHtml(category.name || '');
-    // Формируем URL страницы поиска с фильтром по категории
-    const searchUrl = category.id ? `/?search=1&category-of-toys=${category.id}` : '/?search=1';
+    // Формируем URL каталога с фильтром по категории (используем ID)
+    const catalogUrl = category.id 
+      ? getCatalogTaxonomyUrl('category-of-toys', category.id, { mode: 'type' })
+      : '/catalog/';
     const currentClass = isLast ? ' category-breadcrumbs_item--current' : '';
     
-    return `<a href="${searchUrl}" class="category-breadcrumbs_item${currentClass}">${safeName}</a>`;
+    return `<a href="${catalogUrl}" class="category-breadcrumbs_item${currentClass}">${safeName}</a>`;
   }).join('<span class="category-breadcrumbs_separator">/</span>');
   
   return `<nav class="category-breadcrumbs" aria-label="Хлебные крошки">

@@ -18,23 +18,28 @@
 const subscribers = new Set();
 const DEFAULT_STATE = Object.freeze({
   mode: 'type',
-  page: 1,
-  perPage: 30,
+  limit: 30, // Сколько всего показано элементов (в URL)
   search: '',
   sort: '',
   filters: {},
 });
 
-const knownKeys = new Set(['mode', 'page', 'per_page', 'search', 'sort']);
+const knownKeys = new Set(['mode', 'limit', 'search', 'sort']);
 
-const cloneState = (state = {}) => ({
-  mode: state.mode || DEFAULT_STATE.mode,
-  page: state.page || DEFAULT_STATE.page,
-  perPage: state.perPage || DEFAULT_STATE.perPage,
-  search: state.search || DEFAULT_STATE.search,
-  sort: state.sort || DEFAULT_STATE.sort,
-  filters: { ...(state.filters || {}) },
-});
+// Максимальное значение limit для backend API
+const MAX_LIMIT = 1000;
+
+const cloneState = (state = {}) => {
+  const requestedLimit = state.limit || DEFAULT_STATE.limit;
+  return {
+    mode: state.mode || DEFAULT_STATE.mode,
+    // Ограничиваем limit максимумом, чтобы предотвратить ошибки от старых больших значений
+    limit: Math.min(requestedLimit, MAX_LIMIT),
+    search: state.search || DEFAULT_STATE.search,
+    sort: state.sort || DEFAULT_STATE.sort,
+    filters: { ...(state.filters || {}) },
+  };
+};
 
 export const parse = (search = '') => {
   if (!search) {
@@ -50,11 +55,13 @@ export const parse = (search = '') => {
         case 'mode':
           state.mode = value === 'instance' ? 'instance' : 'type';
           break;
-        case 'page':
-          state.page = Math.max(1, parseInt(value, 10) || DEFAULT_STATE.page);
-          break;
-        case 'per_page':
-          state.perPage = Math.max(1, parseInt(value, 10) || DEFAULT_STATE.perPage);
+        case 'limit':
+          const requestedLimit = Math.max(1, parseInt(value, 10) || DEFAULT_STATE.limit);
+          // Ограничиваем limit максимумом, чтобы предотвратить ошибки от старых больших значений
+          state.limit = Math.min(requestedLimit, MAX_LIMIT);
+          if (requestedLimit > MAX_LIMIT) {
+            console.warn(`[catalog-url-state] Limit ${requestedLimit} from URL exceeds maximum ${MAX_LIMIT}, normalized to ${MAX_LIMIT}`);
+          }
           break;
         case 'search':
           state.search = value.trim();
@@ -112,8 +119,7 @@ export const serialize = (state = {}) => {
   const nextState = cloneState(state);
 
   params.set('mode', nextState.mode);
-  params.set('page', String(nextState.page));
-  params.set('per_page', String(nextState.perPage));
+  params.set('limit', String(nextState.limit));
 
   if (nextState.search) {
     params.set('search', nextState.search);
@@ -150,7 +156,9 @@ export const serialize = (state = {}) => {
       params.set(key, normalized.join(','));
     });
 
-  const query = params.toString();
+  // Получаем строку запроса и заменяем закодированные запятые на обычные
+  // для читаемости URL (запятая в значении параметра безопасна)
+  const query = params.toString().replace(/%2C/g, ',');
   return query ? `?${query}` : '';
 };
 

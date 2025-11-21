@@ -60,8 +60,6 @@ ny-accessory-card .ny-accessory-card__media-placeholder {
 
 ny-accessory-card .ny-accessory-card__badge {
   position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
   padding: 0.35rem 0.6rem;
   background: rgba(11, 6, 22, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -70,6 +68,16 @@ ny-accessory-card .ny-accessory-card__badge {
   font-weight: 600;
   letter-spacing: 0.05em;
   color: var(--color-foreground, rgba(245, 247, 250, 1));
+  z-index: 3;
+}
+
+ny-accessory-card .ny-accessory-card__badge--index {
+  top: 0.75rem;
+  left: 0.75rem;
+}
+
+ny-accessory-card .ny-accessory-card__badge--stock {
+  display: none;
 }
 
 ny-accessory-card .ny-accessory-card__content {

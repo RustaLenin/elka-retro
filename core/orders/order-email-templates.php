@@ -11,6 +11,8 @@
 
 namespace Elkaretro\Core\Orders;
 
+use Elkaretro\Core\Email\Email_Service;
+
 defined( 'ABSPATH' ) || exit;
 
 class Order_Email_Templates {
@@ -21,13 +23,27 @@ class Order_Email_Templates {
 	 * @param int    $order_id Order ID.
 	 * @param array  $order_data Order data.
 	 * @param string $email Customer email.
-	 * @return bool
+	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public function send_order_created_to_customer( $order_id, $order_data, $email ) {
 		$subject = sprintf( __( 'Ваш заказ #%s принят', 'elkaretro' ), $order_data['order_number'] );
 		$message = $this->get_order_created_template( $order_id, $order_data, true );
 
-		return wp_mail( $email, $subject, $message, $this->get_email_headers() );
+		$result = Email_Service::send(
+			$email,
+			$subject,
+			$message,
+			array(
+				'content_type' => 'html',
+				'context'      => array(
+					'type'           => 'order_created',
+					'order_id'       => $order_id,
+					'recipient_type' => 'customer',
+				),
+			)
+		);
+
+		return ! is_wp_error( $result );
 	}
 
 	/**
@@ -36,13 +52,27 @@ class Order_Email_Templates {
 	 * @param int    $order_id Order ID.
 	 * @param array  $order_data Order data.
 	 * @param string $email Admin email.
-	 * @return bool
+	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public function send_order_created_to_admin( $order_id, $order_data, $email ) {
 		$subject = sprintf( __( 'Новый заказ #%s', 'elkaretro' ), $order_data['order_number'] );
 		$message = $this->get_order_created_template( $order_id, $order_data, false );
 
-		return wp_mail( $email, $subject, $message, $this->get_email_headers() );
+		$result = Email_Service::send(
+			$email,
+			$subject,
+			$message,
+			array(
+				'content_type' => 'html',
+				'context'      => array(
+					'type'           => 'order_created',
+					'order_id'       => $order_id,
+					'recipient_type' => 'admin',
+				),
+			)
+		);
+
+		return ! is_wp_error( $result );
 	}
 
 	/**
@@ -51,13 +81,27 @@ class Order_Email_Templates {
 	 * @param int    $order_id Order ID.
 	 * @param array  $order_data Order data.
 	 * @param string $email Customer email.
-	 * @return bool
+	 * @return bool|WP_Error True on success, WP_Error on failure.
 	 */
 	public function send_order_closed_to_customer( $order_id, $order_data, $email ) {
 		$subject = sprintf( __( 'Заказ #%s закрыт', 'elkaretro' ), $order_data['order_number'] );
 		$message = $this->get_order_closed_template( $order_id, $order_data );
 
-		return wp_mail( $email, $subject, $message, $this->get_email_headers() );
+		$result = Email_Service::send(
+			$email,
+			$subject,
+			$message,
+			array(
+				'content_type' => 'html',
+				'context'      => array(
+					'type'           => 'order_closed',
+					'order_id'       => $order_id,
+					'recipient_type' => 'customer',
+				),
+			)
+		);
+
+		return ! is_wp_error( $result );
 	}
 
 	/**
@@ -287,18 +331,5 @@ class Order_Email_Templates {
 		return ob_get_clean();
 	}
 
-	/**
-	 * Get email headers for HTML emails.
-	 *
-	 * @return array
-	 */
-	protected function get_email_headers() {
-		$headers = array(
-			'Content-Type: text/html; charset=UTF-8',
-			'From: ' . get_bloginfo( 'name' ) . ' <' . get_option( 'admin_email' ) . '>',
-		);
-
-		return $headers;
-	}
 }
 

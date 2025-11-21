@@ -15,7 +15,7 @@ export function step_logistics_template(state) {
             <span>Используется адрес из вашего профиля. Вы можете изменить его ниже.</span>
           </div>
         ` : ''}
-        <ui-form-controller config-path="window.app.forms.orderLogistics"></ui-form-controller>
+        <ui-form-controller config-path="window.app.forms.orderLogistics" background></ui-form-controller>
       </div>
     </div>
   `;

@@ -11,6 +11,7 @@ export class NyAccessoryCard extends BaseElement {
     title: { type: 'string', default: '', attribute: { name: 'title', observed: true, reflect: true } },
     index: { type: 'string', default: '', attribute: { name: 'index', observed: true, reflect: true } },
     price: { type: 'number', default: null, attribute: { name: 'price', observed: true, reflect: true } },
+    stock: { type: 'number', default: 0, attribute: { name: 'stock', observed: true, reflect: true } },
     condition: { type: 'string', default: '', attribute: { name: 'condition', observed: true, reflect: true } },
     conditionSlug: { type: 'string', default: '', attribute: { name: 'condition-slug', observed: true, reflect: true } },
     material: { type: 'string', default: '', attribute: { name: 'material', observed: true, reflect: true } },

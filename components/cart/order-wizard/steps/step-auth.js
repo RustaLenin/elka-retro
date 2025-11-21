@@ -8,12 +8,11 @@ if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
 
 /**
  * Step Auth Component
- * Шаг проверки авторизации с ветвлением
+ * Шаг проверки авторизации
  * 
  * Если пользователь не авторизован:
- * - Предлагает выбор: войти или зарегистрироваться
- * - При выборе "Войти" - открывает модальное окно авторизации
- * - При выборе "Зарегистрироваться" - переходит к шагу личных данных
+ * - Показывает кнопку "Авторизация" (открывает модальное окно)
+ * - Показывает кнопку "Продолжить без авторизации" (переход к шагу 2 для регистрации)
  * 
  * Если пользователь авторизован:
  * - Пропускает этот шаг автоматически
@@ -21,20 +20,39 @@ if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
 export class StepAuth extends BaseElement {
   static stateSchema = {
     isAuthorized: { type: 'boolean', default: false, attribute: null, internal: true },
-    choice: { type: 'string', default: '', attribute: null, internal: true }, // 'login' | 'register'
   };
 
   constructor() {
     super();
-    this._handleLoginClick = () => this.handleLogin();
-    this._handleRegisterClick = () => this.handleRegister();
+    this._handleLoginClick = (e) => {
+      console.log('[StepAuth] Login click handler called', e);
+      this.handleLogin();
+    };
+    this._handleContinueWithoutAuthClick = (e) => {
+      console.log('[StepAuth] Continue without auth click handler called', e);
+      // Предотвращаем множественную обработку
+      if (this._isProcessingContinue) {
+        console.log('[StepAuth] Already processing continue, ignoring duplicate event');
+        return;
+      }
+      this._isProcessingContinue = true;
+      this.handleContinueWithoutAuth(e);
+      // Сбрасываем флаг через небольшую задержку
+      setTimeout(() => {
+        this._isProcessingContinue = false;
+      }, 100);
+    };
+    this._isProcessingContinue = false;
   }
 
   connectedCallback() {
     super.connectedCallback();
     this.checkAuth();
     this.render();
-    this.attachEventListeners();
+    // Ждем, пока DOM обновится, прежде чем прикреплять обработчики
+    requestAnimationFrame(() => {
+      this.attachEventListeners();
+    });
   }
 
   /**
@@ -45,10 +63,12 @@ export class StepAuth extends BaseElement {
     if (window.app?.auth?.user && window.app.auth.authenticated) {
       this.setState({
         isAuthorized: true,
-        choice: 'authorized',
       });
       // Уведомляем Wizard, что можно перейти к следующему шагу
-      this.dispatchEvent(new CustomEvent('wizard:step:next'));
+      this.dispatchEvent(new CustomEvent('wizard:step:next', {
+        bubbles: true,
+        composed: true,
+      }));
     } else {
       // PHP вернул null - пользователь не авторизован, не делаем запросов
       this.setState({ isAuthorized: false });
@@ -56,28 +76,22 @@ export class StepAuth extends BaseElement {
   }
 
   /**
-   * Обработка выбора "Войти"
+   * Обработка клика на кнопку "Авторизация"
    */
   async handleLogin() {
-    this.setState({ choice: 'login' });
-
     try {
       if (!window.app?.services?.userUi) {
         await import('../../../user-profile/services/user-ui-service.js');
       }
 
       if (window.app?.events) {
-        window.app.events.emit('user.showSignInModal', { source: 'step-auth' });
+        window.app.events.emit('user.showSignInModal', { source: 'order-wizard' });
       } else {
         window.app?.services?.userUi?.showSignInModal();
       }
 
-      const handleAuthSuccess = () => {
-        window.removeEventListener('elkaretro:auth:login', handleAuthSuccess);
-        this.checkAuth();
-      };
-
-      window.addEventListener('elkaretro:auth:login', handleAuthSuccess);
+      // Wizard сам обработает переход через событие elkaretro:auth:login
+      // Не нужно здесь обрабатывать - Wizard слушает это событие глобально
     } catch (error) {
       console.error('[StepAuth] Failed to open auth modal:', error);
       this.showNotification('Не удалось открыть окно авторизации', 'error');
@@ -85,29 +99,31 @@ export class StepAuth extends BaseElement {
   }
 
   /**
-   * Обработка выбора "Зарегистрироваться"
+   * Обработка клика на кнопку "Продолжить без авторизации"
    */
-  handleRegister() {
-    this.setState({ choice: 'register' });
-    // Переходим к шагу личных данных (шаг 2)
-    this.dispatchEvent(new CustomEvent('wizard:step:goto', {
+  handleContinueWithoutAuth(event) {
+    console.log('[StepAuth] handleContinueWithoutAuth called', event);
+    // Переходим к шагу личных данных (шаг 2) для регистрации
+    const gotoEvent = new CustomEvent('wizard:step:goto', {
+      bubbles: true,
+      composed: true,
       detail: { step: 2 },
-    }));
+    });
+    console.log('[StepAuth] Dispatching wizard:step:goto event:', gotoEvent);
+    this.dispatchEvent(gotoEvent);
   }
 
   /**
    * Валидация шага
+   * Для шага авторизации валидация не требуется - пользователь либо авторизуется, либо продолжает без авторизации
    */
   async validate() {
+    // Если авторизован - шаг пройден
     if (this.state.isAuthorized) {
       return true;
     }
 
-    if (!this.state.choice) {
-      this.showNotification('Пожалуйста, выберите способ оформления заказа', 'error');
-      return false;
-    }
-
+    // Если не авторизован - шаг всегда валиден (пользователь может выбрать любой вариант)
     return true;
   }
 
@@ -117,7 +133,6 @@ export class StepAuth extends BaseElement {
   async getData() {
     return {
       isAuthorized: this.state.isAuthorized,
-      choice: this.state.choice,
     };
   }
 
@@ -133,11 +148,10 @@ export class StepAuth extends BaseElement {
   }
 
   render() {
-    const { isAuthorized, choice } = this.state;
+    const { isAuthorized } = this.state;
 
     this.innerHTML = step_auth_template({
       isAuthorized,
-      choice,
     });
   }
 
@@ -146,11 +160,14 @@ export class StepAuth extends BaseElement {
    */
   attachEventListeners() {
     // Обработка кликов через кастомные события от ui-button
+    // Используем делегирование событий на корневом элементе
     this.removeEventListener('step-auth:login-click', this._handleLoginClick);
     this.addEventListener('step-auth:login-click', this._handleLoginClick);
 
-    this.removeEventListener('step-auth:register-click', this._handleRegisterClick);
-    this.addEventListener('step-auth:register-click', this._handleRegisterClick);
+    this.removeEventListener('step-auth:continue-without-auth-click', this._handleContinueWithoutAuthClick);
+    this.addEventListener('step-auth:continue-without-auth-click', this._handleContinueWithoutAuthClick);
+    
+    console.log('[StepAuth] Event listeners attached');
   }
 }
 

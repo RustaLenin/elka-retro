@@ -78,13 +78,21 @@ toy-instance-card .toy-instance-card_title {
   line-height: 1.4;
 }
 
+/* Контейнер для свойств (состояние и аутентичность) */
+toy-instance-card .toy-instance-card_properties {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
 /* Состояние (condition) */
 toy-instance-card .toy-instance-card_condition {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
 }
 
 toy-instance-card .toy-instance-card_condition-label {

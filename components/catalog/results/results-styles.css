@@ -17,6 +17,12 @@
   max-width: calc(25% - 18px);
 }
 
+/* Когда сайдбар развёрнут - показываем по 2 карточки в строке */
+.catalog-page:has(.catalog-page__sidebar.expanded) .catalog-results__grid-inner > * {
+  flex: 0 0 calc(50% - 12px);
+  max-width: calc(50% - 12px);
+}
+
 .catalog-results__grid toy-type-card,
 .catalog-results__grid toy-instance-card {
   width: 100%;
@@ -101,6 +107,38 @@
 
 .catalog-results__empty[hidden],
 .catalog-results__error[hidden] {
+  display: none !important;
+}
+
+/* Плашка "Больше загружать нечего" */
+.catalog-results__end-message {
+  width: 100%;
+  margin-top: 24px;
+  padding: 16px 24px;
+  background: rgba(255, 152, 0, 0.1);
+  border: 2px solid rgba(255, 152, 0, 0.6);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.catalog-results__end-message-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 152, 0, 0.9);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.catalog-results__end-message ui-icon {
+  color: rgba(255, 152, 0, 0.9);
+  flex-shrink: 0;
+}
+
+.catalog-results__end-message[hidden] {
   display: none !important;
 }
 

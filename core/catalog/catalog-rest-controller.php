@@ -24,7 +24,7 @@ defined( 'ABSPATH' ) || exit;
 class Catalog_REST_Controller extends WP_REST_Controller {
 
 	private const DEFAULT_PER_PAGE = 24;
-	private const MAX_PER_PAGE     = 60;
+	private const MAX_PER_PAGE     = 1000;
 
 	/**
 	 * @var Catalog_Toy_Type_Service
@@ -37,13 +37,19 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 	protected $instance_service;
 
 	/**
+	 * @var Catalog_Accessory_Service
+	 */
+	protected $accessory_service;
+
+	/**
 	 * Catalog_REST_Controller constructor.
 	 */
-	public function __construct( Catalog_Toy_Type_Service $type_service = null, Catalog_Toy_Instance_Service $instance_service = null ) {
+	public function __construct( Catalog_Toy_Type_Service $type_service = null, Catalog_Toy_Instance_Service $instance_service = null, Catalog_Accessory_Service $accessory_service = null ) {
 		$this->namespace        = 'elkaretro/v1';
 		$this->rest_base        = 'catalog';
 		$this->type_service     = $type_service ?: new Catalog_Toy_Type_Service();
 		$this->instance_service = $instance_service ?: new Catalog_Toy_Instance_Service();
+		$this->accessory_service = $accessory_service ?: new Catalog_Accessory_Service();
 	}
 
 	/**
@@ -77,6 +83,19 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 				),
 			)
 		);
+
+		register_rest_route(
+			$this->namespace,
+			sprintf( '/%s/accessories', $this->rest_base ),
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'handle_accessories' ),
+					'permission_callback' => '__return_true',
+					'args'                => $this->get_collection_params(),
+				),
+			)
+		);
 	}
 
 	/**
@@ -96,7 +115,8 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 			);
 		}
 
-		$results['filters'] = $this->type_service->get_filter_metadata( $state );
+		// Убрали фильтры из ответа - frontend уже знает состояние фильтров из URL/store
+		// Это ускоряет API (не формируем огромный массив фильтров) и уменьшает размер ответа
 
 		return rest_ensure_response( $results );
 	}
@@ -118,7 +138,31 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 			);
 		}
 
-		$results['filters'] = $this->instance_service->get_filter_metadata( $state );
+		// Убрали фильтры из ответа - frontend уже знает состояние фильтров из URL/store
+		// Это ускоряет API (не формируем огромный массив фильтров) и уменьшает размер ответа
+
+		return rest_ensure_response( $results );
+	}
+
+	/**
+	 * Handles accessory search request.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response
+	 */
+	public function handle_accessories( WP_REST_Request $request ) {
+		$state   = $this->normalize_state( $request, 'accessory' );
+		$results = $this->accessory_service->search( $state );
+
+		if ( ! is_array( $results ) ) {
+			$results = array(
+				'items' => array(),
+				'meta'  => array(),
+			);
+		}
+
+		// Убрали фильтры из ответа - frontend уже знает состояние фильтров из URL/store
+		// Это ускоряет API (не формируем огромный массив фильтров) и уменьшает размер ответа
 
 		return rest_ensure_response( $results );
 	}
@@ -131,14 +175,16 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 	 * @return array
 	 */
 	protected function normalize_state( WP_REST_Request $request, $mode ) {
-		$page     = max( 1, (int) $request->get_param( 'page' ) );
-		$per_page = (int) $request->get_param( 'per_page' );
+		// Поддержка нового формата: offset + limit
+		$offset = max( 0, (int) $request->get_param( 'offset' ) );
+		$limit  = (int) $request->get_param( 'limit' );
 
-		if ( $per_page <= 0 ) {
-			$per_page = self::DEFAULT_PER_PAGE;
+		// Если limit не указан, используем дефолтное значение per_page
+		if ( $limit <= 0 ) {
+			$limit = self::DEFAULT_PER_PAGE;
 		}
 
-		$per_page = min( $per_page, self::MAX_PER_PAGE );
+		$limit = min( $limit, self::MAX_PER_PAGE );
 
 		$search = $request->get_param( 'search' );
 		$sort   = $request->get_param( 'sort' );
@@ -147,8 +193,8 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 
 		return array(
 			'mode'     => $mode,
-			'page'     => $page,
-			'per_page' => $per_page,
+			'offset'   => $offset,
+			'limit'    => $limit,
 			'search'   => is_string( $search ) ? sanitize_text_field( $search ) : '',
 			'sort'     => is_string( $sort ) ? sanitize_key( $sort ) : '',
 			'filters'  => $filters,
@@ -162,15 +208,15 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 	 */
 	public function get_collection_params() {
 		return array(
-			'page'     => array(
-				'description'       => __( 'Current page of the collection.', 'elkaretro' ),
+			'offset'   => array(
+				'description'       => __( 'Number of items to skip (for pagination).', 'elkaretro' ),
 				'type'              => 'integer',
-				'default'           => 1,
-				'minimum'           => 1,
+				'default'           => 0,
+				'minimum'           => 0,
 				'validate_callback' => 'rest_validate_request_arg',
 			),
-			'per_page' => array(
-				'description'       => __( 'Number of results per page.', 'elkaretro' ),
+			'limit'    => array(
+				'description'       => __( 'Maximum number of items to return.', 'elkaretro' ),
 				'type'              => 'integer',
 				'default'           => self::DEFAULT_PER_PAGE,
 				'minimum'           => 1,
@@ -220,8 +266,8 @@ class Catalog_REST_Controller extends WP_REST_Controller {
 	protected function get_reserved_query_keys() {
 		return array(
 			'mode',
-			'page',
-			'per_page',
+			'offset',
+			'limit',
 			'search',
 			'sort',
 			'context',
