@@ -28,13 +28,18 @@ function escapeAttribute(str) {
  * @param {number} level - Уровень вложенности (0 = корень)
  * @returns {string}
  */
-function renderCategoryNode(node, selected, expanded, level = 0) {
+function renderCategoryNode(node, selected, expanded, level = 0, taxonomy = 'category-of-toys') {
   const isSelected = selected.has(node.id);
   const isExpanded = expanded.has(node.id);
   const hasChildren = node.children && node.children.length > 0;
   const indent = level * 20; // 20px на уровень
   const toyTypesCount = node.toy_types_count || 0;
-  const isDisabled = toyTypesCount === 0;
+  
+  // Для аксессуаров (ny_category) отключаем логику наличия - все категории доступны
+  // Для категорий игрушек оставляем логику наличия
+  const isAccessoryCategory = taxonomy === 'ny_category';
+  const isDisabled = !isAccessoryCategory && toyTypesCount === 0;
+  const showCount = !isAccessoryCategory; // Не показываем счетчики для аксессуаров
   
   // Определяем состояние чекбокса (checked, indeterminate если частично выбрано)
   let checkboxState = '';
@@ -64,7 +69,7 @@ function renderCategoryNode(node, selected, expanded, level = 0) {
           >
           <span class="category-tree-filter__checkbox-label">
             ${escapeHTML(node.name)}
-            <span class="category-tree-filter__count">(${toyTypesCount})</span>
+            ${showCount ? `<span class="category-tree-filter__count">(${toyTypesCount})</span>` : ''}
           </span>
         </label>
         
@@ -87,7 +92,7 @@ function renderCategoryNode(node, selected, expanded, level = 0) {
       
       ${hasChildren ? `
         <div class="category-tree-filter__children" style="${!isExpanded ? 'display: none;' : ''}">
-          ${node.children.map(child => renderCategoryNode(child, selected, expanded, level + 1)).join('')}
+          ${node.children.map(child => renderCategoryNode(child, selected, expanded, level + 1, taxonomy)).join('')}
         </div>
       ` : ''}
     </div>
@@ -101,9 +106,10 @@ function renderCategoryNode(node, selected, expanded, level = 0) {
  * @param {Array} tree - Массив корневых узлов
  * @param {Set} selected - Множество выбранных ID
  * @param {Set} expanded - Множество раскрытых ID
+ * @param {string} taxonomy - Слаг таксономии (для определения логики)
  * @returns {string}
  */
-function renderCategoryTree(tree, selected, expanded) {
+function renderCategoryTree(tree, selected, expanded, taxonomy = 'category-of-toys') {
   if (!tree || tree.length === 0) {
     return `
       <div class="category-tree-filter__empty">
@@ -114,7 +120,7 @@ function renderCategoryTree(tree, selected, expanded) {
   
   return `
     <div class="category-tree-filter__tree">
-      ${tree.map(node => renderCategoryNode(node, selected, expanded, 0)).join('')}
+      ${tree.map(node => renderCategoryNode(node, selected, expanded, 0, taxonomy)).join('')}
     </div>
   `;
 }
@@ -127,10 +133,11 @@ function renderCategoryTree(tree, selected, expanded) {
  * @param {Set} state.expanded - Раскрытые узлы
  * @param {string} state.searchQuery - Поисковый запрос
  * @param {boolean} state.isExpanded - Развёрнут ли на весь экран
+ * @param {string} state.taxonomy - Слаг таксономии (для определения логики)
  * @returns {string}
  */
 export function renderCategoryTreeFilterTemplate(state) {
-  const { tree = [], selected = new Set(), expanded = new Set(), searchQuery = '', isExpanded = false } = state;
+  const { tree = [], selected = new Set(), expanded = new Set(), searchQuery = '', isExpanded = false, taxonomy = 'category-of-toys' } = state;
   
   return `
     <div class="category-tree-filter ${isExpanded ? 'category-tree-filter--expanded' : ''}">
@@ -175,7 +182,7 @@ export function renderCategoryTreeFilterTemplate(state) {
       </div>
       
       <div class="category-tree-filter__body">
-        ${renderCategoryTree(tree, selected, expanded)}
+        ${renderCategoryTree(tree, selected, expanded, taxonomy)}
       </div>
     </div>
   `;

@@ -470,6 +470,12 @@ button {
   padding-left: 0.25rem;
 }
 
+/* Отступ при скролле к якорю "О нас", чтобы не скрывалось под sticky header */
+#site-info-about {
+  scroll-margin-top: 7rem; /* 6rem (высота header) + 1rem (визуальный отступ) */
+  padding-top: 1rem; /* Дополнительный визуальный отступ сверху */
+}
+
 .site-info-section__title {
   margin: 0;
   font-size: 1.5rem;

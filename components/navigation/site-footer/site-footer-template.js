@@ -47,12 +47,12 @@ export function site_footer_template(state) {
           </div>
           
           <div class="site_footer-links_section">
-            <h3 class="site_footer-links_title">Помощь</h3>
+            <h3 class="site_footer-links_title">Пользователю</h3>
             <ul class="site_footer-links_list">
-              <li><a href="/shipping" class="site_footer-link">Условия доставки</a></li>
-              <li><a href="/returns" class="site_footer-link">Условия возврата</a></li>
-              <li><a href="/care-guide" class="site_footer-link">Care Guide</a></li>
-              <li><a href="/faq" class="site_footer-link">FAQ</a></li>
+              <li><a href="${state.profileUrl || '/profile/'}" class="site_footer-link">Профиль</a></li>
+              <li><a href="${state.blogUrl || '/blog/'}" class="site_footer-link">Блог</a></li>
+              <li><span class="site_footer-link site_footer-link--disabled">Распродажа (в разработке)</span></li>
+              <li><span class="site_footer-link site_footer-link--disabled">Аукцион (в разработке)</span></li>
             </ul>
           </div>
           
@@ -66,9 +66,9 @@ export function site_footer_template(state) {
           © ${new Date().getFullYear()} Elka Retro. Все права защищены.
         </p>
         <div class="site_footer-legal">
-          <a href="/privacy" class="site_footer-legal_link">Политика обработки персональных данных</a>
+          <a href="#" class="site_footer-legal_link" data-app-action="legal.openPrivacyPolicy">Политика обработки персональных данных</a>
           <span class="site_footer-legal_separator">•</span>
-          <a href="/terms" class="site_footer-legal_link">Публичная офферта</a>
+          <a href="#" class="site_footer-legal_link" data-app-action="legal.openPublicOffer">Публичная офферта</a>
         </div>
       </div>
       

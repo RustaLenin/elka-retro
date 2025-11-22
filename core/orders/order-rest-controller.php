@@ -137,6 +137,25 @@ class Order_REST_Controller extends WP_REST_Controller {
 				),
 			)
 		);
+
+		// POST /wp-json/elkaretro/v1/orders/{orderId}/cancel - Cancel order (user action)
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<orderId>[\d]+)/cancel',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'cancel_order' ),
+					'permission_callback' => array( $this, 'check_order_cancel_permission' ),
+					'args'                => array(
+						'orderId' => array(
+							'required' => true,
+							'type'     => 'integer',
+						),
+					),
+				),
+			)
+		);
 	}
 
 	/**
@@ -450,6 +469,79 @@ class Order_REST_Controller extends WP_REST_Controller {
 	}
 
 	/**
+	 * Check if user has permission to cancel order.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return bool|WP_Error
+	 */
+	public function check_order_cancel_permission( WP_REST_Request $request ) {
+		if ( ! is_user_logged_in() ) {
+			return new WP_Error(
+				'rest_forbidden',
+				__( 'You must be logged in to cancel orders.', 'elkaretro' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		$order_id = (int) $request->get_param( 'orderId' );
+		$user_id  = get_current_user_id();
+
+		$order = get_post( $order_id );
+		if ( ! $order || $order->post_type !== 'elkaretro_order' ) {
+			return new WP_Error(
+				'rest_order_not_found',
+				__( 'Order not found.', 'elkaretro' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		// Check if order belongs to user
+		$order_user_id = (int) get_post_meta( $order_id, 'user', true );
+		if ( $order_user_id !== $user_id && ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error(
+				'rest_forbidden',
+				__( 'You do not have permission to cancel this order.', 'elkaretro' ),
+				array( 'status' => 403 )
+			);
+		}
+
+		// Check if order can be cancelled (not shipped or closed)
+		$status = $order->post_status;
+		$cancellable_statuses = array( 'awaiting_payment', 'collecting', 'clarification' );
+		if ( ! in_array( $status, $cancellable_statuses, true ) && ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error(
+				'rest_order_cannot_cancel',
+				__( 'This order cannot be cancelled.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Cancel order.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function cancel_order( WP_REST_Request $request ) {
+		$order_id = (int) $request->get_param( 'orderId' );
+		$result   = $this->order_service->cancel_order( $order_id );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'order'   => $result,
+			)
+		);
+	}
+
+	/**
 	 * Validate order status.
 	 *
 	 * @param mixed           $value
@@ -458,7 +550,7 @@ class Order_REST_Controller extends WP_REST_Controller {
 	 * @return bool
 	 */
 	public function validate_status( $value, WP_REST_Request $request, $param ) {
-		$allowed_statuses = array( 'awaiting_payment', 'collecting', 'shipped', 'closed', 'clarification' );
+		$allowed_statuses = array( 'awaiting_payment', 'collecting', 'shipped', 'closed', 'clarification', 'cancelled' );
 		return in_array( $value, $allowed_statuses, true );
 	}
 }

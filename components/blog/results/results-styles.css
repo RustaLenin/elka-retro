@@ -1,0 +1,225 @@
+/* Blog Page Header */
+.blog-page-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.blog-page-title {
+  margin: 0 0 0.5rem 0;
+}
+
+.blog-page-description {
+  margin: 0;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+}
+
+/* Blog Results Grid */
+.blog-results__grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+  padding: 0;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1023px) {
+  .blog-results__grid {
+    gap: 2rem;
+    max-width: 800px;
+  }
+}
+
+@media (max-width: 767px) {
+  .blog-results__grid {
+    gap: 1.5rem;
+    max-width: 100%;
+  }
+}
+
+.blog-results__grid post-card {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Увеличенные карточки для страницы блога */
+.blog-results__grid post-card {
+  max-width: 900px;
+  width: 100%;
+}
+
+@media (max-width: 1023px) {
+  .blog-results__grid post-card {
+    max-width: 800px;
+  }
+}
+
+@media (max-width: 767px) {
+  .blog-results__grid post-card {
+    max-width: 100%;
+  }
+}
+
+/* Увеличенные размеры элементов внутри карточек на странице блога */
+.blog-results__grid post-card .post-card_image {
+  padding-top: 50%; /* Более высокое изображение */
+}
+
+.blog-results__grid post-card .post-card_content {
+  padding: 2rem;
+  gap: 1rem;
+}
+
+.blog-results__grid post-card .post-card_title {
+  font-size: 1.75rem;
+  line-height: 1.3;
+}
+
+.blog-results__grid post-card .post-card_date {
+  font-size: 1rem;
+}
+
+.blog-results__grid post-card .post-card_excerpt {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  -webkit-line-clamp: 4; /* Больше строк в excerpt */
+  margin: 0 0 1.5rem 0;
+}
+
+.blog-results__grid post-card .post-card_actions {
+  padding: 0 2rem 2rem 2rem;
+}
+
+/* Sentinel для infinite scroll */
+.blog-results__sentinel {
+  width: 100%;
+  height: 1px;
+  opacity: 0;
+  margin-top: 24px;
+}
+
+/* Empty state */
+.blog-results__empty,
+.blog-results__error {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+  font-size: 1rem;
+}
+
+.blog-results__empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.blog-results__empty-icon {
+  opacity: 0.5;
+  margin-bottom: 0.5rem;
+}
+
+.blog-results__empty-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
+.blog-results__empty-text {
+  margin: 0;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+}
+
+/* Error state */
+.blog-results__error p {
+  margin: 0;
+  color: var(--color-error, #ff4444);
+}
+
+/* End message */
+.blog-results__end-message {
+  text-align: center;
+  padding: 24px 16px;
+  margin-top: 24px;
+}
+
+.blog-results__end-message-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+  font-size: 0.875rem;
+}
+
+.blog-results__end-message-content ui-icon {
+  opacity: 0.6;
+}
+
+/* Loading skeleton */
+.blog-results__skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+  padding: 0;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+@media (max-width: 1023px) {
+  .blog-results__skeleton {
+    gap: 2rem;
+    max-width: 800px;
+  }
+}
+
+@media (max-width: 767px) {
+  .blog-results__skeleton {
+    gap: 1.5rem;
+    max-width: 100%;
+  }
+}
+
+.blog-results__skeleton-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.blog-results__skeleton-image {
+  width: 100%;
+  height: 350px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.blog-results__skeleton-line {
+  height: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 16px 24px;
+  border-radius: 4px;
+}
+
+.blog-results__skeleton-line--wide {
+  width: 80%;
+}
+
+.blog-results__skeleton-line--short {
+  width: 50%;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+

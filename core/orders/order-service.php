@@ -138,6 +138,23 @@ class Order_Service {
 			);
 		}
 
+		// Validate consent fields
+		if ( ! isset( $personal_data['privacy_consent'] ) || ! $personal_data['privacy_consent'] ) {
+			return new WP_Error(
+				'order_missing_privacy_consent',
+				__( 'Consent for personal data processing is required.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! isset( $personal_data['offer_consent'] ) || ! $personal_data['offer_consent'] ) {
+			return new WP_Error(
+				'order_missing_offer_consent',
+				__( 'Consent with public offer terms is required.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
 		$email    = sanitize_email( $personal_data['email'] );
 		$username = sanitize_user( $personal_data['username'] );
 		$password = $personal_data['password'];
@@ -167,6 +184,10 @@ class Order_Service {
 			return $user_id;
 		}
 
+		// Set flag to indicate this user was registered via order
+		// This helps the email hook distinguish from admin-created users
+		update_user_meta( $user_id, '_registered_via_order', '1' );
+
 		// Update user meta
 		if ( $phone ) {
 			update_user_meta( $user_id, 'phone_number', $phone );
@@ -180,9 +201,18 @@ class Order_Service {
 			update_user_meta( $user_id, 'last_name', sanitize_text_field( $personal_data['last_name'] ) );
 		}
 
+		// Save consent fields to user meta
+		update_user_meta( $user_id, 'privacy_consent', $personal_data['privacy_consent'] ? '1' : '0' );
+		update_user_meta( $user_id, 'privacy_consent_at', current_time( 'mysql' ) );
+		update_user_meta( $user_id, 'offer_consent', $personal_data['offer_consent'] ? '1' : '0' );
+		update_user_meta( $user_id, 'offer_consent_at', current_time( 'mysql' ) );
+
 		// Auto-login user
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id );
+
+		// Registration welcome email will be sent via user_register hook
+		// See: core/user-profile/user-profile-loader.php
 
 		return $user_id;
 	}
@@ -234,41 +264,74 @@ class Order_Service {
 
 	/**
 	 * Generate unique order number.
+	 * Uses wp_option for daily counter to avoid race conditions and improve performance.
+	 * Includes retry logic to handle potential race conditions.
 	 *
 	 * @return string
 	 */
 	protected function generate_order_number() {
 		$date_prefix = date( 'Ymd' );
-		$counter     = 1;
-
-		// Find last order number for today
-		$today_orders = get_posts(
-			array(
-				'post_type'      => self::POST_TYPE,
-				'posts_per_page' => 1,
-				'orderby'        => 'date',
-				'order'          => 'DESC',
-				'meta_query'     => array(
-					array(
-						'key'     => 'order_number',
-						'value'   => 'ORD-' . $date_prefix . '-',
-						'compare' => 'LIKE',
-					),
-				),
-			)
-		);
-
-		if ( ! empty( $today_orders ) ) {
-			$last_order_number = get_post_meta( $today_orders[0]->ID, 'order_number', true );
-			if ( $last_order_number ) {
-				$parts = explode( '-', $last_order_number );
-				if ( count( $parts ) === 3 && $parts[0] === 'ORD' && $parts[1] === $date_prefix ) {
-					$counter = (int) $parts[2] + 1;
-				}
+		$option_name = 'elkaretro_order_counter';
+		$max_retries = 10;
+		$retry_count  = 0;
+		
+		do {
+			// Get current counter state
+			$counter_data = get_option( $option_name, array(
+				'date'    => '',
+				'counter' => 0,
+			) );
+			
+			// Reset counter if date changed
+			if ( $counter_data['date'] !== $date_prefix ) {
+				$counter_data = array(
+					'date'    => $date_prefix,
+					'counter' => 0,
+				);
 			}
-		}
-
-		return sprintf( 'ORD-%s-%04d', $date_prefix, $counter );
+			
+			// Increment counter atomically
+			$counter_data['counter']++;
+			
+			// Save updated counter
+			$updated = update_option( $option_name, $counter_data, false );
+			
+			// Generate order number with zero-padded counter
+			$order_number = sprintf( 'ORD-%s-%04d', $date_prefix, $counter_data['counter'] );
+			
+			// Check if order number already exists (race condition protection)
+			$existing_order = get_posts(
+				array(
+					'post_type'      => self::POST_TYPE,
+					'posts_per_page' => 1,
+					'meta_query'     => array(
+						array(
+							'key'   => 'order_number',
+							'value' => $order_number,
+						),
+					),
+					'fields'         => 'ids',
+				)
+			);
+			
+			// If order number is unique, return it
+			if ( empty( $existing_order ) ) {
+				return $order_number;
+			}
+			
+			// If order number exists, retry (increment counter and try again)
+			$retry_count++;
+			
+			// Small delay to reduce contention
+			if ( $retry_count < $max_retries ) {
+				usleep( 10000 ); // 10ms delay
+			}
+			
+		} while ( $retry_count < $max_retries );
+		
+		// Fallback: if all retries failed, use timestamp-based suffix
+		error_log( sprintf( '[OrderService] Failed to generate unique order number after %d retries, using timestamp fallback', $max_retries ) );
+		return sprintf( 'ORD-%s-%04d-%s', $date_prefix, $counter_data['counter'], substr( time(), -4 ) );
 	}
 
 	/**
@@ -352,9 +415,27 @@ class Order_Service {
 	 * @return void
 	 */
 	protected function save_order_fields( $order_id, $fields ) {
+		// Use PODS API for relationship fields
+		$pods = pods( self::POST_TYPE, $order_id );
+		
+		if ( ! $pods || ! $pods->valid() ) {
+			// Fallback to post meta if PODS is not available
+			error_log( '[OrderService] PODS not available for order ' . $order_id );
+		}
+
 		// Save basic fields
 		update_post_meta( $order_id, 'order_number', $fields['order_number'] );
+		if ( $pods && $pods->valid() ) {
+			$pods->save( 'order_number', $fields['order_number'] );
+		}
+		
+		// Save user relationship field via PODS
+		if ( $pods && $pods->valid() ) {
+			$pods->save( 'user', $fields['user'] );
+		}
+		// Also save as post meta for backward compatibility
 		update_post_meta( $order_id, 'user', $fields['user'] );
+		
 		update_post_meta( $order_id, 'total_amount', $fields['total_amount'] );
 		update_post_meta( $order_id, 'subtotal', $fields['subtotal'] );
 		update_post_meta( $order_id, 'discount_amount', $fields['discount_amount'] );
@@ -375,14 +456,24 @@ class Order_Service {
 			update_post_meta( $order_id, 'delivery_postal_code', $addr['postal_code'] ?? '' );
 		}
 
-		// Save relationship fields (PODS will handle these)
+		// Save relationship fields via PODS API
 		if ( ! empty( $fields['toy_instance_items'] ) ) {
+			// Save via PODS API for relationship field
+			if ( $pods && $pods->valid() ) {
+				$pods->save( 'toy_instance_items', $fields['toy_instance_items'] );
+			}
+			// Also save as post meta for backward compatibility
 			update_post_meta( $order_id, 'toy_instance_items', $fields['toy_instance_items'] );
 			
 			// Update toy instance statuses to 'reserved'
 			$this->reserve_toy_instances( $fields['toy_instance_items'], $order_id );
 		}
 		if ( ! empty( $fields['ny_accessory_items'] ) ) {
+			// Save via PODS API for relationship field
+			if ( $pods && $pods->valid() ) {
+				$pods->save( 'ny_accessory_items', $fields['ny_accessory_items'] );
+			}
+			// Also save as post meta for backward compatibility
 			update_post_meta( $order_id, 'ny_accessory_items', $fields['ny_accessory_items'] );
 			
 			// Decrease NY accessory stock and update status if needed
@@ -411,18 +502,22 @@ class Order_Service {
 		$toy_instance_items = get_post_meta( $order_id, 'toy_instance_items', true ) ?: array();
 		$ny_accessory_items = get_post_meta( $order_id, 'ny_accessory_items', true ) ?: array();
 
-		// Combine items
+		// Combine items with prices
 		$items = array();
 		foreach ( $toy_instance_items as $item_id ) {
+			$price = $this->get_item_price_from_db( $item_id, 'toy_instance' );
 			$items[] = array(
-				'id'   => absint( $item_id ),
-				'type' => 'toy_instance',
+				'id'    => absint( $item_id ),
+				'type'  => 'toy_instance',
+				'price' => $price,
 			);
 		}
 		foreach ( $ny_accessory_items as $item_id ) {
+			$price = $this->get_item_price_from_db( $item_id, 'ny_accessory' );
 			$items[] = array(
-				'id'   => absint( $item_id ),
-				'type' => 'ny_accessory',
+				'id'    => absint( $item_id ),
+				'type'  => 'ny_accessory',
+				'price' => $price,
 			);
 		}
 
@@ -538,7 +633,7 @@ class Order_Service {
 			);
 		}
 
-		$allowed_statuses = array( 'awaiting_payment', 'collecting', 'shipped', 'closed', 'clarification' );
+		$allowed_statuses = array( 'awaiting_payment', 'collecting', 'shipped', 'closed', 'clarification', 'cancelled' );
 		if ( ! in_array( $status, $allowed_statuses, true ) ) {
 			return new WP_Error(
 				'invalid_status',
@@ -563,7 +658,107 @@ class Order_Service {
 			$this->send_order_closed_email( $order_id, $order_data );
 		}
 
+		// If order is cancelled, return items to available
+		if ( $status === 'cancelled' && $old_status !== 'cancelled' ) {
+			$this->return_order_items_to_available( $order_id );
+		}
+
 		return $this->get_order( $order_id );
+	}
+
+	/**
+	 * Cancel order (user action).
+	 *
+	 * @param int $order_id Order ID.
+	 * @return array|WP_Error Updated order or error.
+	 */
+	public function cancel_order( $order_id ) {
+		$order = get_post( $order_id );
+		if ( ! $order || $order->post_type !== self::POST_TYPE ) {
+			return new WP_Error(
+				'order_not_found',
+				__( 'Order not found.', 'elkaretro' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		// Check if order can be cancelled
+		$status = $order->post_status;
+		$cancellable_statuses = array( 'awaiting_payment', 'collecting', 'clarification' );
+		if ( ! in_array( $status, $cancellable_statuses, true ) ) {
+			return new WP_Error(
+				'order_cannot_cancel',
+				__( 'This order cannot be cancelled.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Update status to cancelled
+		return $this->update_order_status( $order_id, 'cancelled' );
+	}
+
+	/**
+	 * Return order items to available status (when order is cancelled).
+	 *
+	 * @param int $order_id Order ID.
+	 * @return void
+	 */
+	protected function return_order_items_to_available( $order_id ) {
+		// Get toy instances
+		$toy_instance_items = get_post_meta( $order_id, 'toy_instance_items', true ) ?: array();
+		if ( ! empty( $toy_instance_items ) && is_array( $toy_instance_items ) ) {
+			foreach ( $toy_instance_items as $instance_id ) {
+				$instance_id = absint( $instance_id );
+				if ( ! $instance_id ) {
+					continue;
+				}
+
+				$instance = get_post( $instance_id );
+				if ( ! $instance || $instance->post_type !== 'toy_instance' ) {
+					continue;
+				}
+
+				// Return to publish status if currently reserved or booked
+				if ( $instance->post_status === 'reserved' || $instance->post_status === 'booked' ) {
+					wp_update_post(
+						array(
+							'ID'          => $instance_id,
+							'post_status' => 'publish',
+						)
+					);
+				}
+			}
+		}
+
+		// Get NY accessories
+		$ny_accessory_items = get_post_meta( $order_id, 'ny_accessory_items', true ) ?: array();
+		if ( ! empty( $ny_accessory_items ) && is_array( $ny_accessory_items ) ) {
+			foreach ( $ny_accessory_items as $accessory_id ) {
+				$accessory_id = absint( $accessory_id );
+				if ( ! $accessory_id ) {
+					continue;
+				}
+
+				$accessory = get_post( $accessory_id );
+				if ( ! $accessory || $accessory->post_type !== 'ny_accessory' ) {
+					continue;
+				}
+
+				// Increase stock back
+				$current_stock = (int) get_post_meta( $accessory_id, 'stock', true );
+				update_post_meta( $accessory_id, 'stock', $current_stock + 1 );
+
+				// Return to publish status if currently reserved
+				if ( $accessory->post_status === 'reserved' ) {
+					wp_update_post(
+						array(
+							'ID'          => $accessory_id,
+							'post_status' => 'publish',
+						)
+					);
+				}
+			}
+		}
 	}
 
 	/**

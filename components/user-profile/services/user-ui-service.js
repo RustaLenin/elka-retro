@@ -147,6 +147,21 @@ function registerUserActions(service) {
         console.error('[user-ui-service] Logout failed:', error);
       }
     },
+    openContactForm: ({ payload } = {}) => {
+      // Переходим на страницу профиля с вкладкой обратной связи
+      const url = '/profile/#contact';
+      
+      // Сохраняем данные для предзаполнения формы
+      if (payload?.subject) {
+        sessionStorage.setItem('contact-form-preset', JSON.stringify({
+          subject: payload.subject,
+          orderId: payload.orderId,
+          orderNumber: payload.orderNumber
+        }));
+      }
+      
+      window.location.href = url;
+    }
   });
 }
 

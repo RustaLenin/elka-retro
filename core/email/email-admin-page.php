@@ -55,14 +55,27 @@ class Email_Admin_Page {
 			return;
 		}
 
-		// Enqueue UI-kit components.
-		wp_enqueue_script( 'elkaretro-components', get_template_directory_uri() . '/components/components.js', array(), '1.0.0', true );
+		// Enqueue UI-kit components (as module).
+		wp_enqueue_script(
+			'elkaretro-components',
+			get_template_directory_uri() . '/components/components.js',
+			array(),
+			'1.0.0',
+			true
+		);
+		// Add type="module" attribute for components.js.
+		add_filter( 'script_loader_tag', function( $tag, $handle ) {
+			if ( 'elkaretro-components' === $handle ) {
+				$tag = str_replace( '<script ', '<script type="module" ', $tag );
+			}
+			return $tag;
+		}, 10, 2 );
 
 		// Enqueue email admin page script.
 		wp_enqueue_script(
 			'elkaretro-email-admin',
 			get_template_directory_uri() . '/core/email/email-admin-page.js',
-			array( 'elkaretro-components' ),
+			array(),
 			'1.0.0',
 			true
 		);
@@ -97,6 +110,13 @@ class Email_Admin_Page {
 					'confirmDelete'      => __( 'Are you sure you want to delete this log?', 'elkaretro' ),
 					'deleteFailed'       => __( 'Failed to delete log.', 'elkaretro' ),
 					'deleteError'        => __( 'Error deleting log.', 'elkaretro' ),
+					'testEmailPrompt'    => __( 'Enter email address to send test email:', 'elkaretro' ),
+					'testEmailPlaceholder' => __( 'your-email@example.com', 'elkaretro' ),
+					'testEmailSend'      => __( 'Send Test Email', 'elkaretro' ),
+					'testEmailCancel'    => __( 'Cancel', 'elkaretro' ),
+					'testEmailSending'   => __( 'Sending test email...', 'elkaretro' ),
+					'testEmailSuccess'   => __( 'Test email sent successfully! Check your inbox.', 'elkaretro' ),
+					'testEmailFailed'    => __( 'Failed to send test email:', 'elkaretro' ),
 				),
 			)
 		);
@@ -210,7 +230,12 @@ class Email_Admin_Page {
 								<button type="submit" class="button button-primary">
 									<?php echo esc_html( __( 'Save Settings', 'elkaretro' ) ); ?>
 								</button>
+								<button type="button" id="test_smtp" class="button">
+									<?php echo esc_html( __( 'Test SMTP Connection', 'elkaretro' ) ); ?>
+								</button>
 							</div>
+
+							<div id="smtp_test_result" class="elkaretro-email-admin__test-result" style="display: none; margin-top: 1rem; padding: 1rem; border-radius: 4px;"></div>
 						</form>
 					</div>
 				</div>
@@ -314,6 +339,30 @@ class Email_Admin_Page {
 			display: flex;
 			gap: 1rem;
 			align-items: center;
+		}
+		.elkaretro-email-admin__form-actions {
+			display: flex;
+			gap: 1rem;
+			align-items: center;
+		}
+		.elkaretro-email-admin__test-result {
+			margin-top: 1rem;
+		}
+		.elkaretro-email-admin__test-result.notice {
+			padding: 1rem;
+			border-left-width: 4px;
+		}
+		.elkaretro-email-admin__test-result.notice-success {
+			background-color: #d4edda;
+			border-left-color: #28a745;
+		}
+		.elkaretro-email-admin__test-result.notice-error {
+			background-color: #f8d7da;
+			border-left-color: #dc3545;
+		}
+		.elkaretro-email-admin__test-result.notice-info {
+			background-color: #d1ecf1;
+			border-left-color: #17a2b8;
 		}
 		</style>
 		<?php

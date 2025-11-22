@@ -125,6 +125,24 @@ export const orderPersonalFormConfig = {
         icon_position: 'left',
         color: '#888888'
       }
+    },
+    {
+      id: 'privacy_consent',
+      type: 'checkbox',
+      label: 'Я согласен на обработку <a href="#" data-app-action="legal.openPrivacyConsent" class="register-form__legal-link">персональных данных</a>',
+      required: true,
+      validation: [
+        { rule: 'required', value: true, message: 'Необходимо согласие на обработку персональных данных', severity: 'error' }
+      ]
+    },
+    {
+      id: 'offer_consent',
+      type: 'checkbox',
+      label: 'Я согласен с условиями <a href="#" data-app-action="legal.openPublicOffer" class="register-form__legal-link">публичной оферты</a>',
+      required: true,
+      validation: [
+        { rule: 'required', value: true, message: 'Необходимо согласие с условиями публичной оферты', severity: 'error' }
+      ]
     }
   ],
   actions: {
@@ -140,7 +158,9 @@ export const orderPersonalFormConfig = {
         password: String(values.password || ''),
         confirm_password: String(values.confirm_password || ''),
         first_name: String(values.first_name || '').trim(),
-        last_name: String(values.last_name || '').trim()
+        last_name: String(values.last_name || '').trim(),
+        privacy_consent: Boolean(values.privacy_consent),
+        offer_consent: Boolean(values.offer_consent)
       };
     },
     validate: async (context) => {
@@ -246,6 +266,26 @@ export const orderPersonalFormConfig = {
           fieldId: 'confirm_password',
           rule: 'passwordsMatch',
           message: 'Пароли не совпадают',
+          severity: 'error'
+        });
+      }
+      
+      // Валидация согласия на обработку персональных данных
+      if (!values.privacy_consent || values.privacy_consent !== true) {
+        errors.push({
+          fieldId: 'privacy_consent',
+          rule: 'required',
+          message: 'Необходимо согласие на обработку персональных данных',
+          severity: 'error'
+        });
+      }
+      
+      // Валидация согласия с публичной офертой
+      if (!values.offer_consent || values.offer_consent !== true) {
+        errors.push({
+          fieldId: 'offer_consent',
+          rule: 'required',
+          message: 'Необходимо согласие с условиями публичной оферты',
           severity: 'error'
         });
       }

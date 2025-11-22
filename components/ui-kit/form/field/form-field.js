@@ -258,6 +258,26 @@ export class UIFormField extends BaseElement {
     } else if (this._controlEl) {
       // Подключаем слушатели событий веб-компонента
       this._attachControlListeners();
+      
+      // Для чекбоксов с HTML в label - устанавливаем HTML после рендера
+      if (this._controlEl.tagName === 'UI-FORM-CHECKBOX' && this.state.config?.label && /<[^>]+>/.test(this.state.config.label)) {
+        requestAnimationFrame(() => {
+          // Устанавливаем HTML в label через innerHTML напрямую
+          const labelHTML = this.state.config.label;
+          if (labelHTML) {
+            // Сохраняем HTML в data-атрибут (для хранения)
+            this._controlEl.dataset.labelHtml = labelHTML;
+            // Обновляем state чекбокса
+            if (this._controlEl.state) {
+              this._controlEl.setState({ label: labelHTML, labelIsHTML: true });
+            }
+            // Вызываем render у чекбокса, чтобы он обработал HTML
+            if (typeof this._controlEl.render === 'function') {
+              this._controlEl.render();
+            }
+          }
+        });
+      }
     }
   }
 

@@ -32,7 +32,7 @@ export function renderFormCheckboxTemplate(state) {
         <span class="ui-form-checkbox__box-mark"></span>
       </span>
       <span class="ui-form-checkbox__content">
-        ${label ? `<span class="ui-form-checkbox__label">${escapeHTML(label)}${required}</span>` : ''}
+        ${label ? `<span class="ui-form-checkbox__label">${state?.labelIsHTML ? label : escapeHTML(label)}${required}</span>` : ''}
         ${description ? `<span class="ui-form-checkbox__description">${escapeHTML(description)}</span>` : ''}
         ${hint ? `<span class="ui-form-checkbox__hint">${escapeHTML(hint)}</span>` : ''}
       </span>

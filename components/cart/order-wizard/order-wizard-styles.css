@@ -7,6 +7,76 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem 1rem;
+  position: relative;
+}
+
+.order-wizard_overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  border-radius: 12px;
+  animation: fadeIn 0.2s ease-in;
+  pointer-events: auto;
+}
+
+/* Блокируем взаимодействие с элементами визарда при overlay */
+.order-wizard:has(.order-wizard_overlay) .order-wizard_header,
+.order-wizard:has(.order-wizard_overlay) .order-wizard_content,
+.order-wizard:has(.order-wizard_overlay) .order-wizard_footer {
+  pointer-events: none;
+  user-select: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.order-wizard_loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem 2.5rem;
+  background: var(--color-card, #17181d);
+  border: 2px solid var(--color-primary, #9b8cff);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  min-width: 280px;
+  text-align: center;
+}
+
+.order-wizard_loader ui-icon {
+  color: var(--color-primary, #9b8cff);
+  --icon-size: 3.5rem;
+}
+
+.order-wizard_loader-text {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.order-wizard_loader-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--color-muted-foreground, #8a8f99);
+  margin-top: 0.5rem;
 }
 
 .order-wizard_header {

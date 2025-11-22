@@ -92,6 +92,24 @@ export const registerFormConfig = {
         icon_position: 'left',
         color: '#888888'
       }
+    },
+    {
+      id: 'privacy_consent',
+      type: 'checkbox',
+      label: 'Я согласен на обработку <a href="#" data-app-action="legal.openPrivacyConsent" class="register-form__legal-link">персональных данных</a>',
+      required: true,
+      validation: {
+        rules: ['required']
+      }
+    },
+    {
+      id: 'offer_consent',
+      type: 'checkbox',
+      label: 'Я согласен с условиями <a href="#" data-app-action="legal.openPublicOffer" class="register-form__legal-link">публичной оферты</a>',
+      required: true,
+      validation: {
+        rules: ['required']
+      }
     }
   ],
   actions: {
@@ -224,6 +242,26 @@ export const registerFormConfig = {
         });
       }
       
+      // Валидация согласия на обработку персональных данных
+      if (!values.privacy_consent || values.privacy_consent !== true) {
+        errors.push({
+          fieldId: 'privacy_consent',
+          rule: 'required',
+          message: 'Необходимо согласие на обработку персональных данных',
+          severity: 'error'
+        });
+      }
+      
+      // Валидация согласия с публичной офертой
+      if (!values.offer_consent || values.offer_consent !== true) {
+        errors.push({
+          fieldId: 'offer_consent',
+          rule: 'required',
+          message: 'Необходимо согласие с условиями публичной оферты',
+          severity: 'error'
+        });
+      }
+      
       return {
         valid: errors.length === 0,
         errors,
@@ -247,7 +285,11 @@ export const registerFormConfig = {
         values.email,
         values.username,
         values.password,
-        values.phone
+        values.phone,
+        values.privacy_consent,
+        values.offer_consent,
+        values.first_name,
+        values.last_name
       );
       
       if (!result.success) {

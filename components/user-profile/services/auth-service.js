@@ -230,7 +230,7 @@ class AuthService {
   /**
    * Регистрация нового пользователя
    */
-  async register(email, username, password, phone) {
+  async register(email, username, password, phone, privacyConsent, offerConsent, firstName, lastName) {
     try {
       const nonce = this.getNonce();
       const headers = {
@@ -242,40 +242,48 @@ class AuthService {
       }
 
       const userData = {
-        email,
-        username,
-        password,
-        // Добавляем телефон в мета-поля, если они поддерживаются
-        meta: {
-          phone: phone
-        }
+        email: email,
+        username: username,
+        password: password,
+        phone: phone,
+        privacy_consent: Boolean(privacyConsent),
+        offer_consent: Boolean(offerConsent),
       };
 
-      const response = await fetch('/wp-json/wp/v2/users', {
+      // Добавляем опциональные поля, если они переданы
+      if (firstName) {
+        userData.first_name = firstName;
+      }
+      if (lastName) {
+        userData.last_name = lastName;
+      }
+
+      const response = await fetch('/wp-json/elkaretro/v1/auth/register', {
         method: 'POST',
         credentials: 'same-origin',
         headers,
         body: JSON.stringify(userData)
       });
 
-      if (response.ok) {
-        const user = await response.json();
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data?.success) {
+        const user = data.user;
         
-          // После регистрации автоматически авторизуем
-          const loginResult = await this.login(username, password, false);
-          
-          if (loginResult.success) {
-            this.dispatchAuthEvent('register', { user: loginResult.user || user });
-            return { success: true, user: loginResult.user || user };
-          } else {
-            // Если авторизация не удалась, возвращаем успех регистрации
-            // пользователь может войти вручную
-            this.dispatchAuthEvent('register', { user });
-            return { success: true, user, needsLogin: true };
-          }
+        // После регистрации автоматически авторизуем
+        const loginResult = await this.login(username, password, false);
+        
+        if (loginResult.success) {
+          this.dispatchAuthEvent('register', { user: loginResult.user || user });
+          return { success: true, user: loginResult.user || user };
+        } else {
+          // Если авторизация не удалась, возвращаем успех регистрации
+          // пользователь может войти вручную
+          this.dispatchAuthEvent('register', { user });
+          return { success: true, user, needsLogin: true };
+        }
       } else {
-        const error = await response.json();
-        const errorMessage = this.extractErrorMessage(error);
+        const errorMessage = data?.message || this.extractErrorMessage(data) || 'Ошибка регистрации';
         this.dispatchAuthEvent('error', { error: errorMessage });
         return { success: false, error: errorMessage };
       }

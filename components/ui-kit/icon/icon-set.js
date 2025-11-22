@@ -214,6 +214,56 @@ export const icons = {
         <line x1="1" y1="1" x2="23" y2="23" fill="none"/>
       </svg>
     `,
+    tree: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v4" fill="none"/>
+        <path d="M12 6c-2 0-3 1-3 3v2" fill="none"/>
+        <path d="M12 10c-3 0-4 2-4 4v2" fill="none"/>
+        <path d="M12 16c-4 0-5 3-5 5v1h10v-1c0-2-1-5-5-5z" fill="none"/>
+        <path d="M12 2l-2 4h4l-2-4z" fill="none"/>
+        <path d="M10 8l-2 3h4l-2-3z" fill="none"/>
+        <path d="M8 13l-2 3h4l-2-3z" fill="none"/>
+      </svg>
+    `,
+    sparkles: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v2" fill="none"/>
+        <path d="M12 20v2" fill="none"/>
+        <path d="M2 12h2" fill="none"/>
+        <path d="M20 12h2" fill="none"/>
+        <path d="M5.64 5.64l1.41 1.41" fill="none"/>
+        <path d="M16.95 16.95l1.41 1.41" fill="none"/>
+        <path d="M18.36 5.64l-1.41 1.41" fill="none"/>
+        <path d="M7.05 16.95l-1.41 1.41" fill="none"/>
+        <circle cx="12" cy="12" r="2" fill="none"/>
+      </svg>
+    `,
+    info: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" fill="none"/>
+        <line x1="12" y1="16" x2="12" y2="12" fill="none"/>
+        <line x1="12" y1="8" x2="12.01" y2="8" fill="none"/>
+      </svg>
+    `,
+    users: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" fill="none"/>
+        <circle cx="9" cy="7" r="4" fill="none"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" fill="none"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" fill="none"/>
+      </svg>
+    `,
+    building: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" fill="none"/>
+        <path d="M6 12h12" fill="none"/>
+        <path d="M6 16h12" fill="none"/>
+        <path d="M6 20h12" fill="none"/>
+        <path d="M6 8h12" fill="none"/>
+        <path d="M10 2v2" fill="none"/>
+        <path d="M14 2v2" fill="none"/>
+      </svg>
+    `,
 };
 
 

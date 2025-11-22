@@ -5,6 +5,8 @@ class SiteFooter extends BaseElement {
   static stateSchema = {
     toyCatalogUrl: { type: 'string', default: '/catalog/', attribute: { name: 'toy-catalog-url', observed: true } },
     nyAccessoryUrl: { type: 'string', default: '/ny-accessory/', attribute: { name: 'ny-accessory-url', observed: true } },
+    profileUrl: { type: 'string', default: '/profile/', attribute: { name: 'profile-url', observed: true } },
+    blogUrl: { type: 'string', default: '/blog/', attribute: { name: 'blog-url', observed: true } },
   };
 
   constructor() {

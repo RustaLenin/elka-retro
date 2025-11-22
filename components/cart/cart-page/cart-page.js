@@ -213,12 +213,82 @@ export class CartPage extends BaseElement {
               imageUrl = data.image;
             }
             
+            // Преобразуем condition из ID в название, если это toy_instance
+            let conditionName = '';
+            if (item.type === 'toy_instance') {
+              // В REST API condition может быть:
+              // 1. data.condition - массив объектов или false
+              // 2. data.conditions - ID (число) - поле с множественным числом
+              // 3. data.meta.condition - может быть ID или строка
+              
+              // Приоритет 1: проверяем data.condition (массив объектов или массив ID)
+              if (data.condition && Array.isArray(data.condition) && data.condition.length > 0) {
+                const firstCondition = data.condition[0];
+                // Если это объект с name/slug
+                if (typeof firstCondition === 'object' && firstCondition !== null) {
+                  conditionName = firstCondition.name || firstCondition.slug || '';
+                }
+                // Если это число (ID) или строка с числом
+                else if (typeof firstCondition === 'number' || (typeof firstCondition === 'string' && /^\d+$/.test(firstCondition))) {
+                  const conditionId = typeof firstCondition === 'string' ? parseInt(firstCondition, 10) : firstCondition;
+                  const taxonomyTerms = window.taxonomy_terms?.condition || {};
+                  const termData = taxonomyTerms[conditionId];
+                  if (termData) {
+                    conditionName = termData.name || termData.slug || '';
+                  } else {
+                    console.warn(`[cart-page] Condition term ${conditionId} not found in taxonomy_terms for item ${item.id}`);
+                  }
+                }
+              }
+              // Приоритет 2: проверяем data.conditions (ID) - поле с множественным числом
+              else if (data.conditions && (typeof data.conditions === 'number' || (typeof data.conditions === 'string' && /^\d+$/.test(data.conditions)))) {
+                const conditionId = typeof data.conditions === 'string' ? parseInt(data.conditions, 10) : data.conditions;
+                const taxonomyTerms = window.taxonomy_terms?.condition || {};
+                const termData = taxonomyTerms[conditionId];
+                if (termData) {
+                  conditionName = termData.name || termData.slug || '';
+                } else {
+                  console.warn(`[cart-page] Condition term ${conditionId} not found in taxonomy_terms for item ${item.id}`);
+                }
+              }
+              // Приоритет 3: проверяем data.meta.condition
+              else if (data.meta?.condition) {
+                const conditionData = data.meta.condition;
+                if (typeof conditionData === 'number' || (typeof conditionData === 'string' && /^\d+$/.test(conditionData))) {
+                  const conditionId = typeof conditionData === 'string' ? parseInt(conditionData, 10) : conditionData;
+                  const taxonomyTerms = window.taxonomy_terms?.condition || {};
+                  const termData = taxonomyTerms[conditionId];
+                  if (termData) {
+                    conditionName = termData.name || termData.slug || '';
+                  } else {
+                    console.warn(`[cart-page] Condition term ${conditionId} not found in taxonomy_terms for item ${item.id}`);
+                  }
+                } else if (typeof conditionData === 'string') {
+                  conditionName = conditionData;
+                }
+              }
+              // Приоритет 4: проверяем data.condition как строка (если уже название)
+              else if (data.condition && typeof data.condition === 'string') {
+                conditionName = data.condition;
+              }
+              
+              // Отладка: если не нашли condition, логируем структуру данных
+              if (!conditionName) {
+                console.warn(`[cart-page] Could not extract condition for item ${item.id}:`, {
+                  'data.condition': data.condition,
+                  'data.conditions': data.conditions,
+                  'data.meta?.condition': data.meta?.condition,
+                  'window.taxonomy_terms?.condition': window.taxonomy_terms?.condition ? Object.keys(window.taxonomy_terms.condition).length + ' terms' : 'not available'
+                });
+              }
+            }
+            
             return {
               ...item,
               title: data.title?.rendered || data.title || '',
               image: imageUrl,
               index: data.meta?.instance_index || data.instance_index || data.toy_instance_index || '',
-              condition: data.meta?.condition || data.condition || '',
+              condition: conditionName,
             };
           }
         } catch (error) {

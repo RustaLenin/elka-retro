@@ -6,7 +6,9 @@ class SiteHeader extends BaseElement {
     super();
     this.state = {
       cartCount: 2,
-      catalogUrl: '/catalog/'
+      catalogUrl: '/catalog/',
+      accessoriesUrl: '/ny-accessory/',
+      homeUrl: '/'
     };
   }
   
@@ -21,6 +23,16 @@ class SiteHeader extends BaseElement {
     const catalogAttr = this.getAttribute('catalog-url');
     if (catalogAttr) {
       this.state.catalogUrl = catalogAttr;
+    }
+
+    const accessoriesAttr = this.getAttribute('accessories-url');
+    if (accessoriesAttr) {
+      this.state.accessoriesUrl = accessoriesAttr;
+    }
+
+    const homeAttr = this.getAttribute('home-url');
+    if (homeAttr) {
+      this.state.homeUrl = homeAttr;
     }
     
     // Инициализируем состояние авторизации

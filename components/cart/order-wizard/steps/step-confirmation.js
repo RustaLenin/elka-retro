@@ -122,8 +122,15 @@ export class StepConfirmation extends BaseElement {
       if (result.success && result.order) {
         this.setState({
           orderId: result.order.id,
+          success: true,
           isSubmitting: false,
         });
+
+        // Сбрасываем флаг isSubmitting в wizard при успехе
+        const wizard = this.closest('order-wizard');
+        if (wizard) {
+          wizard.setState({ isSubmitting: false });
+        }
 
         // Очищаем корзину
         const store = getCartStore();

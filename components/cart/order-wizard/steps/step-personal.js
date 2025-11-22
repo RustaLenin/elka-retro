@@ -253,7 +253,7 @@ export class StepPersonal extends BaseElement {
           last_name: formData.last_name || '',
         };
       } else {
-        // Для неавторизованных: возвращаем все данные, включая пароль для регистрации
+        // Для неавторизованных: возвращаем все данные, включая пароль и согласия для регистрации
         return {
           email: formData.email,
           username: formData.username,
@@ -261,6 +261,8 @@ export class StepPersonal extends BaseElement {
           phone: formData.phone,
           first_name: formData.first_name || '',
           last_name: formData.last_name || '',
+          privacy_consent: formData.privacy_consent || false,
+          offer_consent: formData.offer_consent || false,
         };
       }
     }

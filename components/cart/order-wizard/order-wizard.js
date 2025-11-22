@@ -390,6 +390,13 @@ export class OrderWizard extends BaseElement {
    * Валидация шага
    */
   async validateStep(step) {
+    console.log('[OrderWizard] validateStep() called', {
+      stepId: step.id,
+      currentStep: this.state.currentStep,
+      isSubmitting: this.state.isSubmitting,
+      isLastStep: this.state.currentStep === this.steps.length,
+    });
+
     // Если уже идет отправка заказа, блокируем
     if (this.state.isSubmitting) {
       console.log('[OrderWizard] Order submission in progress, blocking validation');
@@ -398,18 +405,23 @@ export class OrderWizard extends BaseElement {
 
     const stepElement = this.querySelector(step.component);
     if (!stepElement || typeof stepElement.validate !== 'function') {
+      console.log('[OrderWizard] Step element not found or has no validate() method');
       return true;
     }
 
     // Если это последний шаг (подтверждение), устанавливаем флаг isSubmitting
     if (this.state.currentStep === this.steps.length) {
+      console.log('[OrderWizard] Last step, setting isSubmitting to true');
       this.setState({ isSubmitting: true });
     }
 
+    console.log('[OrderWizard] Calling stepElement.validate()...');
     const result = await stepElement.validate();
+    console.log('[OrderWizard] stepElement.validate() returned:', result);
 
     // Если валидация не прошла, сбрасываем флаг
     if (!result) {
+      console.log('[OrderWizard] Validation failed, resetting isSubmitting');
       this.setState({ isSubmitting: false });
     }
 
@@ -474,6 +486,20 @@ export class OrderWizard extends BaseElement {
       if (nextBtn && nextBtn.setDisabled) {
         nextBtn.setDisabled(this.state.isSubmitting);
       }
+      
+      // Блокируем/разблокируем прокрутку страницы
+      if (this.state.isSubmitting) {
+        // Сохраняем текущее значение overflow
+        this._originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+      } else {
+        // Восстанавливаем прокрутку
+        if (this._originalOverflow !== undefined) {
+          document.body.style.overflow = this._originalOverflow;
+        } else {
+          document.body.style.overflow = '';
+        }
+      }
     }
   }
 
@@ -507,12 +533,13 @@ export class OrderWizard extends BaseElement {
     this.removeEventListener('order-wizard:next-click', this._handleNext);
     this._handleNext = () => {
       // Если это последний шаг, сразу дизейблим кнопку
+      // НО не устанавливаем isSubmitting здесь - это делается в validateStep()
       if (this.state.currentStep === this.steps.length) {
         const nextBtn = this.querySelector('.order-wizard_next-btn');
         if (nextBtn && nextBtn.setDisabled) {
           nextBtn.setDisabled(true);
         }
-        this.setState({ isSubmitting: true });
+        // isSubmitting устанавливается в validateStep() для последнего шага
       }
       this.nextStep();
     };

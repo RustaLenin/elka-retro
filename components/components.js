@@ -53,6 +53,9 @@ const registry = {
   // Accessory Catalog
   'accessory-catalog-page': () => import('./accessory-catalog/index.js'),
   
+  // Blog
+  'blog-page': () => import('./blog/index.js'),
+  
   // Category
   'category-breadcrumbs': () => import('./category-breadcrumbs/category-breadcrumbs.js'),
   'category-catalog': () => import('./category-catalog/category-catalog.js'),
@@ -60,6 +63,8 @@ const registry = {
   // User Profile
   'user-menu': () => import('./user-profile/user-menu/user-menu.js'),
   'profile-page': () => import('./user-profile/profile-page/profile-page.js'),
+  'order-history-tab': () => import('./user-profile/profile-page/tabs/order-history/order-history.js'),
+  'order-card': () => import('./user-profile/profile-page/tabs/order-history/order-card/order-card.js'),
   
   // Homepage Tabs
   'homepage-tabs-content': () => import('./homepage-tabs/homepage-tabs-content.js'),

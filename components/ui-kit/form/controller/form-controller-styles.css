@@ -125,12 +125,27 @@ ui-form-controller:not([background]) .ui-form-controller__body {
   width: 100%;
 }
 
+/* Уменьшаем gap между полями в модальных формах */
+ui-form-controller[mode="modal"] .ui-form-controller__layout {
+  gap: var(--ui-form-layout-gap, 4px);
+}
+
+ui-form-controller[mode="modal"] {
+  gap: var(--ui-form-layout-gap, 4px);
+}
+
 /* Layout: Columns */
 .ui-form-controller__columns-wrapper,
 .ui-form-controller__groups-wrapper {
   display: grid;
   gap: var(--ui-form-layout-gap, 24px);
   width: 100%;
+}
+
+/* Уменьшаем gap в columns/groups для модальных форм */
+ui-form-controller[mode="modal"] .ui-form-controller__columns-wrapper,
+ui-form-controller[mode="modal"] .ui-form-controller__groups-wrapper {
+  gap: var(--ui-form-layout-gap, 4px);
 }
 
 .ui-form-controller__layout--columns-1 {

@@ -28,6 +28,8 @@ function waitForModalRender(modal) {
 function applyBodyContent(modal, html) {
   if (!modal?.setBodyContent) return;
   modal.setBodyContent(html);
+  // Обработчики для ссылок теперь работают через глобальный делегат кликов (data-app-action)
+  // Не нужно навешивать их вручную
 }
 
 export function createModalManager() {

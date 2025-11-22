@@ -10,11 +10,19 @@
   if (!$ny_accessory_link) {
     $ny_accessory_link = home_url('/accessories/');
   }
+
+  // Ссылка на профиль
+  $profile_link = home_url('/profile/');
+
+  // Ссылка на блог
+  $blog_link = home_url('/blog/');
 ?>
 
   <site-footer 
     toy-catalog-url="<?php echo esc_url($toy_catalog_link); ?>"
     ny-accessory-url="<?php echo esc_url($ny_accessory_link); ?>"
+    profile-url="<?php echo esc_url($profile_link); ?>"
+    blog-url="<?php echo esc_url($blog_link); ?>"
   ></site-footer>
 
 </div>

@@ -37,6 +37,15 @@ export class UIFormCheckbox extends BaseElement {
   connectedCallback() {
     super.connectedCallback();
     
+    // Проверяем, есть ли data-label-html атрибут (HTML в label)
+    const labelHTML = this.getAttribute('data-label-html');
+    if (labelHTML) {
+      // Если есть HTML в label, обновляем state
+      if (!this.state.labelIsHTML) {
+        this.setState({ label: labelHTML, labelIsHTML: true });
+      }
+    }
+    
     // Рендерим сначала
     this.render();
     
@@ -55,6 +64,8 @@ export class UIFormCheckbox extends BaseElement {
     }
     
     this._detachEvents();
+    // Обработчики для ссылок теперь работают через глобальный делегат кликов (data-app-action)
+    // Не нужно отвязывать их вручную
   }
   
   _initStateLink() {
@@ -124,10 +135,50 @@ export class UIFormCheckbox extends BaseElement {
     }
   }
 
+  connectedCallback() {
+    super.connectedCallback();
+    
+    // Проверяем, есть ли data-label-html атрибут (HTML в label)
+    const labelHTML = this.getAttribute('data-label-html');
+    if (labelHTML) {
+      // Если есть HTML в label, устанавливаем его в state
+      this.setState({ label: labelHTML, labelIsHTML: true });
+    }
+    
+    // Рендерим сначала
+    this.render();
+    
+    // Затем инициализируем связь со стейтом родителя (поля)
+    // Ждем следующий кадр, чтобы убедиться, что поле уже инициализировало ссылку на форму
+    requestAnimationFrame(() => {
+      this._initStateLink();
+    });
+  }
+
   render() {
     this._detachEvents();
     this.innerHTML = renderFormCheckboxTemplate(this.state);
     this._inputEl = this.querySelector('.ui-form-checkbox__control');
+    
+    // Если label содержит HTML (определяется по data-label-html или проверке тегов), устанавливаем его через innerHTML
+    const labelHTML = this.getAttribute('data-label-html');
+    if (labelHTML) {
+      const labelEl = this.querySelector('.ui-form-checkbox__label');
+      if (labelEl) {
+        // Сохраняем required маркер, если он был
+        const wasRequired = this.state.required || this.hasAttribute('required');
+        // Устанавливаем HTML
+        labelEl.innerHTML = labelHTML;
+        // Добавляем required маркер обратно, если он нужен
+        if (wasRequired) {
+          const requiredMarker = document.createElement('span');
+          requiredMarker.className = 'ui-form-checkbox__required';
+          requiredMarker.textContent = '*';
+          labelEl.appendChild(requiredMarker);
+        }
+      }
+    }
+    
     // Применяем статус к веб-компоненту
     const status = this.state.status || 'default';
     this.setAttribute('data-status', status);
@@ -136,6 +187,8 @@ export class UIFormCheckbox extends BaseElement {
     }
     this._attachEvents();
     this._syncControl();
+    // Обработчики для ссылок теперь работают через глобальный делегат кликов (data-app-action)
+    // Не нужно навешивать их вручную
   }
 
   _attachEvents() {

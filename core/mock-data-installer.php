@@ -479,6 +479,37 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
             </div>
 
             <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
+                <h2>Калькулятор стоимости товаров</h2>
+                
+                <div class="card" style="padding: 20px; margin-top: 15px;">
+                    <h3>Подсчет общей стоимости товаров</h3>
+                    <p>
+                        Подсчитывает общую стоимость всех опубликованных товаров:
+                    </p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Экземпляры игрушек (toy_instance)</li>
+                        <li>Новогодние аксессуары (ny_accessory)</li>
+                    </ul>
+                    <p style="margin-top: 10px;">
+                        Учитываются только записи со статусом <strong>«Опубликовано»</strong> (publish).
+                    </p>
+                    
+                    <div style="margin-top: 20px;">
+                        <?php
+                        $calculate_url = wp_nonce_url(
+                            add_query_arg('elkaretro_action', 'calculate_inventory_value', admin_url('themes.php?page=elkaretro-settings')),
+                            'elkaretro_action_calculate_inventory_value'
+                        );
+                        ?>
+                        <a href="<?php echo esc_url($calculate_url); ?>" 
+                           class="button button-primary">
+                            Подсчитать стоимость товаров
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="elkaretro-settings-section" style="max-width: 800px; margin-top: 30px;">
                 <h2>Объединение дублей</h2>
                 <div class="card" style="padding: 20px; margin-top: 15px;">
                     <h3>Объединить записи «На спецификации» и «На оформлении»</h3>
@@ -681,6 +712,12 @@ class ELKARETRO_MOCK_DATA_INSTALLER {
                 require_once THEME_DIR . '/core/instances-duplicates-merger.php';
                 $result = ELKARETRO_INSTANCE_DUPLICATES_MERGER::run();
                 $message = $result['message'] ?? 'Завершено';
+                break;
+                
+            case 'calculate_inventory_value':
+                require_once THEME_DIR . '/core/inventory-calculator.php';
+                $result = ELKARETRO_INVENTORY_CALCULATOR::calculate_total_inventory_value();
+                $message = $result['message'] ?? 'Ошибка при подсчете';
                 break;
         }
         

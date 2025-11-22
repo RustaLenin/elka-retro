@@ -68,6 +68,14 @@
 				e.preventDefault();
 				this.saveSettings();
 			});
+
+			// Handle test SMTP button
+			const testButton = document.getElementById('test_smtp');
+			if (testButton) {
+				testButton.addEventListener('click', () => {
+					this.testSMTP();
+				});
+			}
 		},
 
 		loadSettings: function() {
@@ -103,17 +111,19 @@
 			const formData = new FormData(form);
 			const data = {};
 			
-			for (const [key, value] of formData.entries()) {
-				if (key === 'smtp_enabled' || key === 'smtp_auth') {
-					data[key] = true;
-				} else {
-					data[key] = value;
-				}
-			}
-			
-			// Handle checkboxes
+			// Handle checkboxes first
 			data.smtp_enabled = document.getElementById('smtp_enabled').checked;
 			data.smtp_auth = document.getElementById('smtp_auth').checked;
+			
+			// Handle other fields
+			for (const [key, value] of formData.entries()) {
+				// Skip checkboxes (already handled)
+				if (key === 'smtp_enabled' || key === 'smtp_auth') {
+					continue;
+				}
+				// Store value (empty strings are allowed for optional fields)
+				data[key] = value;
+			}
 			
 			fetch(this.restUrl + '/settings', {
 				method: 'POST',
@@ -297,6 +307,62 @@
 			const div = document.createElement('div');
 			div.textContent = text;
 			return div.innerHTML;
+		},
+
+		testSMTP: function() {
+			const resultDiv = document.getElementById('smtp_test_result');
+			if (!resultDiv) return;
+
+			// Prompt for email address
+			const toEmail = prompt(
+				this.i18n.testEmailPrompt || 'Enter email address to send test email:',
+				''
+			);
+
+			if (!toEmail) {
+				return; // User cancelled
+			}
+
+			// Validate email
+			if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(toEmail)) {
+				resultDiv.style.display = 'block';
+				resultDiv.className = 'elkaretro-email-admin__test-result notice notice-error';
+				resultDiv.innerHTML = '<p><strong>' + (this.i18n.testEmailFailed || 'Failed to send test email:') + '</strong> ' + (this.i18n.invalidEmail || 'Invalid email address.') + '</p>';
+				return;
+			}
+
+			// Show loading state
+			resultDiv.style.display = 'block';
+			resultDiv.className = 'elkaretro-email-admin__test-result notice notice-info';
+			resultDiv.innerHTML = '<p>' + (this.i18n.testEmailSending || 'Sending test email...') + '</p>';
+
+			// Send test email
+			fetch(this.restUrl + '/test', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-WP-Nonce': this.nonce
+				},
+				body: JSON.stringify({
+					to_email: toEmail
+				})
+			})
+			.then(res => res.json())
+			.then(data => {
+				if (data.success) {
+					resultDiv.className = 'elkaretro-email-admin__test-result notice notice-success';
+					resultDiv.innerHTML = '<p><strong>' + (this.i18n.testEmailSuccess || 'Test email sent successfully! Check your inbox.') + '</strong></p>';
+				} else {
+					resultDiv.className = 'elkaretro-email-admin__test-result notice notice-error';
+					const errorMessage = data.message || data.error_message || 'Unknown error';
+					resultDiv.innerHTML = '<p><strong>' + (this.i18n.testEmailFailed || 'Failed to send test email:') + '</strong> ' + this.escapeHtml(errorMessage) + '</p>';
+				}
+			})
+			.catch(err => {
+				console.error('Failed to send test email:', err);
+				resultDiv.className = 'elkaretro-email-admin__test-result notice notice-error';
+				resultDiv.innerHTML = '<p><strong>' + (this.i18n.testEmailFailed || 'Failed to send test email:') + '</strong> ' + this.escapeHtml(err.message || 'Network error') + '</p>';
+			});
 		},
 
 		i18n: {}

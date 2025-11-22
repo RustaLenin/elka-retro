@@ -32,8 +32,22 @@
 
 <?php
 $catalog_page_url = function_exists( 'elkaretro_get_catalog_page_url' ) ? elkaretro_get_catalog_page_url() : home_url( '/catalog/' );
+
+// Ссылка на каталог аксессуаров
+$ny_accessory_link = function_exists('elkaretro_get_accessory_catalog_page_url') ? elkaretro_get_accessory_catalog_page_url() : '';
+if (!$ny_accessory_link) {
+  $ny_accessory_link = function_exists('get_post_type_archive_link') ? get_post_type_archive_link('ny_accessory') : '';
+  if (!$ny_accessory_link) {
+    $ny_accessory_link = home_url('/ny-accessory/');
+  }
+}
 ?>
 
 <div class="site_wrap">
-    <site-header cart-count="2" catalog-url="<?php echo esc_url( $catalog_page_url ); ?>"></site-header>
+    <site-header 
+      cart-count="2" 
+      catalog-url="<?php echo esc_url( $catalog_page_url ); ?>"
+      accessories-url="<?php echo esc_url( $ny_accessory_link ); ?>"
+      home-url="<?php echo esc_url( home_url( '/' ) ); ?>"
+    ></site-header>
 <?php

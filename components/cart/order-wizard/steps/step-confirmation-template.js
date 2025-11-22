@@ -50,14 +50,7 @@ export function step_confirmation_template(state) {
 
   return `
     <div class="step-confirmation">
-      ${isSubmitting ? `
-        <div class="step-confirmation_overlay">
-          <div class="step-confirmation_loader">
-            <ui-icon name="loader" size="large" spin></ui-icon>
-            <p class="step-confirmation_loader-text">Создание заказа...</p>
-          </div>
-        </div>
-      ` : ''}
+      <!-- Overlay теперь на уровне order-wizard, здесь не нужен -->
       <div class="step-confirmation_content">
         <h3 class="step-confirmation_title">Подтверждение заказа</h3>
         <p class="step-confirmation_description">

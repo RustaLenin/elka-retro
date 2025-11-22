@@ -6,21 +6,119 @@ order-history-tab {
   display: block;
 }
 
-.order-history-tab__content {
-  padding: 2rem 0;
+.order-history-tab__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-accent);
 }
 
+.order-history-tab__title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+.order-history-tab__sort {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-history-tab__content {
+  padding: 0;
+}
+
+.order-history-tab__orders {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Loading state */
+.order-history-tab__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1rem;
+}
+
+.order-history-tab__loading-text {
+  color: var(--color-muted-foreground);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Error state */
+.order-history-tab__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.order-history-tab__error-message {
+  color: var(--color-error, #ef4444);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Empty state */
+.order-history-tab__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.order-history-tab__empty-message {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--color-foreground);
+  margin: 0 0 0.5rem 0;
+}
+
+.order-history-tab__empty-note {
+  font-size: 0.9375rem;
+  color: var(--color-muted-foreground);
+  margin: 0;
+}
+
+/* Legacy styles (для совместимости) */
 .order-history-tab__placeholder {
   text-align: center;
-  color: var(--color-text-secondary, #666);
+  color: var(--color-muted-foreground);
   font-size: 1rem;
   padding: 2rem;
 }
 
 .order-history-tab__note {
   text-align: center;
-  color: var(--color-text-secondary, #999);
+  color: var(--color-muted-foreground);
   font-size: 0.875rem;
   margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .order-history-tab__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .order-history-tab__title {
+    font-size: 1.25rem;
+  }
 }
 

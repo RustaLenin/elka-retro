@@ -13,9 +13,9 @@ export function site_header_template(state) {
           </a>
           
           <nav class="site_header-nav_desktop" aria-label="Primary">
-            <nav-link href="${state.catalogUrl}" label="Каталог" icon="grid" variant="mint"></nav-link>
-            <nav-link href="/about" label="О нас" icon="about" variant="gold"></nav-link>
-            <nav-link href="/contact" label="Контакты" icon="contact"></nav-link>
+            <nav-link href="${state.catalogUrl}" label="Каталог игрушек" icon="tree" variant="mint"></nav-link>
+            <nav-link href="${state.accessoriesUrl || '/ny-accessory/'}" label="Каталог Аксессуаров" icon="grid" variant="mint"></nav-link>
+            <nav-link href="${state.homeUrl || '/'}#site-info-about" label="О нас" icon="info" variant="gold"></nav-link>
           </nav>
         </div>
         

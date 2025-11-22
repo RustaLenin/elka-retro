@@ -159,28 +159,34 @@ export class CategoryTreeFilter extends BaseElement {
     
     // Рекурсивно суммируем счетчики для родительских категорий
     // Логика: каждый узел показывает прямой счетчик + сумму всех дочерних (рекурсивно)
-    const sumCountsRecursive = (node) => {
-      // Сохраняем прямой счетчик
-      const directCount = node.toy_types_count || 0;
-      let childrenCount = 0;
-      
-      // Рекурсивно обрабатываем детей и суммируем их счетчики
-      if (node.children && node.children.length > 0) {
-        node.children.forEach(child => {
-          sumCountsRecursive(child);
-          // К счетчику родителя добавляем итоговый счетчик дочернего (который уже включает всех потомков)
-          childrenCount += child.toy_types_count || 0;
-        });
-      }
-      
-      // Итоговый счетчик: прямой + сумма всех дочерних (которые уже включают своих потомков)
-      node.toy_types_count = directCount + childrenCount;
-    };
+    // Применяется только для category-of-toys, для ny_category не используется
+    const taxonomySlug = this.state.taxonomy || 'category-of-toys';
+    const isAccessoryCategory = taxonomySlug === 'ny_category';
     
-    // Применяем суммирование ко всем корневым узлам
-    rootNodes.forEach(node => {
-      sumCountsRecursive(node);
-    });
+    if (!isAccessoryCategory) {
+      const sumCountsRecursive = (node) => {
+        // Сохраняем прямой счетчик
+        const directCount = node.toy_types_count || 0;
+        let childrenCount = 0;
+        
+        // Рекурсивно обрабатываем детей и суммируем их счетчики
+        if (node.children && node.children.length > 0) {
+          node.children.forEach(child => {
+            sumCountsRecursive(child);
+            // К счетчику родителя добавляем итоговый счетчик дочернего (который уже включает всех потомков)
+            childrenCount += child.toy_types_count || 0;
+          });
+        }
+        
+        // Итоговый счетчик: прямой + сумма всех дочерних (которые уже включают своих потомков)
+        node.toy_types_count = directCount + childrenCount;
+      };
+      
+      // Применяем суммирование ко всем корневым узлам
+      rootNodes.forEach(node => {
+        sumCountsRecursive(node);
+      });
+    }
     
     // Сортируем узлы по индексу категории, затем по имени (рекурсивно)
     const sortNodes = (nodes) => {
@@ -421,22 +427,28 @@ export class CategoryTreeFilter extends BaseElement {
     const checkbox = event.target.closest('[data-category-checkbox]');
     if (!checkbox) return;
     
-    // Блокируем клик на disabled категориях
-    if (checkbox.disabled) {
+    const categoryId = parseInt(checkbox.dataset.categoryId, 10);
+    if (isNaN(categoryId)) return;
+    
+    // Для аксессуаров (ny_category) разрешаем выбор всех категорий
+    const taxonomySlug = this.state.taxonomy || 'category-of-toys';
+    const isAccessoryCategory = taxonomySlug === 'ny_category';
+    
+    // Блокируем клик на disabled категориях только для категорий игрушек
+    if (!isAccessoryCategory && checkbox.disabled) {
       event.preventDefault();
       event.stopPropagation();
       return;
     }
 
-    const categoryId = parseInt(checkbox.dataset.categoryId, 10);
-    if (isNaN(categoryId)) return;
-    
-    // Проверяем, не пустая ли категория
-    const category = this._categoriesMap.get(categoryId);
-    if (category && (category.toy_types_count || 0) === 0) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
+    // Проверяем, не пустая ли категория только для категорий игрушек
+    if (!isAccessoryCategory) {
+      const category = this._categoriesMap.get(categoryId);
+      if (category && (category.toy_types_count || 0) === 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
     }
 
     const isChecked = checkbox.checked;
@@ -1038,6 +1050,7 @@ export class CategoryTreeFilter extends BaseElement {
     
     const selected = new Set(this.state.selectedCategories || []);
     const expanded = new Set(this.state.expandedNodes || []);
+    const taxonomySlug = this.state.taxonomy || 'category-of-toys';
     
     this.innerHTML = renderCategoryTreeFilterTemplate({
       tree,
@@ -1045,6 +1058,7 @@ export class CategoryTreeFilter extends BaseElement {
       expanded,
       searchQuery: this.state.searchQuery || '',
       isExpanded: this.state.isExpanded || false,
+      taxonomy: taxonomySlug,
     });
     
     // Привязываем события через делегирование

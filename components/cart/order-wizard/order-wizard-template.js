@@ -8,6 +8,15 @@ export function order_wizard_template(state) {
 
   return `
     <div class="order-wizard">
+      ${isSubmitting ? `
+        <div class="order-wizard_overlay">
+          <div class="order-wizard_loader">
+            <ui-icon name="loader" size="large" spin></ui-icon>
+            <p class="order-wizard_loader-text">Создание заказа...</p>
+            <p class="order-wizard_loader-hint">Пожалуйста, не закрывайте страницу</p>
+          </div>
+        </div>
+      ` : ''}
       <header class="order-wizard_header">
         <h2 class="order-wizard_title">Оформление заказа</h2>
         <div class="order-wizard_steps">

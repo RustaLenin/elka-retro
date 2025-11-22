@@ -76,6 +76,67 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 			)
 		);
 
+		// POST /wp-json/elkaretro/v1/auth/register - Register new user
+		register_rest_route(
+			$this->namespace,
+			'/auth/register',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'register' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'email'           => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_email',
+						'validate_callback' => function( $param ) {
+							return is_email( $param );
+						},
+					),
+					'username'        => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_user',
+						'validate_callback' => function( $param ) {
+							return strlen( trim( $param ) ) >= 3;
+						},
+					),
+					'password'        => array(
+						'required'          => true,
+						'type'              => 'string',
+						'validate_callback' => array( $this, 'validate_password' ),
+					),
+					'phone'           => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'privacy_consent' => array(
+						'required' => true,
+						'type'     => 'boolean',
+						'validate_callback' => function( $param ) {
+							return $param === true;
+						},
+					),
+					'offer_consent'   => array(
+						'required' => true,
+						'type'     => 'boolean',
+						'validate_callback' => function( $param ) {
+							return $param === true;
+						},
+					),
+					'first_name'      => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'last_name'       => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
+
 		// GET /wp-json/elkaretro/v1/user/profile - Get user profile
 		register_rest_route(
 			$this->namespace,
@@ -234,6 +295,97 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 			array(
 				'success' => true,
 				'message' => 'Вы успешно вышли из системы.',
+			)
+		);
+	}
+
+	/**
+	 * Register new user via REST.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function register( WP_REST_Request $request ) {
+		$email           = $request->get_param( 'email' );
+		$username        = $request->get_param( 'username' );
+		$password        = $request->get_param( 'password' );
+		$phone           = $request->get_param( 'phone' );
+		$privacy_consent = filter_var( $request->get_param( 'privacy_consent' ), FILTER_VALIDATE_BOOLEAN );
+		$offer_consent   = filter_var( $request->get_param( 'offer_consent' ), FILTER_VALIDATE_BOOLEAN );
+		$first_name      = $request->get_param( 'first_name' );
+		$last_name       = $request->get_param( 'last_name' );
+
+		// Validate consent checkboxes
+		if ( ! $privacy_consent ) {
+			return new WP_Error(
+				'rest_missing_privacy_consent',
+				'Необходимо согласие на обработку персональных данных.',
+				array( 'status' => 400 )
+			);
+		}
+
+		if ( ! $offer_consent ) {
+			return new WP_Error(
+				'rest_missing_offer_consent',
+				'Необходимо согласие с условиями публичной оферты.',
+				array( 'status' => 400 )
+			);
+		}
+
+		// Check if email already exists
+		if ( email_exists( $email ) ) {
+			return new WP_Error(
+				'rest_email_exists',
+				'Email уже используется.',
+				array( 'status' => 400 )
+			);
+		}
+
+		// Check if username already exists
+		if ( username_exists( $username ) ) {
+			return new WP_Error(
+				'rest_username_exists',
+				'Логин уже используется.',
+				array( 'status' => 400 )
+			);
+		}
+
+		// Create user
+		$user_id = wp_create_user( $username, $password, $email );
+
+		if ( is_wp_error( $user_id ) ) {
+			return new WP_Error(
+				'rest_user_creation_failed',
+				$user_id->get_error_message(),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Update user meta fields
+		if ( ! empty( $phone ) ) {
+			update_user_meta( $user_id, 'phone_number', sanitize_text_field( $phone ) );
+		}
+
+		if ( ! empty( $first_name ) ) {
+			update_user_meta( $user_id, 'first_name', sanitize_text_field( $first_name ) );
+		}
+
+		if ( ! empty( $last_name ) ) {
+			update_user_meta( $user_id, 'last_name', sanitize_text_field( $last_name ) );
+		}
+
+		// Store consent timestamps
+		update_user_meta( $user_id, '_privacy_consent_date', current_time( 'mysql' ) );
+		update_user_meta( $user_id, '_offer_consent_date', current_time( 'mysql' ) );
+
+		// Get created user
+		$user = get_userdata( $user_id );
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'message' => 'Регистрация успешно завершена.',
+				'user'    => $this->prepare_user_info( $user ),
 			)
 		);
 	}

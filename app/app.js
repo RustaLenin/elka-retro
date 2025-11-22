@@ -1,5 +1,6 @@
 import { createModalManager } from './modal-manager.js';
 import { createEventBus } from './events/index.js';
+import { registerLegalModals } from './modals/legal-modals.js';
 
 // Global App State and Utilities
 window.app = {
@@ -522,6 +523,11 @@ window.app = {
 
 window.app.modal = createModalManager();
 window.app.events = createEventBus();
+
+// Регистрируем модальные окна для юридических документов (внутри регистрируются действия через Event Bus)
+registerLegalModals();
+
+// Эмитим событие готовности Event Bus после регистрации всех действий
 window.dispatchEvent(new CustomEvent('app:events-ready'));
 
 function handleAppActionClick(event) {

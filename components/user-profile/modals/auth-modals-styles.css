@@ -123,4 +123,27 @@
   margin-bottom: 0;
 }
 
+/* Стили для ссылок в чекбоксах согласия */
+.register-form__legal-link {
+  color: var(--auth-link-color, var(--color-primary, #0055FF));
+  text-decoration: none;
+  transition: color 0.2s, text-decoration 0.2s;
+}
+
+.register-form__legal-link:hover {
+  color: var(--auth-link-hover, var(--color-primary-hover, #0033CC));
+  text-decoration: underline;
+}
+
+ui-form-checkbox .ui-form-checkbox__label a {
+  color: var(--color-primary, #0055FF);
+  text-decoration: none;
+  transition: color 0.2s, text-decoration 0.2s;
+}
+
+ui-form-checkbox .ui-form-checkbox__label a:hover {
+  color: var(--color-primary-hover, #0033CC);
+  text-decoration: underline;
+}
+
 

@@ -118,7 +118,7 @@ if (!function_exists('elkaretro_get_taxonomy_config')) {
 
 if (!function_exists('elkaretro_get_catalog_filter_taxonomies')) {
 	/**
-	 * Получить список таксономий, используемых в фильтрах каталога (toy_type и toy_instance).
+	 * Получить список таксономий, используемых в фильтрах каталога (toy_type, toy_instance, ny_accessory).
 	 *
 	 * @return array Список slug таксономий.
 	 */
@@ -127,7 +127,7 @@ if (!function_exists('elkaretro_get_catalog_filter_taxonomies')) {
 			return array();
 		}
 
-		$post_types  = array( 'toy_type', 'toy_instance' );
+		$post_types  = array( 'toy_type', 'toy_instance', 'ny_accessory' );
 		$taxonomies  = array();
 
 		foreach ( $post_types as $post_type ) {
@@ -153,6 +153,12 @@ if (!function_exists('elkaretro_get_catalog_filter_taxonomies')) {
 		$category_taxonomy = elkaretro_get_taxonomy_config( 'category-of-toys' );
 		if ( is_array( $category_taxonomy ) && ! empty( $category_taxonomy['show_in_filters'] ) ) {
 			$taxonomies[] = 'category-of-toys';
+		}
+
+		// Добавляем иерархическую таксономию категорий аксессуаров, если она доступна для фильтров.
+		$accessory_category_taxonomy = elkaretro_get_taxonomy_config( 'ny_category' );
+		if ( is_array( $accessory_category_taxonomy ) && ! empty( $accessory_category_taxonomy['show_in_filters'] ) ) {
+			$taxonomies[] = 'ny_category';
 		}
 
 		$taxonomies = array_values( array_unique( $taxonomies ) );
@@ -373,6 +379,9 @@ require_once( THEME_COR . 'catalog/category-counter.php' );
 
 // Instances Duplicates Merger (объединение дублей экземпляров)
 require_once( THEME_COR . 'instances-duplicates-merger.php' );
+
+// Inventory Calculator (подсчет стоимости товаров)
+require_once( THEME_COR . 'inventory-calculator.php' );
 
 /**
  * Include files if module is supported

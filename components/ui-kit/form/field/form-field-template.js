@@ -220,7 +220,17 @@ function renderControl(state) {
   }
   // Для чекбокса передаём label напрямую в компонент (так как он рендерит свой label)
   if ((type === 'checkbox' || type === 'boolean') && fieldConfig?.label) {
-    controlAttrs.push(`label="${escapeAttribute(fieldConfig.label)}"`);
+    // Проверяем, содержит ли label HTML
+    const hasHTML = /<[^>]+>/.test(fieldConfig.label);
+    if (hasHTML) {
+      // Если содержит HTML, передаем через data-атрибут (не экранируя)
+      controlAttrs.push(`data-label-html="${escapeAttribute(fieldConfig.label)}"`);
+      // Также передаем экранированную версию для fallback
+      controlAttrs.push(`label="${escapeAttribute(fieldConfig.label)}"`);
+    } else {
+      // Если нет HTML, передаем обычным способом
+      controlAttrs.push(`label="${escapeAttribute(fieldConfig.label)}"`);
+    }
   }
   
   return `<${controlTag} ${controlAttrs.join(' ')}></${controlTag}>`;

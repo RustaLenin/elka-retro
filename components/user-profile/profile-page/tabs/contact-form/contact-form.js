@@ -45,6 +45,33 @@ export class ContactFormTab extends BaseElement {
     // Подписываемся на события формы
     window.addEventListener('contact:submitted', this._onSubmitSuccess);
     window.addEventListener('contact:submit-error', this._onSubmitError);
+    
+    // Проверяем, есть ли предзаполненные данные из sessionStorage
+    this._applyPresetData();
+  }
+
+  _applyPresetData() {
+    try {
+      const presetData = sessionStorage.getItem('contact-form-preset');
+      if (!presetData) return;
+
+      const preset = JSON.parse(presetData);
+      sessionStorage.removeItem('contact-form-preset'); // Удаляем после использования
+
+      // Ждем, пока форма загрузится
+      requestAnimationFrame(() => {
+        const formController = this.querySelector('#contact-form-controller');
+        if (formController && preset.subject) {
+          // Устанавливаем значение темы
+          const subjectField = formController.getField('subject');
+          if (subjectField) {
+            subjectField.setValue(preset.subject);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('[ContactFormTab] Failed to apply preset data:', error);
+    }
   }
 
   disconnectedCallback() {
