@@ -84,6 +84,10 @@ export class UIFormController extends BaseElement {
         this._initFields();
       });
     }
+    if (key === 'status') {
+      // Обновляем только отображение статуса, без перерисовки всей формы
+      this._updateStatusDisplay();
+    }
     if (key === 'autosubmit') {
       this._autosubmitConfig = this.state.autosubmit || null;
     }
@@ -342,6 +346,12 @@ export class UIFormController extends BaseElement {
   }
 
   render() {
+    // Перерисовка формы нужна только при изменении структуры (fields, layout, actions)
+    // При валидации и изменении status перерисовка НЕ нужна - обновляются только CSS классы и сообщения
+    const stack = new Error().stack;
+    const caller = stack.split('\n').slice(1, 4).map(s => s.trim()).join(' <- ');
+    console.warn('[ui-form-controller] ⚠️ render() called from:', caller);
+    
     const mode = this.state.mode || 'page';
     const template = mode === 'modal' 
       ? renderFormControllerModalTemplate(this.state)
@@ -350,6 +360,47 @@ export class UIFormController extends BaseElement {
     this.innerHTML = template;
     this._bindActions();
     this._ensureOverlay();
+    this._updateStatusDisplay();
+  }
+  
+  /**
+   * Обновить отображение статуса формы без перерисовки всей формы
+   * @private
+   */
+  _updateStatusDisplay() {
+    const statusEl = this.querySelector('.ui-form-controller__status');
+    if (!statusEl) return;
+    
+    const status = this.state.status || { type: 'idle', message: null, details: [] };
+    
+    // Обновляем атрибут data-status
+    statusEl.setAttribute('data-status', status.type);
+    
+    // Обновляем сообщение
+    const messageEl = statusEl.querySelector('.ui-form-controller__status-message');
+    if (messageEl) {
+      messageEl.textContent = status.message || '';
+    }
+    
+    // Обновляем детали
+    const detailsEl = statusEl.querySelector('.ui-form-controller__status-details');
+    if (detailsEl && status.details && status.details.length > 0) {
+      detailsEl.innerHTML = status.details.map(detail => `<li>${this._escapeHtml(detail)}</li>`).join('');
+      detailsEl.hidden = false;
+    } else if (detailsEl) {
+      detailsEl.hidden = true;
+    }
+  }
+  
+  /**
+   * Экранировать HTML для безопасного вывода
+   * @private
+   */
+  _escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   _bindActions() {
@@ -441,20 +492,29 @@ export class UIFormController extends BaseElement {
 
       const sanitized = await this._invokeHandler(this._getPipelineHandler('sanitize'), context, values) ?? values;
 
-      const requiredCheck = this._runRequiredValidation(sanitized);
-      const requiredValid = this._applyValidationResult(requiredCheck);
-      if (!requiredValid) {
-        this._setFormStatus({ type: 'idle', message: null, details: [] });
-        this._emitFormEvent('invalid', { values: sanitized, validation: requiredCheck });
-        this._setSubmitLoading(false);
-        this._isSubmitting = false;
-        return;
-      }
-
+      // Сначала выполняем кастомную валидацию, которая может вернуть более детальные ошибки
       const validationResult = await this._invokeHandler(this._getPipelineHandler('validate'), {
         ...context,
         values: sanitized
       });
+      
+      // Если кастомная валидация не вернула результат или вернула валидный результат,
+      // проверяем обязательные поля
+      if (!validationResult || (validationResult.valid !== false && !validationResult.fieldMessages)) {
+        const requiredCheck = this._runRequiredValidation(sanitized);
+        if (requiredCheck && !requiredCheck.valid) {
+          const valid = this._applyValidationResult(requiredCheck);
+          if (!valid) {
+            this._setFormStatus({ type: 'idle', message: null, details: [] });
+            this._emitFormEvent('invalid', { values: sanitized, validation: requiredCheck });
+            this._setSubmitLoading(false);
+            this._isSubmitting = false;
+            return;
+          }
+        }
+      }
+      
+      // Применяем результат кастомной валидации
       const valid = this._applyValidationResult(validationResult);
       if (!valid) {
         this._setFormStatus({ type: 'idle', message: null, details: [] });
@@ -507,6 +567,8 @@ export class UIFormController extends BaseElement {
           } else {
             field.clearStatus();
           }
+        } else {
+          console.warn('[ui-form-controller] Field not found for validation error:', fieldKey, 'Available fields:', Array.from(this.querySelectorAll('ui-form-field')).map(f => f.getAttribute('field-id')));
         }
       });
     }

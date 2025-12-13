@@ -152,22 +152,19 @@ export class UserMenu extends BaseElement {
 
   async toggle() {
     if (!this.state.user) {
-      // Если пользователь не авторизован, открываем модальное окно входа
+      // Если пользователь не авторизован, открываем модальное окно авторизации
       const openAuth = () => {
         if (window.app?.events) {
-          window.app.events.emit('user.showSignInModal', { source: 'user-menu:toggle' });
+          window.app.events.emit('user.showAuthModal', { source: 'user-menu:toggle' });
         } else {
-          window.app?.services?.userUi?.showSignInModal();
+          window.app?.services?.userUi?.showAuthModal();
         }
       };
 
+      // user-ui-service уже загружен статически через app.js
       if (!window.app?.services?.userUi) {
-        try {
-          await import('../services/user-ui-service.js');
-        } catch (error) {
-          console.error('[UserMenu] Failed to load user-ui-service:', error);
-          return;
-        }
+        console.warn('[UserMenu] user-ui-service not available');
+        return;
       }
 
       openAuth();

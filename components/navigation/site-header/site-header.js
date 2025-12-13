@@ -5,7 +5,7 @@ class SiteHeader extends BaseElement {
   constructor() {
     super();
     this.state = {
-      cartCount: 2,
+      cartCount: 0, // Будет обновлен при инициализации cart
       catalogUrl: '/catalog/',
       accessoriesUrl: '/ny-accessory/',
       homeUrl: '/'
@@ -42,13 +42,11 @@ class SiteHeader extends BaseElement {
     this.render();
     this.attachEventListeners();
     
-    // Инициализируем счетчик корзины
-    this.initCartCount();
-    
     // Инициализируем компоненты авторизации
     this._initAuth();
     
-    // Listen for cart updates (новые события от cartStore)
+    // Слушаем события обновления корзины (включая инициализацию)
+    // Когда cart инициализируется в app.js, будет отправлено событие elkaretro:cart:updated
     this._handleCartUpdated = (e) => {
       this.state.cartCount = e.detail.count || 0;
       this.render();
@@ -56,6 +54,13 @@ class SiteHeader extends BaseElement {
     };
     
     window.addEventListener('elkaretro:cart:updated', this._handleCartUpdated);
+    
+    // Если cart уже доступен при подключении компонента, получаем счетчик сразу
+    if (window.app?.cart) {
+      this.state.cartCount = window.app.cart.getCount();
+      this.render();
+      this.attachEventListeners();
+    }
     
     // Также слушаем старое событие для обратной совместимости
     window.addEventListener('cart-updated', (e) => {
@@ -72,10 +77,11 @@ class SiteHeader extends BaseElement {
   }
 
   async _initAuth() {
+    // Компоненты уже загружены статически через components.js
+    // Просто ждём, пока они будут определены в customElements
     try {
       await Promise.all([
-        import('../../user-profile/services/user-ui-service.js'),
-        import('../../user-profile/user-menu/user-menu.js')
+        customElements.whenDefined('user-menu')
       ]);
     } catch (error) {
       console.error('[SiteHeader] Failed to initialize auth components:', error);
@@ -103,47 +109,6 @@ class SiteHeader extends BaseElement {
     }
   }
 
-  /**
-   * Инициализировать счетчик корзины из cartStore
-   */
-  async initCartCount() {
-    // Пытаемся получить счетчик из cartStore
-    if (window.app && window.app.cartStore) {
-      const count = window.app.cartStore.getCount();
-      if (count !== this.state.cartCount) {
-        this.state.cartCount = count;
-        this.render();
-        this.attachEventListeners();
-      }
-    } else {
-      // Fallback: пытаемся загрузить cartStore асинхронно
-      try {
-        const { getCartStore } = await import('../../cart/cart-store.js');
-        const cartStore = getCartStore();
-        if (!window.app.cartStore) {
-          window.app.cartStore = cartStore;
-        }
-        const count = cartStore.getCount();
-        if (count !== this.state.cartCount) {
-          this.state.cartCount = count;
-          this.render();
-          this.attachEventListeners();
-        }
-      } catch (error) {
-        console.warn('[SiteHeader] Failed to load cart store:', error);
-        // Если не удалось загрузить, проверяем через небольшую задержку
-        setTimeout(() => {
-          if (window.app && window.app.cartStore) {
-            const count = window.app.cartStore.getCount();
-            this.state.cartCount = count;
-            this.render();
-            this.attachEventListeners();
-          }
-        }, 500);
-      }
-    }
-  }
-  
   render() {
     this.innerHTML = site_header_template(this.state);
   }

@@ -60,7 +60,7 @@ function normalizeConditionClass(term) {
 }
 
 export function ny_accessory_single_template(state) {
-  const { data, loading, error, gallery = [], termsMap = {}, price, index, excerpt } = state;
+  const { data, loading, error, gallery = [], termsMap = {}, price, index, excerpt, inCart = false } = state;
 
   if (loading) {
     return `
@@ -166,9 +166,9 @@ export function ny_accessory_single_template(state) {
 
         <div class="ny-accessory-single__purchase">
           ${priceLabel ? `<span class="ny-accessory-single__purchase-price">${priceLabel}</span>` : ''}
-          <button class="ny-accessory-single__add-to-cart" type="button">
-            <ui-icon name="cart" size="small"></ui-icon>
-            <span>В корзину</span>
+          <button class="ny-accessory-single__add-to-cart" type="button" data-in-cart="${inCart ? 'true' : 'false'}">
+            <ui-icon name="${inCart ? 'check' : 'cart'}" size="small"></ui-icon>
+            <span>${inCart ? 'Убрать из корзины' : 'В корзину'}</span>
           </button>
         </div>
       </div>

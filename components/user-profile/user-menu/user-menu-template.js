@@ -13,7 +13,7 @@ export function renderUserMenuTemplate(state) {
         icon="login"
         label="Войти"
         class="user-menu__button user-menu__button--login"
-        data-app-action="user.showSignInModal"
+        data-app-action="user.showAuthModal"
         data-app-prevent-default="true"
       ></ui-button>
     `;

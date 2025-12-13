@@ -23,16 +23,40 @@ export class NyAccessorySingle extends BaseElement {
   constructor() {
     super();
     this._loadingPromise = null;
+    this._handleCartClick = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      this.addToCart();
+    };
   }
 
   connectedCallback() {
     window.app.toolkit.loadCSSOnce(new URL('./ny-accessory-single-styles.css', import.meta.url));
     super.connectedCallback();
+    
+    // Подписываемся на обновления корзины
+    if (!this._cartUpdateHandler) {
+      this._cartUpdateHandler = () => {
+        this.render();
+      };
+      window.addEventListener('elkaretro:cart:updated', this._cartUpdateHandler);
+    }
+    
     if (this.state.id) {
       void this.loadData();
     } else {
       this.render();
     }
+    this.attachEventListeners();
+  }
+
+  disconnectedCallback() {
+    // Отписываемся от обновлений корзины
+    if (this._cartUpdateHandler) {
+      window.removeEventListener('elkaretro:cart:updated', this._cartUpdateHandler);
+      this._cartUpdateHandler = null;
+    }
+    super.disconnectedCallback();
   }
 
   async loadData() {
@@ -280,9 +304,100 @@ export class NyAccessorySingle extends BaseElement {
     }
   }
 
+  /**
+   * Прикрепить обработчики событий
+   */
+  attachEventListeners() {
+    // Обработка клика на кнопку "В корзину"
+    const addToCartBtn = this.querySelector('.ny-accessory-single__add-to-cart');
+    if (addToCartBtn) {
+      addToCartBtn.removeEventListener('click', this._handleCartClick);
+      addToCartBtn.addEventListener('click', this._handleCartClick);
+    }
+  }
+
+  /**
+   * Добавить товар в корзину
+   */
+  async addToCart() {
+    const { id, price } = this.state;
+
+    // Проверяем доступность товара
+    if (!id || !price || price <= 0) {
+      if (window.app?.ui?.showNotification) {
+        window.app.ui.showNotification('Товар недоступен для добавления в корзину', 'error');
+      }
+      return;
+    }
+
+    // Если товар уже в корзине, удаляем его
+    if (this.isInCart()) {
+      await this.removeFromCart();
+      return;
+    }
+
+    try {
+      if (window.app?.cart) {
+        window.app.cart.addItem({ id, type: 'ny_accessory', price });
+        // Компонент обновится через событие elkaretro:cart:updated
+      } else {
+        console.warn('[NyAccessorySingle] Cart not available');
+        if (window.app?.ui?.showNotification) {
+          window.app.ui.showNotification('Не удалось добавить товар в корзину', 'error');
+        }
+      }
+    } catch (error) {
+      console.error('[NyAccessorySingle] Add to cart error:', error);
+      if (window.app?.ui?.showNotification) {
+        window.app.ui.showNotification('Ошибка при добавлении товара в корзину', 'error');
+      }
+    }
+  }
+
+  /**
+   * Проверить, находится ли товар в корзине
+   */
+  isInCart() {
+    if (!window.app?.cart) {
+      return false;
+    }
+    const items = window.app.cart.getItems();
+    return items.some(item => item.id === this.state.id && item.type === 'ny_accessory');
+  }
+
+  /**
+   * Убрать товар из корзины
+   */
+  async removeFromCart() {
+    const { id } = this.state;
+
+    try {
+      if (window.app?.cart) {
+        window.app.cart.removeItem(id, 'ny_accessory');
+        // Компонент обновится через событие elkaretro:cart:updated
+      } else {
+        console.warn('[NyAccessorySingle] Cart not available');
+      }
+    } catch (error) {
+      console.error('[NyAccessorySingle] Remove from cart error:', error);
+      if (window.app?.ui?.showNotification) {
+        window.app.ui.showNotification('Ошибка при удалении товара из корзины', 'error');
+      }
+    }
+  }
+
   render() {
-    this.innerHTML = ny_accessory_single_template(this.state);
+    // Добавляем информацию о наличии в корзине в state для шаблона
+    const renderState = {
+      ...this.state,
+      inCart: this.isInCart()
+    };
+    this.innerHTML = ny_accessory_single_template(renderState);
     this._applyGalleryImages();
+    // После рендера нужно переподключить слушатели
+    if (this.isConnected) {
+      this.attachEventListeners();
+    }
   }
 
   _applyGalleryImages() {

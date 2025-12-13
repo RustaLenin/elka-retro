@@ -1,6 +1,5 @@
 import { BaseElement } from '../../../base-element.js';
 import { step_confirmation_template } from './step-confirmation-template.js';
-import { getCartStore } from '../../cart-store.js';
 import { calculateTotal } from '../../cart-service.js';
 import { formatPrice } from '../../helpers/price-formatter.js';
 
@@ -20,6 +19,8 @@ export class StepConfirmation extends BaseElement {
     orderData: { type: 'json', default: null, attribute: null, internal: true },
     isSubmitting: { type: 'boolean', default: false, attribute: null, internal: true },
     orderId: { type: 'number', default: null, attribute: null, internal: true },
+    orderNumber: { type: 'string', default: null, attribute: null, internal: true },
+    success: { type: 'boolean', default: false, attribute: null, internal: true },
     error: { type: 'string', default: '', attribute: null, internal: true },
   };
 
@@ -57,8 +58,11 @@ export class StepConfirmation extends BaseElement {
     }
 
     // Получаем данные корзины
-    const store = getCartStore();
-    const cart = store.getCart();
+    if (!window.app?.cart) {
+      console.warn('[step-confirmation] cart not initialized');
+      return;
+    }
+    const cart = window.app.cart.getCart();
     const totals = calculateTotal();
 
     this.setState({
@@ -89,12 +93,19 @@ export class StepConfirmation extends BaseElement {
     try {
       const orderData = this.prepareOrderData();
 
+      // Удаляем user из объекта, если он null или undefined
+      if (orderData.user === null || orderData.user === undefined) {
+        delete orderData.user;
+      }
+
       console.log('[StepConfirmation] Sending order data to backend:', {
         url: '/wp-json/elkaretro/v1/orders',
         hasPersonal: !!orderData.personal,
         personalEmail: orderData.personal?.email,
         personalUsername: orderData.personal?.username,
         hasPassword: !!(orderData.personal?.password),
+        hasUser: !!orderData.user,
+        userValue: orderData.user,
         cartItems: orderData.cart?.items?.length || 0,
       });
 
@@ -113,28 +124,63 @@ export class StepConfirmation extends BaseElement {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('[StepConfirmation] Backend error:', errorData);
-        throw new Error(errorData.message || 'Ошибка создания заказа');
+        
+        // Извлекаем понятное сообщение об ошибке
+        let errorMessage = 'Ошибка создания заказа';
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.data?.message) {
+          errorMessage = errorData.data.message;
+        } else if (errorData.data?.details) {
+          // Если есть детали ошибки, пытаемся извлечь из них
+          const details = errorData.data.details;
+          const firstError = Object.values(details)[0];
+          if (firstError && typeof firstError === 'string') {
+            errorMessage = firstError;
+          }
+        }
+        
+        const error = new Error(errorMessage);
+        error.response = response;
+        error.errorData = errorData;
+        throw error;
       }
 
       const result = await response.json();
       console.log('[StepConfirmation] Backend response:', result);
 
       if (result.success && result.order) {
+        const orderNumber = result.order.order_number || `#${result.order.id}`;
+        
+        // Обновляем состояние в step
         this.setState({
           orderId: result.order.id,
+          orderNumber: orderNumber,
           success: true,
           isSubmitting: false,
         });
-
-        // Сбрасываем флаг isSubmitting в wizard при успехе
+        
+        // Обновляем состояние в wizard - оставляем isSubmitting: true и устанавливаем success
         const wizard = this.closest('order-wizard');
         if (wizard) {
-          wizard.setState({ isSubmitting: false });
+          wizard.setState({ 
+            isSubmitting: true, // Оставляем overlay открытым
+            success: true,
+            orderNumber: orderNumber,
+            error: null 
+          });
+          
+          // onStateChanged() вызовет _updateOverlayContent() автоматически
+          // Но на случай, если это не произошло, вызываем напрямую с небольшой задержкой
+          requestAnimationFrame(() => {
+            wizard._updateOverlayContent();
+          });
         }
 
         // Очищаем корзину
-        const store = getCartStore();
-        store.clearCart();
+        if (window.app?.cart) {
+          window.app.cart.clearCart();
+        }
 
         // Очищаем прогресс Wizard
         localStorage.removeItem('elkaretro_order_wizard_progress');
@@ -153,15 +199,38 @@ export class StepConfirmation extends BaseElement {
       }
     } catch (error) {
       console.error('[StepConfirmation] Create order error:', error);
+      
+      // Извлекаем понятное сообщение об ошибке
+      let errorMessage = 'Ошибка создания заказа';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.errorData) {
+        // Если errorData уже был извлечен в блоке if (!response.ok)
+        errorMessage = error.errorData.message || error.errorData.data?.message || errorMessage;
+      }
+      
+      // Отправляем событие об ошибке создания заказа
+      window.dispatchEvent(
+        new CustomEvent('elkaretro:order:error', {
+          detail: {
+            error: errorMessage,
+            errorData: error.errorData || null
+          }
+        })
+      );
+      
       this.setState({
-        isSubmitting: false,
-        error: error.message || 'Ошибка создания заказа',
+        error: errorMessage,
+        // НЕ сбрасываем isSubmitting - оставляем overlay с ошибкой
       });
       
-      // Сбрасываем флаг isSubmitting в wizard при ошибке
+      // Устанавливаем ошибку в wizard для отображения в overlay
       const wizard = this.closest('order-wizard');
       if (wizard) {
-        wizard.setState({ isSubmitting: false });
+        wizard.setState({ 
+          isSubmitting: true, // Оставляем overlay
+          error: errorMessage 
+        });
       }
       
       this.render();
@@ -173,8 +242,11 @@ export class StepConfirmation extends BaseElement {
    */
   prepareOrderData() {
     const { orderData } = this.state;
-    const store = getCartStore();
-    const cart = store.getCart();
+    if (!window.app?.cart) {
+      console.warn('[step-confirmation] cart not initialized');
+      return null;
+    }
+    const cart = window.app.cart.getCart();
     const totals = calculateTotal();
 
     const preparedData = {
@@ -185,7 +257,6 @@ export class StepConfirmation extends BaseElement {
           price: item.price,
         })),
       },
-      user: orderData.user || null,
       personal: orderData.personal || null,
       delivery: orderData.logistics || null,
       payment: orderData.payment || null,
@@ -196,6 +267,17 @@ export class StepConfirmation extends BaseElement {
         total: totals.total,
       },
     };
+    
+    // user передаем только если он есть и не null, иначе не передаем параметр вообще
+    // Проверяем, что user существует, не null, не undefined, и является объектом
+    if (orderData.user != null && typeof orderData.user === 'object' && !Array.isArray(orderData.user)) {
+      preparedData.user = orderData.user;
+    }
+    
+    // Дополнительная проверка: если user все равно null, удаляем его
+    if (preparedData.user === null || preparedData.user === undefined) {
+      delete preparedData.user;
+    }
 
     console.log('[StepConfirmation] Prepared order data:', {
       hasCart: !!preparedData.cart?.items?.length,
@@ -252,14 +334,17 @@ export class StepConfirmation extends BaseElement {
   }
 
   render() {
-    const { orderData, isSubmitting, orderId, error } = this.state;
+    const { orderData, isSubmitting, orderId, orderNumber, success, error } = this.state;
 
-    if (orderId) {
+    if (success && orderNumber) {
       // Заказ создан успешно
       this.innerHTML = step_confirmation_template({
         orderId,
+        orderNumber,
         orderData,
         success: true,
+        isSubmitting: false,
+        error: null,
       });
       return;
     }

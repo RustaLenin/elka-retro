@@ -1,19 +1,30 @@
 import { BaseElement } from '../../base-element.js';
 
-// Загружаем стили при импорте модуля (top-level)
-// Это гарантирует, что базовые стили всегда доступны для всех наследников
-if (window.app?.toolkit?.loadCSSOnce) {
-  window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
+// Загружаем стили - отложенно, так как window.app может быть ещё не создан при импорте
+let modalStylesLoaded = false;
+function loadModalStyles() {
+  if (modalStylesLoaded) return;
+  
+  if (window.app?.toolkit?.loadCSSOnce) {
+    try {
+      window.app.toolkit.loadCSSOnce(new URL('./modal-styles.css', import.meta.url));
+      modalStylesLoaded = true;
+    } catch (err) {
+      console.error('[modal] Failed to load CSS:', err);
+    }
+  }
 }
 
 let openModalsCount = 0;
 
 function ensureArea() {
+  // Загружаем стили при первом создании области (когда window.app уже точно существует)
+  loadModalStyles();
+  
   let area = document.querySelector('.UIModalArea');
   if (!area) {
     area = document.createElement('div');
     area.className = 'UIModalArea';
-    area.style.pointerEvents = 'none';
     document.body.appendChild(area);
   }
   return area;

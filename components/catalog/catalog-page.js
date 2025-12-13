@@ -53,12 +53,29 @@ export default class CatalogPage {
     };
 
     // Нормализуем начальное состояние через API с учётом настроек
-    const initialState = window.app?.catalog?.getState();
-    if (initialState) {
-      if (!initialState.sort && window.app?.catalog) {
-        window.app.catalog.setSort(this.settings.defaultSort);
+    // Если store ещё не инициализирован, ждём события готовности
+    const ensureStoreReady = () => {
+      const initialState = window.app?.catalog?.getState();
+      if (initialState) {
+        if (!initialState.sort && window.app?.catalog) {
+          window.app.catalog.setSort(this.settings.defaultSort);
+        }
+        // perPage пока не поддерживается в API, но можно добавить позже
+      } else if (!window.app?.catalogStore) {
+        // Store ещё не готов, ждём события
+        window.addEventListener('elkaretro:catalog-store:ready', () => {
+          const state = window.app?.catalog?.getState();
+          if (state && !state.sort && window.app?.catalog) {
+            window.app.catalog.setSort(this.settings.defaultSort);
+          }
+        }, { once: true });
       }
-      // perPage пока не поддерживается в API, но можно добавить позже
+    };
+    
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureStoreReady, { once: true });
+    } else {
+      ensureStoreReady();
     }
 
     // Обработчик событий каталога
@@ -146,10 +163,32 @@ export default class CatalogPage {
     }
 
     // Первоначальная загрузка данных
-    this._previousState = window.app?.catalog?.getState();
-    this.fetchAndRender();
-
-    this.setupObserver();
+    // Ждём готовности catalogStore перед первой загрузкой данных
+    const initDataLoading = () => {
+      if (window.app?.catalogStore) {
+        this._previousState = window.app?.catalog?.getState();
+        this.fetchAndRender();
+        this.setupObserver();
+      } else {
+        // Store ещё не готов, ждём события
+        const onStoreReady = () => {
+          this._previousState = window.app?.catalog?.getState();
+          this.fetchAndRender();
+          this.setupObserver();
+        };
+        window.addEventListener('elkaretro:catalog-store:ready', onStoreReady, { once: true });
+        // Также проверяем через небольшой таймаут на случай, если событие уже было отправлено
+        setTimeout(() => {
+          if (window.app?.catalogStore && !this._previousState) {
+            this._previousState = window.app?.catalog?.getState();
+            this.fetchAndRender();
+            this.setupObserver();
+          }
+        }, 100);
+      }
+    };
+    
+    initDataLoading();
   }
 
   async fetchAndRender() {

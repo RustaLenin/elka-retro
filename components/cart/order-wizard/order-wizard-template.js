@@ -4,17 +4,48 @@
  */
 
 export function order_wizard_template(state) {
-  const { steps, currentStep, currentStepInfo, isAuthorized, isSubmitting } = state;
+  const { steps, currentStep, currentStepInfo, isAuthorized, isSubmitting, error, success, orderNumber } = state;
 
   return `
     <div class="order-wizard">
       ${isSubmitting ? `
         <div class="order-wizard_overlay">
-          <div class="order-wizard_loader">
-            <ui-icon name="loader" size="large" spin></ui-icon>
-            <p class="order-wizard_loader-text">Создание заказа...</p>
-            <p class="order-wizard_loader-hint">Пожалуйста, не закрывайте страницу</p>
-          </div>
+          ${success && orderNumber ? `
+            <div class="order-wizard_success">
+              <ui-icon name="check_circle" size="large" class="order-wizard_success-icon"></ui-icon>
+              <h3 class="order-wizard_success-title">Заказ успешно создан!</h3>
+              <p class="order-wizard_success-text">
+                Номер вашего заказа: <strong>${orderNumber}</strong>
+              </p>
+              <p class="order-wizard_success-description">
+                Подробности заказа отправлены на ваш email.
+              </p>
+              <ui-button
+                type="primary"
+                label="Закрыть"
+                event="order-wizard:close-success"
+                class="order-wizard_success-close-btn"
+              ></ui-button>
+            </div>
+          ` : error ? `
+            <div class="order-wizard_error">
+              <ui-icon name="alert_circle" size="large" class="order-wizard_error-icon"></ui-icon>
+              <h3 class="order-wizard_error-title">Ошибка создания заказа</h3>
+              <p class="order-wizard_error-message">${error}</p>
+              <ui-button
+                type="primary"
+                label="Закрыть"
+                event="order-wizard:close-error"
+                class="order-wizard_error-close-btn"
+              ></ui-button>
+            </div>
+          ` : `
+            <div class="order-wizard_loader">
+              <ui-icon name="loader" size="large" spin></ui-icon>
+              <p class="order-wizard_loader-text">Создание заказа...</p>
+              <p class="order-wizard_loader-hint">Пожалуйста, не закрывайте страницу</p>
+            </div>
+          `}
         </div>
       ` : ''}
       <header class="order-wizard_header">

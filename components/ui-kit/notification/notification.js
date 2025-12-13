@@ -1,15 +1,28 @@
 import { BaseElement } from '../../base-element.js';
 import { notificationTemplate } from './notification-template.js';
 
-// Загружаем стили сразу при импорте модуля
-if (window.app?.toolkit?.loadCSSOnce) {
-  window.app.toolkit.loadCSSOnce(new URL('./notification-styles.css', import.meta.url));
+// Загружаем стили - отложенно, так как window.app может быть ещё не создан при импорте
+let stylesLoaded = false;
+function loadNotificationStyles() {
+  if (stylesLoaded) return;
+  
+  if (window.app?.toolkit?.loadCSSOnce) {
+    try {
+      const cssUrl = new URL('./notification-styles.css', import.meta.url);
+      window.app.toolkit.loadCSSOnce(cssUrl);
+      stylesLoaded = true;
+    } catch (err) {
+      console.error('[notification] Failed to load CSS:', err);
+    }
+  }
 }
 
 // Создаём область для уведомлений сразу при регистрации компонента
 function initNotificationArea() {
   if (!document.querySelector('.UINotificationArea')) {
-    document.body.insertAdjacentHTML('beforeend', `<div class="UINotificationArea"></div>`);
+    const area = document.createElement('div');
+    area.className = 'UINotificationArea';
+    document.body.appendChild(area);
   }
 }
 
@@ -146,7 +159,28 @@ export class UINotification extends BaseElement {
 customElements.define('ui-notification', UINotification);
 
 export function notify(type = 'info', message = 'Какой-то текст уведомления', durationMs = 5000) {
-  const area = document.querySelector('.UINotificationArea');
+  // Загружаем стили при первом вызове notify (когда window.app уже точно существует)
+  loadNotificationStyles();
+  
+  // Убеждаемся, что область существует
+  let area = document.querySelector('.UINotificationArea');
+  if (!area) {
+    // Если области нет, создаём её
+    initNotificationArea();
+    area = document.querySelector('.UINotificationArea');
+  }
+  
+  if (!area) {
+    console.error('[notification] Failed to create notification area');
+    return null;
+  }
+  
+  // Убеждаемся, что компонент ui-notification определён
+  if (!customElements.get('ui-notification')) {
+    console.error('[notification] ui-notification component not defined');
+    return null;
+  }
+  
   const el = document.createElement('ui-notification');
   el.setAttribute('type', type);
   el.setAttribute('message', message);

@@ -98,6 +98,49 @@ toy-instance-modal.modal--visible {
   gap: 1.5rem;
 }
 
+/* Стили для стандартного header базового UIModal внутри toy-instance-modal */
+.toy-instance-modal_container .modal_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border-accent, rgba(255, 255, 255, 0.1));
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.toy-instance-modal_container .modal_header .modal_title {
+  font-family: var(--font-heading, inherit);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+  margin: 0;
+}
+
+.toy-instance-modal_container .modal_header .modal_close {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.6));
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+.toy-instance-modal_container .modal_header .modal_close:hover {
+  background: var(--color-secondary, rgba(32, 34, 39, 0.5));
+  color: var(--color-foreground, rgba(245, 247, 250, 1));
+}
+
 .toy-instance-modal_container .toy-instance-modal_header {
   display: flex;
   flex-direction: column;

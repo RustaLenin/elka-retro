@@ -110,6 +110,24 @@ export const registerFormConfig = {
       validation: {
         rules: ['required']
       }
+    },
+    {
+      id: 'newsletter_new_items',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о новинках',
+      required: false
+    },
+    {
+      id: 'newsletter_sales',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о распродажах',
+      required: false
+    },
+    {
+      id: 'newsletter_auction',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о новостях аукциона',
+      required: false
     }
   ],
   actions: {
@@ -134,7 +152,14 @@ export const registerFormConfig = {
         username: String(values.username || '').trim(),
         phone: String(values.phone || '').trim(),
         password: String(values.password || ''),
-        password_confirm: String(values.password_confirm || '')
+        password_confirm: String(values.password_confirm || ''),
+        privacy_consent: Boolean(values.privacy_consent),
+        offer_consent: Boolean(values.offer_consent),
+        newsletter_new_items: Boolean(values.newsletter_new_items),
+        newsletter_sales: Boolean(values.newsletter_sales),
+        newsletter_auction: Boolean(values.newsletter_auction),
+        first_name: String(values.first_name || '').trim(),
+        last_name: String(values.last_name || '').trim()
       };
     },
     validate: async (payload) => {
@@ -262,10 +287,24 @@ export const registerFormConfig = {
         });
       }
       
+      // Преобразуем массив errors в fieldMessages для form-controller
+      const fieldMessages = {};
+      errors.forEach(error => {
+        if (error.fieldId) {
+          if (!fieldMessages[error.fieldId]) {
+            fieldMessages[error.fieldId] = {
+              status: 'error',
+              messages: { error: [] }
+            };
+          }
+          fieldMessages[error.fieldId].messages.error.push(error.message);
+        }
+      });
+      
       return {
         valid: errors.length === 0,
         errors,
-        fieldMessages: {},
+        fieldMessages,
         formMessages: errors.length > 0 ? {
           message: 'Пожалуйста, исправьте ошибки в полях формы',
           details: errors.map(e => e.message)
@@ -289,7 +328,10 @@ export const registerFormConfig = {
         values.privacy_consent,
         values.offer_consent,
         values.first_name,
-        values.last_name
+        values.last_name,
+        values.newsletter_new_items,
+        values.newsletter_sales,
+        values.newsletter_auction
       );
       
       if (!result.success) {

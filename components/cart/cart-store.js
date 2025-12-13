@@ -58,6 +58,30 @@ class CartStore {
     /** @type {Set<Function>} */
     this._subscribers = new Set();
 
+    // Обработчики событий для событийной модели
+    this._handleAddItemEvent = (e) => {
+      const { itemId, itemType, price } = e.detail;
+      if (itemId && itemType && price) {
+        this.addItem({ id: itemId, type: itemType, price: price });
+      }
+    };
+
+    this._handleRemoveItemEvent = (e) => {
+      const { itemId, itemType } = e.detail;
+      if (itemId && itemType) {
+        this.removeItem(itemId, itemType);
+      }
+    };
+
+    this._handleClearCartEvent = () => {
+      this.clearCart();
+    };
+
+    // Подписываемся на события
+    window.addEventListener('elkaretro:cart:add-item', this._handleAddItemEvent);
+    window.addEventListener('elkaretro:cart:remove-item', this._handleRemoveItemEvent);
+    window.addEventListener('elkaretro:cart:clear', this._handleClearCartEvent);
+
     // Инициализация: загрузка из LocalStorage и проверка авторизации
     this._init();
   }
@@ -408,6 +432,11 @@ class CartStore {
 
     this._updateState({ cart: updatedCart });
 
+    // Показываем уведомление об успешном добавлении
+    if (window.app?.ui?.showNotification) {
+      window.app.ui.showNotification('Товар добавлен в корзину', 'success');
+    }
+
     // Dispatch события
     window.dispatchEvent(
       new CustomEvent('elkaretro:cart:item-added', {
@@ -444,6 +473,11 @@ class CartStore {
     };
 
     this._updateState({ cart: updatedCart });
+
+    // Показываем уведомление об успешном удалении
+    if (window.app?.ui?.showNotification) {
+      window.app.ui.showNotification('Товар удален из корзины', 'info');
+    }
 
     // Dispatch события
     window.dispatchEvent(
@@ -555,10 +589,14 @@ class CartStore {
   }
 
   /**
-   * Уничтожить стор (очистка подписок)
+   * Уничтожить стор (очистка подписок и событий)
    */
   destroy() {
     this._subscribers.clear();
+    // Отписываемся от событий
+    window.removeEventListener('elkaretro:cart:add-item', this._handleAddItemEvent);
+    window.removeEventListener('elkaretro:cart:remove-item', this._handleRemoveItemEvent);
+    window.removeEventListener('elkaretro:cart:clear', this._handleClearCartEvent);
   }
 }
 

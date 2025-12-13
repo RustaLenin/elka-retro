@@ -14,10 +14,73 @@
 }
 
 .cart-page_title {
-  margin: 0;
+  margin: 0 0 1.5rem 0;
   font-size: 2rem;
   font-weight: 700;
   color: var(--color-foreground, rgba(245, 247, 250, 1));
+  text-align: center;
+}
+
+.cart-page_steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.cart-page_steps::before {
+  content: '';
+  position: absolute;
+  top: 1.5rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-border, #2a2d31);
+  z-index: 0;
+}
+
+.cart-page_step {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.cart-page_step_number {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-secondary, #202227);
+  color: var(--color-muted-foreground, #8a8f99);
+  font-weight: 600;
+  font-size: 1rem;
+  border: 2px solid var(--color-border, #2a2d31);
+  transition: all 0.2s ease;
+}
+
+.cart-page_step_label {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
+.cart-page_step--active .cart-page_step_number {
+  background: var(--color-primary, #9b8cff);
+  color: var(--color-foreground, #f5f7fa);
+  border-color: var(--color-primary, #9b8cff);
+}
+
+.cart-page_step--active .cart-page_step_label {
+  color: var(--color-primary, #9b8cff);
+  font-weight: 600;
 }
 
 .cart-page_content {
@@ -104,18 +167,103 @@
   background: var(--color-card, rgba(32, 34, 39, 0.95));
   border: 1px solid var(--color-border-accent);
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
-.cart-page_actions {
+.cart-page_footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border, #2a2d31);
+}
+
+.cart-page_back-btn {
+  margin-right: auto;
+}
+
+.cart-page_next-btn {
+  margin-left: auto;
+}
+
+.cart-page_step-loading {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 1rem;
+  color: var(--color-muted-foreground, #8a8f99);
 }
 
-/* Стили для ui-button - только специфичные размеры */
-.cart-page_checkout-btn {
+.cart-page_step-loading p {
+  margin: 0;
+}
+
+/* Overlay успешного создания заказа */
+.cart-page_success-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 2rem;
+}
+
+.cart-page_success-content {
+  background: var(--color-secondary, #202227);
+  border-radius: 1rem;
+  padding: 3rem;
+  max-width: 500px;
   width: 100%;
+  text-align: center;
+  border: 2px solid var(--color-success, #22c55e);
+}
+
+.cart-page_success-icon {
+  color: var(--color-success, #22c55e);
+  margin-bottom: 1.5rem;
+}
+
+.cart-page_success-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.cart-page_success-text {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  color: var(--color-foreground, #f5f7fa);
+  line-height: 1.6;
+}
+
+.cart-page_success-text strong {
+  color: var(--color-primary, #9b8cff);
+  font-weight: 600;
+}
+
+.cart-page_success-description {
+  margin: 0 0 2rem 0;
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  line-height: 1.6;
+}
+
+.cart-page_success-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.cart-page_success-btn {
+  min-width: 200px;
 }
 
 /* Состояния загрузки и пустой корзины */

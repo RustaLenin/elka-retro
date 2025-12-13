@@ -1,7 +1,6 @@
 import { BaseElement } from '../../base-element.js';
 import { cart_page_template } from './cart-page-template.js';
-import { getCartStore } from '../cart-store.js';
-import { getItems } from '../cart-service.js';
+import { formatPrice } from '../helpers/price-formatter.js';
 
 // Загружаем стили на верхнем уровне модуля
 if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
@@ -17,18 +16,26 @@ export class CartPage extends BaseElement {
   static autoRender = false; // Отключаем автоматический рендер, управляем вручную
   static stateSchema = {
     items: { type: 'json', default: [], attribute: null, internal: true },
-    isLoading: { type: 'boolean', default: false, attribute: null, internal: true },
-    isEmpty: { type: 'boolean', default: true, attribute: null, internal: true },
+    isLoading: { type: 'boolean', default: true, attribute: null, internal: true }, // Начинаем с true, чтобы не показывать пустое состояние
+    isEmpty: { type: 'boolean', default: false, attribute: null, internal: true }, // Начинаем с false, чтобы не показывать "пусто"
     showBlockingOverlay: { type: 'boolean', default: false, attribute: null, internal: true },
     blockingMessage: { type: 'string', default: '', attribute: null, internal: true },
+    successOrder: { type: 'boolean', default: false, attribute: { name: 'success-order', observed: true }, internal: true },
+    orderId: { type: 'number', default: null, attribute: { name: 'order-id', observed: true }, internal: true },
   };
 
   constructor() {
     super();
+    
     this._unsubscribe = null;
     this._isInitializing = true;
     this._isUpdating = false; // Флаг для предотвращения параллельных обновлений
     this._pendingRemoval = null;
+    
+    // Устанавливаем состояние загрузки ПОСЛЕ вызова super(), чтобы гарантировать правильные значения
+    // Это должно предотвратить показ пустого состояния до загрузки данных
+    this.state.isLoading = true;
+    this.state.isEmpty = false;
     this._handleCartUpdate = (e) => {
       // Слушаем глобальное событие обновления корзины
       // Не обновляем при инициализации, т.к. updateItems уже вызывается
@@ -53,13 +60,46 @@ export class CartPage extends BaseElement {
     };
   }
 
-  connectedCallback() {
-    super.connectedCallback();
+  async connectedCallback() {
+    // Не вызываем super.connectedCallback() чтобы избежать лишних вызовов
+    // Состояние уже установлено в конструкторе (isLoading: true, isEmpty: false)
+    // Инициализируем атрибуты (если есть)
+    this.initStateFromAttributes();
+    
+    // Убеждаемся, что состояние загрузки установлено (на случай если атрибуты его перезаписали)
+    if (!this.state.isLoading) {
+      this.state.isLoading = true;
+    }
+    if (this.state.isEmpty) {
+      this.state.isEmpty = false;
+    }
+    
+    // Рендерим loader сразу, чтобы пользователь видел индикатор загрузки
+    this.render();
+    
+    // Ждем, пока корзина инициализируется (если еще не готова)
+    if (!window.app?.cart) {
+      // Ждем события DOMContentLoaded или готовности корзины
+      if (document.readyState === 'loading') {
+        await new Promise(resolve => {
+          document.addEventListener('DOMContentLoaded', resolve, { once: true });
+        });
+      }
+      
+      // Ждем еще немного, чтобы корзина успела инициализироваться
+      let attempts = 0;
+      const maxAttempts = 40; // 2 секунды максимум (40 * 50мс)
+      while (!window.app?.cart && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        attempts++;
+      }
+    }
+    
     // Подписываемся на глобальное событие обновления корзины
     window.addEventListener('elkaretro:cart:updated', this._handleCartUpdate);
     // Также подписываемся на изменения через store (для обратной совместимости)
     this.subscribeToCart();
-    // Затем обновляем товары (это вызовет render один раз)
+    // Затем обновляем товары (это вызовет render один раз после загрузки)
     this.updateItems().then(() => {
       // После первой загрузки помечаем, что инициализация завершена
       this._isInitializing = false;
@@ -82,12 +122,20 @@ export class CartPage extends BaseElement {
    * Подписаться на изменения корзины
    */
   subscribeToCart() {
-    const store = getCartStore();
+    if (!window.app?.cart) {
+      console.warn('[cart-page] cart not initialized');
+      return;
+    }
     let isFirstCall = true;
-    this._unsubscribe = store.subscribe((nextState) => {
+    this._unsubscribe = window.app.cart.subscribe((nextState) => {
       // Игнорируем первый вызов (он происходит сразу при подписке)
       if (isFirstCall) {
         isFirstCall = false;
+        return;
+      }
+      // Если заказ успешно создан, не обновляем состояние
+      // чтобы не показывать empty state вместо success overlay
+      if (this.state.successOrder) {
         return;
       }
       // Обновляем только если инициализация завершена
@@ -106,6 +154,12 @@ export class CartPage extends BaseElement {
       return;
     }
 
+    // Если заказ успешно создан, не обновляем состояние isEmpty
+    // чтобы не показывать empty state вместо success overlay
+    if (this.state.successOrder) {
+      return;
+    }
+
     this._isUpdating = true;
 
     // Показываем состояние загрузки только если это не первая инициализация
@@ -114,8 +168,29 @@ export class CartPage extends BaseElement {
     }
 
     try {
-      const items = getItems();
-      const isEmpty = items.length === 0;
+      // Ждем, пока корзина инициализируется (если еще не готова)
+      if (!window.app?.cart) {
+        // Ждем максимум 2 секунды, проверяя каждые 50мс
+        let attempts = 0;
+        const maxAttempts = 40;
+        while (!window.app?.cart && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+          attempts++;
+        }
+      }
+
+      // Если корзина все еще не доступна, показываем ошибку
+      if (!window.app?.cart) {
+        console.error('[cart-page] Cart store not available after waiting');
+        this.setState({ isLoading: false, isEmpty: true });
+        this.render();
+        return;
+      }
+
+      const items = window.app.cart.getItems() || [];
+      // Не устанавливаем isEmpty, если заказ успешно создан
+      // чтобы не показывать empty state вместо success overlay
+      const isEmpty = this.state.successOrder ? false : items.length === 0;
 
       // Для каждого товара нужно получить дополнительные данные (название, фото)
       const enrichedItems = await this.enrichItems(items);
@@ -125,6 +200,13 @@ export class CartPage extends BaseElement {
         isEmpty,
         isLoading: false,
       };
+
+      // Если successOrder установлен, не обновляем items
+      // чтобы не показывать товары после успешного создания заказа
+      if (this.state.successOrder) {
+        nextState.items = [];
+        nextState.isEmpty = false;
+      }
 
       if (this._pendingRemoval) {
         nextState.showBlockingOverlay = false;
@@ -329,28 +411,304 @@ export class CartPage extends BaseElement {
       return;
     }
 
-    // Заменяем содержимое страницы на Wizard
-    try {
-      // Загружаем order-wizard компонент
-      await import('../order-wizard/order-wizard.js');
+    // Переходим к шагу 2 (доставка) - меняем только содержимое левой части
+    await this.goToStep(2);
+  }
 
-      // Создаем элемент Wizard
-      const wizard = document.createElement('order-wizard');
-      wizard.setAttribute('wizard-id', 'order-wizard-main');
-
-      // Заменяем содержимое
-      const content = this.closest('.site_content') || this.parentElement;
-      if (content) {
-        content.innerHTML = '';
-        content.appendChild(wizard);
-      } else {
-        this.innerHTML = '';
-        this.appendChild(wizard);
+  /**
+   * Обновить прогресс-бар
+   */
+  updateProgressBar(activeStep) {
+    const steps = this.querySelectorAll('.cart-page_step');
+    steps.forEach((step, index) => {
+      const stepNumber = index + 1;
+      step.classList.remove('cart-page_step--active', 'cart-page_step--completed');
+      
+      if (stepNumber === activeStep) {
+        step.classList.add('cart-page_step--active');
+      } else if (stepNumber < activeStep) {
+        step.classList.add('cart-page_step--completed');
       }
-    } catch (error) {
-      console.error('[CartPage] Failed to start checkout:', error);
-      this.showNotification('Не удалось начать оформление заказа', 'error');
+    });
+  }
+
+  /**
+   * Обновить footer с кнопками навигации
+   */
+  updateFooter(currentStep) {
+    let footer = this.querySelector('.cart-page_footer');
+    
+    if (!footer) {
+      // Создаём footer если его нет
+      footer = document.createElement('footer');
+      footer.className = 'cart-page_footer';
+      const content = this.querySelector('.cart-page_content');
+      if (content) {
+        content.parentElement.insertBefore(footer, content.nextSibling);
+      }
     }
+
+    footer.innerHTML = '';
+    
+    if (currentStep >= 2) {
+      // Кнопка "Назад"
+      const backBtn = document.createElement('ui-button');
+      backBtn.setAttribute('type', 'secondary');
+      backBtn.setAttribute('label', 'Назад');
+      backBtn.setAttribute('icon', 'chevron_left');
+      backBtn.setAttribute('icon-position', 'left');
+      backBtn.setAttribute('event', 'cart-page:back-click');
+      backBtn.className = 'cart-page_back-btn';
+      footer.appendChild(backBtn);
+    }
+
+    // Кнопка "Далее" всегда справа
+    const nextBtn = document.createElement('ui-button');
+    nextBtn.setAttribute('type', 'primary');
+    const nextLabel = currentStep === 1 ? 'Далее' : currentStep === 2 ? 'Далее' : 'Оформить заказ';
+    nextBtn.setAttribute('label', nextLabel);
+    nextBtn.setAttribute('icon', currentStep === 3 ? 'check' : 'chevron_right');
+    nextBtn.setAttribute('icon-position', 'right');
+    const nextEvent = currentStep === 1 ? 'cart-page:checkout-click' : currentStep === 2 ? 'order-flow:step:next' : 'review-step:place-order-click';
+    nextBtn.setAttribute('event', nextEvent);
+    nextBtn.className = 'cart-page_next-btn';
+    footer.appendChild(nextBtn);
+
+    // Прикрепляем обработчики
+    this.attachFooterListeners();
+  }
+
+  /**
+   * Прикрепить обработчики для footer
+   */
+  attachFooterListeners() {
+    // Обработчик для кнопки "Назад"
+    this.removeEventListener('cart-page:back-click', this._handleBackClick);
+    this._handleBackClick = () => {
+      this.handleBackToCart();
+    };
+    this.addEventListener('cart-page:back-click', this._handleBackClick);
+
+    // Обработчик для кнопки "Далее" на шаге 2
+    this.removeEventListener('order-flow:step:next', this._handleStepNext);
+    this.addEventListener('order-flow:step:next', (event) => {
+      this.handleStepNext(event);
+    });
+
+    // Обработчик для кнопки "Оформить заказ" на шаге 3
+    // Событие всплывает от кнопки в footer, передаём его в review-step
+    this.removeEventListener('review-step:place-order-click', this._handleReviewStepPlaceOrder);
+    this._handleReviewStepPlaceOrder = (event) => {
+      // Находим review-step компонент и передаём ему событие
+      const reviewStep = this.querySelector('review-step');
+      if (reviewStep && typeof reviewStep._handlePlaceOrderClick === 'function') {
+        reviewStep._handlePlaceOrderClick(event);
+      } else {
+        // Если метод недоступен, отправляем событие напрямую в review-step
+        if (reviewStep) {
+          reviewStep.dispatchEvent(new CustomEvent('review-step:place-order-click', {
+            bubbles: false,
+            composed: true,
+            detail: event.detail,
+          }));
+        }
+      }
+    };
+    this.addEventListener('review-step:place-order-click', this._handleReviewStepPlaceOrder);
+  }
+
+  /**
+   * Обработка возврата к корзине (шаг 1)
+   */
+  handleBackToCart() {
+    // Обновляем прогресс-бар (шаг 1 активен)
+    this.updateProgressBar(1);
+
+    // Показываем прелоадер в левой части
+    const mainContent = this.querySelector('.cart-page_main');
+    if (mainContent) {
+      mainContent.innerHTML = `
+        <div class="cart-page_step-loading">
+          <ui-loader></ui-loader>
+          <p>Загрузка корзины...</p>
+        </div>
+      `;
+    }
+
+    // Обновляем footer
+    this.updateFooter(1);
+
+    // Загружаем товары и рендерим корзину
+    // Используем setTimeout чтобы прелоадер успел отобразиться
+    setTimeout(() => {
+      this.updateItems().then(() => {
+        // После загрузки рендерим только содержимое левой части (товары)
+        this.renderMainContent();
+      }).catch((error) => {
+        console.error('[CartPage] Failed to update items:', error);
+        // В случае ошибки всё равно пытаемся отрендерить
+        this.renderMainContent();
+      });
+    }, 100);
+  }
+
+  /**
+   * Рендерить только содержимое левой части (без header и sidebar)
+   */
+  renderMainContent() {
+    const mainContent = this.querySelector('.cart-page_main');
+    if (!mainContent) {
+      return;
+    }
+
+    const { items, isEmpty, isLoading, showBlockingOverlay, blockingMessage } = this.state;
+
+    // Если загрузка не завершена или корзина пуста - показываем соответствующие состояния
+    if (isLoading || isEmpty) {
+      if (isEmpty) {
+        mainContent.innerHTML = `
+          <div class="cart-page_empty">
+            <div class="cart-page_empty-content">
+              <ui-icon name="cart" size="large" class="cart-page_empty-icon"></ui-icon>
+              <h2 class="cart-page_empty-title">Корзина пуста</h2>
+              <p class="cart-page_empty-text">Добавьте товары в корзину, чтобы продолжить покупки.</p>
+            </div>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    // Рендерим товары
+    let html = '';
+    
+    if (showBlockingOverlay) {
+      html += `
+        <div class="cart-page_overlay">
+          <ui-loader></ui-loader>
+          <p>${blockingMessage || 'Обновляем корзину...'}</p>
+        </div>
+      `;
+    }
+
+    html += `<div class="cart-page_items" role="list"></div>`;
+    
+    mainContent.innerHTML = html;
+
+    // Рендерим товары
+    this.renderItems();
+  }
+
+  /**
+   * Обработка перехода на следующий шаг
+   */
+  handleStepNext(event) {
+    const stepData = event.detail || {};
+    const currentStep = this.getCurrentStep();
+
+    if (currentStep === 2) {
+      // Переходим на шаг 3 (проверка данных)
+      this.goToStep(3, stepData);
+    }
+  }
+
+  /**
+   * Получить текущий активный шаг
+   */
+  getCurrentStep() {
+    const activeStep = this.querySelector('.cart-page_step--active');
+    if (!activeStep) return 1;
+    
+    const steps = Array.from(this.querySelectorAll('.cart-page_step'));
+    return steps.indexOf(activeStep) + 1;
+  }
+
+  /**
+   * Перейти на конкретный шаг
+   */
+  async goToStep(stepNumber, stepData = {}) {
+    // Обновляем прогресс-бар
+    this.updateProgressBar(stepNumber);
+
+    // Показываем прелоадер
+    const mainContent = this.querySelector('.cart-page_main');
+    if (mainContent) {
+      mainContent.innerHTML = `
+        <div class="cart-page_step-loading">
+          <ui-loader></ui-loader>
+          <p>Загрузка...</p>
+        </div>
+      `;
+    }
+
+    // Сохраняем данные шага в LocalStorage
+    if (stepData.delivery) {
+      try {
+        const saved = localStorage.getItem('elkaretro_order_data');
+        const orderData = saved ? JSON.parse(saved) : {};
+        orderData.delivery = stepData.delivery;
+        localStorage.setItem('elkaretro_order_data', JSON.stringify(orderData));
+      } catch (error) {
+        console.error('[CartPage] Failed to save order data:', error);
+      }
+    }
+
+    // Используем setTimeout чтобы прелоадер успел отобразиться
+    setTimeout(async () => {
+      if (stepNumber === 2) {
+        // Загружаем компонент delivery-step
+        await import('../order-flow/steps/delivery-step.js');
+        
+        const deliveryStep = document.createElement('delivery-step');
+        
+        // Загружаем данные из LocalStorage
+        try {
+          const saved = localStorage.getItem('elkaretro_order_data');
+          if (saved) {
+            const orderData = JSON.parse(saved);
+            deliveryStep.setAttribute('order-data', JSON.stringify(orderData));
+          }
+        } catch (error) {
+          console.error('[CartPage] Failed to load order data:', error);
+        }
+
+        // Заменяем содержимое левой части
+        if (mainContent) {
+          mainContent.innerHTML = '';
+          mainContent.appendChild(deliveryStep);
+        }
+      } else if (stepNumber === 3) {
+      // Загружаем компонент review-step
+      await import('../order-flow/steps/review-step.js');
+      
+      const reviewStep = document.createElement('review-step');
+      
+      // Загружаем данные из LocalStorage
+      try {
+        const saved = localStorage.getItem('elkaretro_order_data');
+        if (saved) {
+          const orderData = JSON.parse(saved);
+          reviewStep.setAttribute('order-data', JSON.stringify(orderData));
+        }
+      } catch (error) {
+        console.error('[CartPage] Failed to load order data:', error);
+      }
+
+      // Подписываемся на события
+      reviewStep.addEventListener('order-flow:step:prev', () => {
+        this.goToStep(2);
+      });
+
+      // Заменяем содержимое левой части
+      if (mainContent) {
+        mainContent.innerHTML = '';
+        mainContent.appendChild(reviewStep);
+      }
+    }
+
+      // Обновляем footer
+      this.updateFooter(stepNumber);
+    }, 100);
   }
 
   /**
@@ -365,22 +723,17 @@ export class CartPage extends BaseElement {
   }
 
   render() {
-    const { items, isLoading, isEmpty, showBlockingOverlay, blockingMessage } = this.state;
-
-    this.innerHTML = cart_page_template({
-      items,
-      isLoading,
-      isEmpty,
-      showBlockingOverlay,
-      blockingMessage,
-    });
+    // Передаём весь state целиком - так ничего не потеряется
+    this.innerHTML = cart_page_template(this.state);
 
     // После рендера нужно снова прикрепить обработчики
     // (т.к. innerHTML пересоздает DOM)
     this.attachEventListeners();
 
     // Рендерим cart-item компоненты для каждого товара
-    if (!isEmpty && !isLoading) {
+    // НЕ рендерим товары, если заказ успешно создан (показываем success overlay)
+    const { isEmpty, isLoading, successOrder } = this.state;
+    if (!isEmpty && !isLoading && !successOrder) {
       this.renderItems();
     }
   }
@@ -439,22 +792,20 @@ export class CartPage extends BaseElement {
     // Вычисляем сумму всех элементов
     const total = items.reduce((sum, item) => sum + (item.price || 0), 0);
     
-    // Импортируем formatPrice
-    import('../helpers/price-formatter.js').then(({ formatPrice }) => {
-      const formattedTotal = formatPrice(total);
-      
-      const totalBlock = document.createElement('div');
-      totalBlock.className = 'cart-page_items-total';
-      totalBlock.innerHTML = `
-        <div class="cart-page_items-total-label">Сумма товаров:</div>
-        <div class="cart-page_items-total-value">${formattedTotal}</div>
-      `;
-      
-      const itemsContainer = this.querySelector('.cart-page_items');
-      if (itemsContainer && itemsContainer.parentNode) {
-        itemsContainer.parentNode.insertBefore(totalBlock, itemsContainer.nextSibling);
-      }
-    });
+    // formatPrice уже загружен статически
+    const formattedTotal = formatPrice(total);
+    
+    const totalBlock = document.createElement('div');
+    totalBlock.className = 'cart-page_items-total';
+    totalBlock.innerHTML = `
+      <div class="cart-page_items-total-label">Сумма товаров:</div>
+      <div class="cart-page_items-total-value">${formattedTotal}</div>
+    `;
+    
+    const itemsContainer = this.querySelector('.cart-page_items');
+    if (itemsContainer && itemsContainer.parentNode) {
+      itemsContainer.parentNode.insertBefore(totalBlock, itemsContainer.nextSibling);
+    }
   }
 }
 

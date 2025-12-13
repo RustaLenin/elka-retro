@@ -143,6 +143,24 @@ export const orderPersonalFormConfig = {
       validation: [
         { rule: 'required', value: true, message: 'Необходимо согласие с условиями публичной оферты', severity: 'error' }
       ]
+    },
+    {
+      id: 'newsletter_new_items',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о новинках',
+      required: false
+    },
+    {
+      id: 'newsletter_sales',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о распродажах',
+      required: false
+    },
+    {
+      id: 'newsletter_auction',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о новостях аукциона',
+      required: false
     }
   ],
   actions: {
@@ -160,7 +178,10 @@ export const orderPersonalFormConfig = {
         first_name: String(values.first_name || '').trim(),
         last_name: String(values.last_name || '').trim(),
         privacy_consent: Boolean(values.privacy_consent),
-        offer_consent: Boolean(values.offer_consent)
+        offer_consent: Boolean(values.offer_consent),
+        newsletter_new_items: Boolean(values.newsletter_new_items),
+        newsletter_sales: Boolean(values.newsletter_sales),
+        newsletter_auction: Boolean(values.newsletter_auction)
       };
     },
     validate: async (context) => {
@@ -290,10 +311,25 @@ export const orderPersonalFormConfig = {
         });
       }
       
+      // Преобразуем errors в fieldMessages для отображения на полях
+      const fieldMessages = {};
+      errors.forEach(error => {
+        const fieldId = error.fieldId;
+        if (fieldId) {
+          if (!fieldMessages[fieldId]) {
+            fieldMessages[fieldId] = {
+              status: 'error',
+              messages: { error: [] }
+            };
+          }
+          fieldMessages[fieldId].messages.error.push(error.message);
+        }
+      });
+      
       return {
         valid: errors.length === 0,
         errors,
-        fieldMessages: {},
+        fieldMessages,
         formMessages: errors.length > 0 ? {
           message: 'Пожалуйста, исправьте ошибки в форме',
           details: errors.map(e => e.message)

@@ -91,11 +91,12 @@ export const getAccessoryFilters = () => {
   const filters = [];
 
   // Фильтры для аксессуаров (из data-model.json):
-  // ny_category, ny_lot_configuration_field, ny_condition_field, ny_material_field, ny_year_of_production_field
+  // ny_category обрабатывается отдельно через category-tree-filter, поэтому исключаем из списка
+  // ny_lot_configuration_field, ny_condition_field, ny_material_field, ny_year_of_production_field
   // Без property (ny_property_field) по решению пользователя
 
   const filterFields = {
-    'ny_category': 'ny_category_field',
+    // 'ny_category': 'ny_category_field', // Исключено: обрабатывается через category-tree-filter
     'lot_configurations': 'ny_lot_configuration_field',
     'condition': 'ny_condition_field',
     'material': 'ny_material_field',

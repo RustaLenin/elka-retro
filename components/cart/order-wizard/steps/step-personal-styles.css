@@ -12,6 +12,16 @@
   margin: 0 auto;
 }
 
+/* Уменьшаем gap между полями формы до 8px */
+.step-personal_content ui-form-controller {
+  gap: 8px;
+  --ui-form-layout-gap: 8px;
+}
+
+.step-personal_content .ui-form-controller__layout {
+  gap: 8px !important;
+}
+
 .step-personal_loading {
   display: flex;
   flex-direction: column;

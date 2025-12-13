@@ -57,10 +57,7 @@ export class ProfileSettingsTab extends BaseElement {
   async connectedCallback() {
     super.connectedCallback();
     
-    // Загружаем конфигурации форм при первом подключении (ленивая загрузка)
-    if (!window.app?.forms?.profileEdit) {
-      await import(new URL('../../../../../app/forms/index.js', import.meta.url).href);
-    }
+    // Forms уже загружены статически через app.js
     
     this.loadProfile();
   }

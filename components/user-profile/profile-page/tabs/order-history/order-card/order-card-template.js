@@ -196,8 +196,8 @@ export function renderOrderCardTemplate(state) {
         ` : ''}
       </div>
 
-      <div class="order-card__actions">
-        ${canCancelOrder(status) ? `
+      ${canCancelOrder(status) ? `
+        <div class="order-card__actions">
           <ui-button 
             type="ghost" 
             label="Отменить заказ" 
@@ -206,17 +206,8 @@ export function renderOrderCardTemplate(state) {
             data-app-action="order-card:cancel"
             data-order-id="${order.id}"
           ></ui-button>
-        ` : ''}
-        <ui-button 
-          type="ghost" 
-          label="Написать обращение" 
-          icon="envelope"
-          class="order-card__action order-card__action--contact"
-          data-app-action="order-card:contact"
-          data-order-id="${order.id}"
-          data-order-number="${orderNumber}"
-        ></ui-button>
-      </div>
+        </div>
+      ` : ''}
     </div>
   `;
 }

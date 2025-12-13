@@ -74,13 +74,8 @@ export class StepPersonal extends BaseElement {
       return;
     }
     
-    // Импортируем конфигурации форм, если они еще не загружены
-    try {
-      await import('../../../../app/forms/index.js');
-      console.log('[StepPersonal] Forms loaded:', Object.keys(window.app?.forms || {}));
-    } catch (error) {
-      console.error('[StepPersonal] Failed to load forms:', error);
-    }
+    // Forms уже загружены статически через app.js
+    console.log('[StepPersonal] Forms available:', Object.keys(window.app?.forms || {}));
   }
 
   /**
@@ -252,19 +247,22 @@ export class StepPersonal extends BaseElement {
           first_name: formData.first_name || '',
           last_name: formData.last_name || '',
         };
-      } else {
-        // Для неавторизованных: возвращаем все данные, включая пароль и согласия для регистрации
-        return {
-          email: formData.email,
-          username: formData.username,
-          password: formData.password, // Пароль нужен для регистрации на BackEnd
-          phone: formData.phone,
-          first_name: formData.first_name || '',
-          last_name: formData.last_name || '',
-          privacy_consent: formData.privacy_consent || false,
-          offer_consent: formData.offer_consent || false,
-        };
-      }
+      }     else {
+      // Для неавторизованных: возвращаем все данные, включая пароль и согласия для регистрации
+      return {
+        email: formData.email,
+        username: formData.username,
+        password: formData.password, // Пароль нужен для регистрации на BackEnd
+        phone: formData.phone,
+        first_name: formData.first_name || '',
+        last_name: formData.last_name || '',
+        privacy_consent: formData.privacy_consent || false,
+        offer_consent: formData.offer_consent || false,
+        newsletter_new_items: formData.newsletter_new_items || false,
+        newsletter_sales: formData.newsletter_sales || false,
+        newsletter_auction: formData.newsletter_auction || false,
+      };
+    }
     }
 
     return this.state.formData || {};

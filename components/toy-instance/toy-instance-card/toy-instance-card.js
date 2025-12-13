@@ -41,11 +41,19 @@ export class ToyInstanceCard extends BaseElement {
     this._handleDetailsClick = (e) => {
       e.stopPropagation();
       // Открываем модальное окно с деталями экземпляра
-      this.openInstanceModal();
+      this.openInstanceModal().catch(err => {
+        console.error('[ToyInstanceCard] Error opening modal:', err);
+      });
     };
     
     // Обработчик клика на всю карточку
     this._handleCardClick = (e) => {
+      console.log('[ToyInstanceCard] _handleCardClick called', { 
+        target: e.target, 
+        currentTarget: e.currentTarget,
+        instanceId: this.state.id 
+      });
+      
       // Игнорируем клики на кнопку корзины и кнопку "Больше подробностей"
       // Проверяем как по классам, так и по тегу ui-button
       const clickedButton = e.target.closest('.toy-instance-card_cart-btn') || 
@@ -54,11 +62,15 @@ export class ToyInstanceCard extends BaseElement {
       
       if (clickedButton) {
         // Если клик был на кнопке, не открываем модальное окно
+        console.log('[ToyInstanceCard] Click on button ignored', clickedButton);
         return;
       }
       
       // Открываем модальное окно при клике на карточку
-      this.openInstanceModal();
+      console.log('[ToyInstanceCard] Card clicked, opening modal for instance:', this.state.id);
+      this.openInstanceModal().catch(err => {
+        console.error('[ToyInstanceCard] Error opening modal:', err);
+      });
     };
   }
 
@@ -74,7 +86,7 @@ export class ToyInstanceCard extends BaseElement {
     this._updateRarityClass();
     
     this.render();
-    this.setupEventListeners();
+    // setupEventListeners() вызывается из render(), не нужно вызывать дважды
   }
   
   onStateChanged(key) {
@@ -123,14 +135,12 @@ export class ToyInstanceCard extends BaseElement {
     this.removeEventListener('click', this._handleCardClick);
     this.addEventListener('click', this._handleCardClick);
 
-    // Подписываемся на обновления корзины для перерисовки кнопки
-    if (window.app && window.app.cartStore) {
-      const handleCartUpdate = () => {
+    // Подписываемся на обновления корзины - просто перерисовываем карточку
+    if (!this._cartUpdateHandler) {
+      this._cartUpdateHandler = () => {
         this.render();
       };
-      window.addEventListener('elkaretro:cart:updated', handleCartUpdate);
-      // Сохраняем обработчик для последующего удаления
-      this._cartUpdateHandler = handleCartUpdate;
+      window.addEventListener('elkaretro:cart:updated', this._cartUpdateHandler);
     }
   }
 
@@ -138,35 +148,43 @@ export class ToyInstanceCard extends BaseElement {
     // Удаляем обработчик при отключении компонента
     if (this._cartUpdateHandler) {
       window.removeEventListener('elkaretro:cart:updated', this._cartUpdateHandler);
+      this._cartUpdateHandler = null;
     }
-    // BaseElement не имеет disconnectedCallback, поэтому не вызываем super
   }
 
-  openInstanceModal() {
-    // Импортируем компонент динамически
-    import('../toy-instance-modal/toy-instance-modal.js').then(() => {
+  async openInstanceModal() {
+    // toy-instance-modal уже загружен статически через components.js
+    try {
+      // Ждём, пока компонент будет определён в customElements
+      await customElements.whenDefined('toy-instance-modal');
+      
       const instanceModal = document.createElement('toy-instance-modal');
       instanceModal.setAttribute('instance-id', String(this.state.id));
       instanceModal.setAttribute('size', 'large');
       instanceModal.setAttribute('closable', '');
       
-      // Убеждаемся что область существует
-      if (!document.querySelector('.UIModalArea')) {
-        const area = document.createElement('div');
-        area.className = 'UIModalArea';
-        document.body.appendChild(area);
-      }
+      // Добавляем в DOM - UIModal.connectedCallback автоматически создаст область и добавит модалку
+      document.body.appendChild(instanceModal);
       
-      const area = document.querySelector('.UIModalArea');
-      area.appendChild(instanceModal);
-      
-      // Показываем после небольшой задержки для инициализации
-      requestAnimationFrame(() => {
-        instanceModal.show();
+      // Ждём, пока элемент полностью инициализируется (connectedCallback выполнится)
+      // connectedCallback вызовет render(), который создаст overlay и container
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
       });
-    }).catch(err => {
-      console.error('[ToyInstanceCard] Failed to load modal:', err);
-    });
+      
+      // Показываем модальное окно
+      if (typeof instanceModal.show === 'function') {
+        instanceModal.show();
+      } else {
+        console.error('[ToyInstanceCard] toy-instance-modal.show() method not available');
+      }
+    } catch (error) {
+      console.error('[ToyInstanceCard] Failed to open instance modal:', error);
+    }
   }
 
   /**
@@ -177,7 +195,9 @@ export class ToyInstanceCard extends BaseElement {
 
     // Проверяем доступность товара
     if (status !== 'publish' || !id || !price || price <= 0) {
-      this.showNotification('Товар недоступен для добавления в корзину', 'error');
+      if (window.app?.ui?.showNotification) {
+        window.app.ui.showNotification('Товар недоступен для добавления в корзину', 'error');
+      }
       return;
     }
 
@@ -187,55 +207,25 @@ export class ToyInstanceCard extends BaseElement {
       return;
     }
 
-    try {
-      // Используем cartStore если доступен, иначе fallback на старый API
-      if (window.app && window.app.cartStore) {
-        const { addItem } = await import('../../cart/cart-service.js');
-        addItem({
-          id,
-          type: 'toy_instance',
-          price,
-        });
-        this.showNotification('Товар добавлен в корзину', 'success');
-        this.render(); // Перерисовываем для обновления кнопки
-      } else if (window.app && window.app.cart && window.app.cart.add) {
-        // Fallback на старый API (для обратной совместимости)
-        window.app.cart.add(id);
-        this.showNotification('Товар добавлен в корзину', 'success');
-        this.render();
-      } else {
-        console.warn('[ToyInstanceCard] Cart service not available');
-        this.showNotification('Не удалось добавить товар в корзину', 'error');
-      }
-    } catch (error) {
-      console.error('[ToyInstanceCard] Add to cart error:', error);
-      this.showNotification('Ошибка при добавлении товара в корзину', 'error');
-    }
-  }
-
-  /**
-   * Показать уведомление
-   */
-  showNotification(message, type = 'info') {
-    // Используем ui-notification через window.app.ui
-    if (window.app && window.app.ui && window.app.ui.showNotification) {
-      window.app.ui.showNotification(message, type);
-    } else {
-      // Fallback: просто в консоль
-      console.log(`[ToyInstanceCard] ${type}: ${message}`);
-    }
+    // Используем событийную модель для добавления товара в корзину
+    window.dispatchEvent(
+      new CustomEvent('elkaretro:cart:add-item', {
+        detail: { itemId: id, itemType: 'toy_instance', price: price },
+      })
+    );
+    // Карточка обновится через событие elkaretro:cart:updated
   }
 
   /**
    * Проверить, находится ли товар в корзине
    */
   isInCart() {
-    if (!window.app || !window.app.cartStore) {
+    if (!window.app?.cart) {
       return false;
     }
-    const cartStore = window.app.cartStore;
-    const items = cartStore.getItems();
-    return items.some(item => item.id === this.state.id && item.type === 'toy_instance');
+    const instanceId = Number(this.state.id);
+    const items = window.app.cart.getItems();
+    return items.some(item => Number(item.id) === instanceId && item.type === 'toy_instance');
   }
 
   /**
@@ -244,19 +234,13 @@ export class ToyInstanceCard extends BaseElement {
   async removeFromCart() {
     const { id } = this.state;
 
-    try {
-      if (window.app && window.app.cartStore) {
-        const { removeItem } = await import('../../cart/cart-service.js');
-        removeItem(id, 'toy_instance');
-        this.showNotification('Товар удален из корзины', 'info');
-        this.render(); // Перерисовываем для обновления кнопки
-      } else {
-        console.warn('[ToyInstanceCard] Cart service not available');
-      }
-    } catch (error) {
-      console.error('[ToyInstanceCard] Remove from cart error:', error);
-      this.showNotification('Ошибка при удалении товара из корзины', 'error');
-    }
+    // Используем событийную модель для удаления товара из корзины
+    window.dispatchEvent(
+      new CustomEvent('elkaretro:cart:remove-item', {
+        detail: { itemId: id, itemType: 'toy_instance' },
+      })
+    );
+    // Кнопка обновится через событие elkaretro:cart:updated
   }
 
   render() {
@@ -265,8 +249,11 @@ export class ToyInstanceCard extends BaseElement {
       ...this.state,
       inCart: this.isInCart()
     };
+    
     this.innerHTML = toy_instance_card_template(renderState);
-    // После рендера нужно переподключить слушатели для новой кнопки
+    
+    // Переподключаем обработчики после рендера
+    // Обработчики событий от ui-button всплывают, поэтому слушаем на самом компоненте
     if (this.isConnected) {
       this.setupEventListeners();
     }

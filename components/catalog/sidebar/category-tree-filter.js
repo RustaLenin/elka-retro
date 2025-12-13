@@ -326,6 +326,10 @@ export class CategoryTreeFilter extends BaseElement {
     }
 
     const catalogState = store.getCatalogState ? store.getCatalogState() : (store.getState ? store.getState() : {});
+    if (!catalogState) {
+      console.warn('[category-tree-filter] Store state is null, skipping selected categories load');
+      return;
+    }
     const selected = catalogState.filters?.[filterKey] || [];
     
     if (Array.isArray(selected) && selected.length > 0) {
@@ -774,6 +778,10 @@ export class CategoryTreeFilter extends BaseElement {
 
     // Получаем текущее состояние
     const currentState = store.getCatalogState ? store.getCatalogState() : (store.getState ? store.getState() : {});
+    if (!currentState) {
+      console.warn('[category-tree-filter] Store state is null, skipping sync');
+      return;
+    }
     const currentFilters = currentState.filters || {};
 
     // Обновляем стор

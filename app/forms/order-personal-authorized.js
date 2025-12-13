@@ -52,6 +52,24 @@ export const orderPersonalAuthorizedFormConfig = {
         icon_position: 'left',
         color: '#888888'
       }
+    },
+    {
+      id: 'newsletter_new_items',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о новинках',
+      required: false
+    },
+    {
+      id: 'newsletter_sales',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о распродажах',
+      required: false
+    },
+    {
+      id: 'newsletter_auction',
+      type: 'checkbox',
+      label: 'Подписаться на рассылку о новостях аукциона',
+      required: false
     }
   ],
   actions: {
@@ -63,7 +81,10 @@ export const orderPersonalAuthorizedFormConfig = {
       return {
         phone: String(values.phone || '').trim(),
         first_name: String(values.first_name || '').trim(),
-        last_name: String(values.last_name || '').trim()
+        last_name: String(values.last_name || '').trim(),
+        newsletter_new_items: Boolean(values.newsletter_new_items),
+        newsletter_sales: Boolean(values.newsletter_sales),
+        newsletter_auction: Boolean(values.newsletter_auction)
       };
     },
     validate: async (payload) => {

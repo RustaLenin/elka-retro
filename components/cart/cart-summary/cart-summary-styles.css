@@ -4,7 +4,7 @@
  */
 
 .cart-summary {
-  padding: 1.5rem;
+  padding: 1rem;
   border: 1px solid var(--color-border, #e5e7eb);
   border-radius: 0.5rem;
   background: var(--color-background, #ffffff);
@@ -45,6 +45,33 @@
 
 .cart-summary_label {
   color: var(--color-muted-foreground, rgba(245, 247, 250, 0.8));
+}
+
+.cart-summary_label--clickable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.cart-summary_label--clickable:hover {
+  color: var(--color-primary, rgba(155, 140, 255, 1));
+}
+
+.cart-summary_label-text {
+  display: inline;
+}
+
+.cart-summary_label-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-muted-foreground, rgba(245, 247, 250, 0.8));
+  transition: color 0.2s ease;
+}
+
+.cart-summary_label--clickable:hover .cart-summary_label-icon {
+  color: var(--color-primary, rgba(155, 140, 255, 1));
 }
 
 .cart-summary_value {

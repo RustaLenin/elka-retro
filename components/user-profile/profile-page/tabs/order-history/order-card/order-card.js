@@ -30,17 +30,55 @@ export class OrderCard extends BaseElement {
   }
 
   connectedCallback() {
+    console.log('[OrderCard] connectedCallback called');
     super.connectedCallback();
     
+    // Читаем данные из data-order атрибута (если передан)
+    const dataOrderAttr = this.getAttribute('data-order');
+    console.log('[OrderCard] data-order attribute:', dataOrderAttr ? 'present' : 'missing');
+    
+    if (dataOrderAttr && !this.state.order && !this._orderData) {
+      try {
+        // Распарсим JSON из атрибута
+        const orderData = JSON.parse(dataOrderAttr);
+        console.log('[OrderCard] Parsed order data:', orderData);
+        this._orderData = orderData;
+        this.setState({ order: orderData });
+        // Также устанавливаем orderId для совместимости
+        if (orderData.id) {
+          this.setState({ orderId: orderData.id });
+        }
+      } catch (error) {
+        console.error('[OrderCard] Failed to parse data-order attribute:', error);
+      }
+    }
+    
     // Если передан order-id, загружаем заказ
-    if (this.state.orderId && !this.state.order) {
+    if (this.state.orderId && !this.state.order && !this._orderData) {
+      console.log('[OrderCard] Loading order by orderId:', this.state.orderId);
       this._loadOrder();
-    } else {
+    } else if (this.state.order || this._orderData) {
+      // Если данные уже есть, рендерим
+      console.log('[OrderCard] Order data present, rendering...');
       this.render();
+    } else {
+      // Иначе пытаемся загрузить по orderId
+      const orderIdAttr = this.getAttribute('data-order-id') || this.getAttribute('order-id');
+      if (orderIdAttr) {
+        console.log('[OrderCard] Loading order by data-order-id:', orderIdAttr);
+        this.setState({ orderId: parseInt(orderIdAttr, 10) });
+        this._loadOrder();
+      } else {
+        // Нет данных - рендерим пустую карточку или сообщение об ошибке
+        console.warn('[OrderCard] No order data available, rendering empty card');
+        this.render();
+      }
     }
 
     // Привязываем обработчики действий
-    this._attachActionHandlers();
+    requestAnimationFrame(() => {
+      this._attachActionHandlers();
+    });
   }
 
   _attachActionHandlers() {
@@ -190,8 +228,17 @@ export class OrderCard extends BaseElement {
   }
 
   render() {
+    const order = this.state.order || this._orderData;
+    console.log('[OrderCard] render() called with order:', order ? { id: order.id, order_number: order.order_number } : 'null');
+    
+    if (!order) {
+      console.warn('[OrderCard] No order data to render');
+      this.innerHTML = '<div class="order-card"><p>Данные заказа не загружены</p></div>';
+      return;
+    }
+    
     this.innerHTML = renderOrderCardTemplate({
-      order: this.state.order || this._orderData
+      order: order
     });
 
     // Привязываем обработчики после рендера

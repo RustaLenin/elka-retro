@@ -1,0 +1,542 @@
+.review-step {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.review-step_overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.review-step_loader {
+  background: var(--color-secondary, #202227);
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.review-step_loader-text {
+  margin-top: 1rem;
+  color: var(--color-foreground, #f5f7fa);
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.review-step_loader-hint {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, #8a8f99);
+}
+
+/* Authorizing state в overlay */
+.review-step_authorizing {
+  background: var(--color-secondary, #202227);
+  padding: 3rem;
+  border-radius: 1rem;
+  text-align: center;
+  max-width: 500px;
+  width: 90%;
+}
+
+.review-step_authorizing-title {
+  margin: 1.5rem 0 0.75rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.review-step_authorizing-message {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  line-height: 1.6;
+}
+
+/* Error state в overlay */
+.review-step_error {
+  background: var(--color-secondary, #202227);
+  padding: 3rem;
+  border-radius: 1rem;
+  text-align: center;
+  border: 2px solid var(--color-error, #ef4444);
+  max-width: 500px;
+  width: 90%;
+}
+
+.review-step_error-icon {
+  color: var(--color-error, #ef4444);
+  margin-bottom: 1.5rem;
+}
+
+.review-step_error-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.review-step_error-message {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  color: var(--color-foreground, #f5f7fa);
+  line-height: 1.6;
+}
+
+.review-step_error-hint {
+  margin: 0 0 2rem 0;
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  line-height: 1.6;
+}
+
+.review-step_error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.review-step_retry-btn {
+  min-width: 200px;
+}
+
+.review-step_back-btn {
+  min-width: 200px;
+}
+
+.review-step_content {
+  padding: 0;
+}
+
+.review-step_section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--color-secondary, #202227);
+  border-radius: 8px;
+  border: 1px solid var(--color-border, #2a2d31);
+}
+
+.review-step_section-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-foreground, #f5f7fa);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.review-step_items-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.review-step_items-count,
+.review-step_items-type {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border, #2a2d31);
+}
+
+.review-step_items-count:last-child,
+.review-step_items-type:last-child {
+  border-bottom: none;
+}
+
+.review-step_items-count-label,
+.review-step_items-type-label {
+  color: var(--color-muted-foreground, #8a8f99);
+  font-size: 0.875rem;
+}
+
+.review-step_items-count-value,
+.review-step_items-type-value {
+  color: var(--color-foreground, #f5f7fa);
+  font-weight: 600;
+}
+
+.review-step_delivery-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.review-step_delivery-method,
+.review-step_delivery-address,
+.review-step_delivery-city,
+.review-step_delivery-name,
+.review-step_delivery-phone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.review-step_delivery-label {
+  color: var(--color-muted-foreground, #8a8f99);
+  font-size: 0.875rem;
+}
+
+.review-step_delivery-value {
+  color: var(--color-foreground, #f5f7fa);
+  font-weight: 500;
+}
+
+.review-step_totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.review-step_total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border, #2a2d31);
+}
+
+.review-step_total-row:last-child {
+  border-bottom: none;
+}
+
+.review-step_total-row--total {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--color-border, #2a2d31);
+  border-bottom: none;
+}
+
+.review-step_total-label {
+  color: var(--color-muted-foreground, #8a8f99);
+  font-size: 0.875rem;
+}
+
+.review-step_total-row--total .review-step_total-label {
+  color: var(--color-foreground, #f5f7fa);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.review-step_total-value {
+  color: var(--color-foreground, #f5f7fa);
+  font-weight: 600;
+}
+
+.review-step_total-row--total .review-step_total-value {
+  font-size: 1.25rem;
+  color: var(--color-primary, #9b8cff);
+}
+
+.review-step_total-row--discount .review-step_total-value {
+  color: var(--color-success, #22c55e);
+}
+
+.review-step_comment-field,
+.review-step_preferred-communication-field,
+.review-step_promo-code-field {
+  margin-top: 1rem;
+}
+
+.review-step_promo-code {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--color-border, #2a2d31);
+  border-radius: 6px;
+  background: var(--color-background, #1a1c1f);
+  color: var(--color-foreground, #f5f7fa);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.review-step_promo-code:focus {
+  outline: none;
+  border-color: var(--color-primary, #9b8cff);
+}
+
+.review-step_promo-code-hint {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground, rgba(138, 143, 153, 0.6));
+  line-height: 1.4;
+}
+
+.review-step_comment,
+.review-step_preferred-communication {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--color-border, #2a2d31);
+  border-radius: 6px;
+  background: var(--color-background, #1a1c1f);
+  color: var(--color-foreground, #f5f7fa);
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.review-step_comment:focus,
+.review-step_preferred-communication:focus {
+  outline: none;
+  border-color: var(--color-primary, #9b8cff);
+}
+
+.review-step_footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border, #2a2d31);
+}
+
+.review-step_place-order-btn {
+  min-width: 250px;
+}
+
+.review-step_auth-choice {
+  padding: 1rem 0;
+}
+
+.review-step_auth-choice-blocks {
+  display: flex;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.review-step_auth-choice-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* Блок авторизации - сплошные границы, толстые линии, акцентные цвета */
+.review-step_auth-choice-block--auth {
+  border: 2px solid var(--color-foreground, #f5f7fa);
+  background: rgba(155, 140, 255, 0.05);
+}
+
+.review-step_auth-choice-block--auth:hover {
+  border-color: var(--color-foreground, #f5f7fa);
+  background: rgba(155, 140, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(155, 140, 255, 0.2);
+}
+
+/* Блок анонимности - пунктир, тонкие линии, фоновые цвета */
+.review-step_auth-choice-block--anonymous {
+  border: 1px dashed var(--color-border, #2a2d31);
+  background: rgba(138, 143, 153, 0.02);
+}
+
+.review-step_auth-choice-block--anonymous:hover {
+  border-color: var(--color-muted-foreground, #8a8f99);
+  background: rgba(138, 143, 153, 0.05);
+  transform: translateY(-2px);
+}
+
+.review-step_auth-choice-block-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.review-step_auth-choice-block--auth .review-step_auth-choice-block-title {
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.review-step_auth-choice-block--anonymous .review-step_auth-choice-block-title {
+  color: var(--color-muted-foreground, #8a8f99);
+}
+
+.review-step_auth-choice-block-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 1.5rem 0;
+  min-height: 80px;
+}
+
+.review-step_auth-choice-block--auth .review-step_auth-choice-block-icon {
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.review-step_auth-choice-block--anonymous .review-step_auth-choice-block-icon {
+  color: var(--color-muted-foreground, #8a8f99);
+  opacity: 0.7;
+  min-height: 100px;
+}
+
+/* Увеличиваем иконку маски для блока анонимности */
+.review-step_auth-choice-block--anonymous .review-step_auth-choice-block-icon ui-icon {
+  font-size: 64px;
+}
+
+.review-step_auth-choice-block--anonymous .review-step_auth-choice-block-icon svg {
+  width: 64px !important;
+  height: 64px !important;
+}
+
+.review-step_auth-choice-block-description {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  text-align: center;
+  flex-grow: 1;
+}
+
+.review-step_auth-choice-block--auth .review-step_auth-choice-block-description {
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.review-step_auth-choice-block--anonymous .review-step_auth-choice-block-description {
+  color: var(--color-muted-foreground, #8a8f99);
+}
+
+.review-step_auth-choice-block-button {
+  margin: 0 0 1rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.review-step_auth-btn,
+.review-step_anonymous-btn {
+  width: 100%;
+}
+
+/* Стилизация кнопки анонимности - фиолетовый текст и бордер */
+.review-step_anonymous-btn {
+  --ui-button-border-color: var(--color-primary, #9b8cff);
+  border: 2px solid var(--color-primary, #9b8cff) !important;
+  color: var(--color-primary, #9b8cff) !important;
+  background: transparent !important;
+}
+
+.review-step_anonymous-btn:hover:not([aria-disabled="true"]) {
+  background: rgba(155, 140, 255, 0.1) !important;
+  border-color: var(--color-primary, #9b8cff) !important;
+  color: var(--color-primary, #9b8cff) !important;
+}
+
+.review-step_anonymous-btn ui-icon,
+.review-step_anonymous-btn .ui-button-icon {
+  color: var(--color-primary, #9b8cff) !important;
+}
+
+.review-step_auth-choice-block-warning {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.review-step_auth-choice-block--auth .review-step_auth-choice-block-warning {
+  color: var(--color-muted-foreground, rgba(138, 143, 153, 0.8));
+}
+
+.review-step_auth-choice-block--auth .review-step_auth-choice-block-warning a {
+  color: var(--color-primary, #9b8cff);
+  text-decoration: underline;
+}
+
+.review-step_auth-choice-block--anonymous .review-step_auth-choice-block-warning {
+  color: var(--color-muted-foreground, rgba(138, 143, 153, 0.6));
+  font-style: italic;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .review-step_auth-choice-blocks {
+    flex-direction: column;
+  }
+  
+  .review-step_auth-choice-block {
+    padding: 1.5rem;
+  }
+}
+
+.review-step_anonymous-form {
+  padding: 1rem 0;
+}
+
+.review-step_anonymous-form-description {
+  margin: 0 0 1.5rem 0;
+  color: var(--color-muted-foreground, #8a8f99);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.review-step_anonymous-form-field {
+  margin-bottom: 1.5rem;
+}
+
+.review-step_anonymous-form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.review-step_anonymous-form-required {
+  color: var(--color-error, #ef4444);
+  margin-left: 0.25rem;
+}
+
+.review-step_anonymous-form-input,
+.review-step_anonymous-form-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--color-border, #2a2d31);
+  border-radius: 6px;
+  background: var(--color-background, #1a1c1f);
+  color: var(--color-foreground, #f5f7fa);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.review-step_anonymous-form-input:focus,
+.review-step_anonymous-form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #9b8cff);
+}
+
+.review-step_anonymous-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.review-step_anonymous-form-error {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-error, #ef4444);
+}
+
+.review-step_anonymous-form-actions {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.review-step_anonymous-submit-btn {
+  min-width: 200px;
+}
+

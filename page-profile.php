@@ -16,6 +16,8 @@ add_filter(
 
 		$components[] = 'profile-page';
 		$components[] = 'tab-navigation';
+		$components[] = 'order-history-tab';
+		$components[] = 'order-card';
 
 		return array_values( array_unique( $components ) );
 	}

@@ -1,0 +1,209 @@
+.delivery-step {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.delivery-step_content {
+  padding: 0;
+}
+
+.delivery-step_section {
+  margin-bottom: 2rem;
+}
+
+.delivery-step_section-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.delivery-step_category-group,
+.delivery-step_method-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.delivery-step_radio {
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem;
+  border: 2px solid var(--color-border, #2a2d31);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--color-secondary, #202227);
+}
+
+.delivery-step_radio:hover {
+  border-color: var(--color-primary, #9b8cff);
+  background: var(--color-secondary-hover, #25282d);
+}
+
+.delivery-step_radio input[type="radio"] {
+  margin-right: 0.75rem;
+  margin-top: 0.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.delivery-step_radio-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.delivery-step_radio input[type="radio"]:checked ~ .delivery-step_radio-content .delivery-step_radio-label {
+  color: var(--color-primary, #9b8cff);
+  font-weight: 600;
+}
+
+.delivery-step_radio:has(input[type="radio"]:checked) {
+  border-color: var(--color-primary, #9b8cff);
+  background: var(--color-primary-alpha, rgba(155, 140, 255, 0.1));
+}
+
+.delivery-step_radio-label {
+  display: flex;
+  flex-direction: column;
+  color: var(--color-foreground, #f5f7fa);
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.delivery-step_radio-description {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  line-height: 1.4;
+}
+
+.delivery-step_method-cost {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  font-weight: 500;
+}
+
+.delivery-step_fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.delivery-step_field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.delivery-step_field-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.delivery-step_field-required {
+  color: var(--color-error, #ef4444);
+  margin-left: 0.25rem;
+}
+
+.delivery-step_field-input,
+.delivery-step_field-textarea {
+  padding: 0.75rem;
+  border: 2px solid var(--color-border, #2a2d31);
+  border-radius: 6px;
+  background: var(--color-secondary, #202227);
+  color: var(--color-foreground, #f5f7fa);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.delivery-step_field-input:focus,
+.delivery-step_field-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #9b8cff);
+}
+
+.delivery-step_field-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.delivery-step_field--error .delivery-step_field-input,
+.delivery-step_field--error .delivery-step_field-textarea {
+  border-color: var(--color-error, #ef4444);
+}
+
+.delivery-step_field--highlight {
+  animation: highlight-field 1s ease;
+}
+
+@keyframes highlight-field {
+  0%, 100% {
+    border-color: var(--color-border, #2a2d31);
+  }
+  50% {
+    border-color: var(--color-error, #ef4444);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  }
+}
+
+.delivery-step_field-description {
+  font-size: 0.875rem;
+  color: var(--color-muted-foreground, #9ca3af);
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
+.delivery-step_field-error {
+  font-size: 0.875rem;
+  color: var(--color-error, #ef4444);
+  margin-top: 0.5rem;
+}
+
+.delivery-step_info {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--color-secondary, #202227);
+  border-radius: 8px;
+  border-left: 4px solid var(--color-primary, #9b8cff);
+}
+
+.delivery-step_info-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.delivery-step_info-list {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--color-muted-foreground, #8a8f99);
+  line-height: 1.6;
+}
+
+.delivery-step_info-list li {
+  margin-bottom: 0.5rem;
+}
+
+.delivery-step_info-list li b {
+  color: var(--color-foreground, #f5f7fa);
+}
+
+.delivery-step_footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-border, #2a2d31);
+}
+
+.delivery-step_next-btn {
+  min-width: 200px;
+}
+

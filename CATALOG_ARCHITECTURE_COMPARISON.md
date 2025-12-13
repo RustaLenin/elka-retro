@@ -605,3 +605,5 @@ window.addEventListener('elkaretro:accessory-catalog:updated', (event) => {
 - ✅ Легко добавлять новые каталоги в будущем
 - ✅ Переиспользовать проверенный код
 
+
+

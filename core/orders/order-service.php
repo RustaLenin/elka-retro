@@ -25,7 +25,7 @@ class Order_Service {
 	const POST_TYPE = 'elkaretro_order';
 
 	/**
-	 * Create order.
+	 * Create order for authenticated user.
 	 *
 	 * @param array $order_data Order data from request.
 	 * @return array|WP_Error Order data or error.
@@ -34,22 +34,12 @@ class Order_Service {
 		// Check if user is authenticated
 		$user_id = get_current_user_id();
 
-		// If not authenticated, register user first
-		if ( ! $user_id && isset( $order_data['personal'] ) ) {
-			$user_result = $this->register_user_for_order( $order_data['personal'] );
-			if ( is_wp_error( $user_result ) ) {
-				return $user_result;
-			}
-			$user_id = $user_result;
-		} elseif ( ! $user_id ) {
+		if ( ! $user_id ) {
 			return new WP_Error(
 				'order_requires_auth',
-				__( 'Order requires authentication or personal data for registration.', 'elkaretro' ),
-				array( 'status' => 400 )
+				__( 'Order requires authentication. Please log in first.', 'elkaretro' ),
+				array( 'status' => 401 )
 			);
-		} elseif ( isset( $order_data['personal'] ) ) {
-			// Authenticated user provided personal data — ensure profile meta is filled
-			$this->update_missing_user_profile_fields( $user_id, $order_data['personal'] );
 		}
 
 		// Validate cart
@@ -82,11 +72,11 @@ class Order_Service {
 		// Prepare order data for PODS (use actual prices from database)
 		$pods_data = $this->prepare_order_for_pods( $order_data, $user_id, $order_number, $actual_totals );
 
-		// Create order post
+		// Create order post with new status scheme
 		$order_id = wp_insert_post(
 			array(
 				'post_type'   => self::POST_TYPE,
-				'post_status' => 'awaiting_payment',
+				'post_status' => 'publish', // Актуальный заказ, требует работы
 				'post_title'  => sprintf( __( 'Order #%s', 'elkaretro' ), $order_number ),
 				'post_author' => $user_id,
 			)
@@ -102,8 +92,29 @@ class Order_Service {
 			);
 		}
 
+		// Set initial order_status to 'pending_confirmation'
+		$this->set_order_status( $order_id, 'pending_confirmation', 'system' );
+
 		// Save order data to PODS fields
 		$this->save_order_fields( $order_id, $pods_data );
+		
+		// Save order_status and order_status_history to PODS
+		$this->save_order_status_to_pods( $order_id );
+
+		// Save comment and preferred_communication for authenticated users
+		$pods = pods( self::POST_TYPE, $order_id );
+		if ( isset( $order_data['comment'] ) ) {
+			update_post_meta( $order_id, 'notes', sanitize_textarea_field( $order_data['comment'] ) );
+			if ( $pods && $pods->valid() ) {
+				$pods->save( 'notes', sanitize_textarea_field( $order_data['comment'] ) );
+			}
+		}
+		if ( isset( $order_data['preferred_communication'] ) ) {
+			update_post_meta( $order_id, 'preferred_communication', sanitize_textarea_field( $order_data['preferred_communication'] ) );
+			if ( $pods && $pods->valid() ) {
+				$pods->save( 'preferred_communication', sanitize_textarea_field( $order_data['preferred_communication'] ) );
+			}
+		}
 
 		// Get full order data
 		$order = $this->get_order( $order_id );
@@ -124,7 +135,127 @@ class Order_Service {
 	}
 
 	/**
+	 * Create anonymous order (without user account).
+	 *
+	 * @param array $order_data Order data from request.
+	 * @return array|WP_Error Order data or error.
+	 */
+	public function create_anonymous_order( $order_data ) {
+		// Validate email
+		if ( ! isset( $order_data['email'] ) || empty( $order_data['email'] ) ) {
+			return new WP_Error(
+				'anonymous_order_missing_email',
+				__( 'Email is required for anonymous orders.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$email = sanitize_email( $order_data['email'] );
+		if ( ! is_email( $email ) ) {
+			return new WP_Error(
+				'anonymous_order_invalid_email',
+				__( 'Invalid email format.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Validate cart
+		if ( ! isset( $order_data['cart'] ) || ! isset( $order_data['cart']['items'] ) || empty( $order_data['cart']['items'] ) ) {
+			return new WP_Error(
+				'order_empty_cart',
+				__( 'Cart is empty.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Validate items availability (status and stock) and book them
+		$validation_result = $this->validate_and_book_items( $order_data['cart']['items'] );
+		if ( is_wp_error( $validation_result ) ) {
+			return $validation_result;
+		}
+
+		// Store booked items for potential rollback
+		$booked_items = $validation_result['booked_items'] ?? array();
+
+		// Validate and recalculate prices from database
+		$price_validation = $this->validate_and_recalculate_prices( $order_data['cart']['items'], $order_data['totals'] ?? array() );
+		$price_changed    = $price_validation['price_changed'] ?? false;
+		$actual_totals    = $price_validation['actual_totals'] ?? $order_data['totals'] ?? array();
+
+		// Generate order number
+		$order_number = $this->generate_order_number();
+
+		// Prepare order data for PODS (use actual prices from database)
+		// For anonymous orders, user_id is 0
+		$pods_data = $this->prepare_order_for_pods( $order_data, 0, $order_number, $actual_totals );
+
+		// Create order post with new status scheme
+		$order_id = wp_insert_post(
+			array(
+				'post_type'   => self::POST_TYPE,
+				'post_status' => 'publish', // Актуальный заказ, требует работы
+				'post_title'  => sprintf( __( 'Order #%s', 'elkaretro' ), $order_number ),
+				'post_author' => 0, // No user for anonymous orders
+			)
+		);
+
+		if ( is_wp_error( $order_id ) || ! $order_id ) {
+			// Rollback booked items if order creation failed
+			$this->rollback_booked_items( $booked_items );
+			return new WP_Error(
+				'order_creation_failed',
+				__( 'Failed to create order.', 'elkaretro' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		// Set initial order_status to 'pending_confirmation'
+		$this->set_order_status( $order_id, 'pending_confirmation', 'system' );
+
+		// Save order data to PODS fields
+		$this->save_order_fields( $order_id, $pods_data );
+		
+		// Save order_status and order_status_history to PODS
+		$this->save_order_status_to_pods( $order_id );
+
+		// Save anonymous order data
+		update_post_meta( $order_id, 'anonymous_email', $email );
+		update_post_meta( $order_id, 'is_anonymous', true ); // Technical field, not saved to PODS
+		if ( $pods && $pods->valid() ) {
+			$pods->save( 'anonymous_email', $email );
+			// Note: is_anonymous is not saved to PODS (technical field)
+		}
+		if ( isset( $order_data['preferred_communication'] ) ) {
+			update_post_meta( $order_id, 'preferred_communication', sanitize_textarea_field( $order_data['preferred_communication'] ) );
+			if ( $pods && $pods->valid() ) {
+				$pods->save( 'preferred_communication', sanitize_textarea_field( $order_data['preferred_communication'] ) );
+			}
+		}
+		if ( isset( $order_data['promo_code'] ) && ! empty( trim( $order_data['promo_code'] ) ) ) {
+			update_post_meta( $order_id, 'promo_code', sanitize_text_field( $order_data['promo_code'] ) );
+		}
+
+		// Get full order data
+		$order = $this->get_order( $order_id );
+
+		// NOTE: Do NOT clear cart for anonymous orders (user is not authenticated)
+
+		// Send email notifications
+		$this->send_order_created_emails( $order_id, $order );
+
+		// Add price change information to order data if prices changed
+		if ( $price_changed ) {
+			$order['price_changed']       = true;
+			$order['price_change_notice'] = __( 'За время оформления заказа цена изменилась. Актуальную стоимость всех товаров и общую сумму заказа вы увидите в письме.', 'elkaretro' );
+		}
+
+		return $order;
+	}
+
+	/**
 	 * Register user for order (for unauthenticated users).
+	 * 
+	 * @deprecated This method is deprecated. Use new authentication system instead.
 	 *
 	 * @param array $personal_data Personal data from order.
 	 * @return int|WP_Error User ID or error.
@@ -207,6 +338,14 @@ class Order_Service {
 		update_user_meta( $user_id, 'offer_consent', $personal_data['offer_consent'] ? '1' : '0' );
 		update_user_meta( $user_id, 'offer_consent_at', current_time( 'mysql' ) );
 
+		// Save newsletter subscriptions to user meta
+		update_user_meta( $user_id, 'newsletter_new_items', isset( $personal_data['newsletter_new_items'] ) && $personal_data['newsletter_new_items'] ? '1' : '0' );
+		update_user_meta( $user_id, 'newsletter_sales', isset( $personal_data['newsletter_sales'] ) && $personal_data['newsletter_sales'] ? '1' : '0' );
+		update_user_meta( $user_id, 'newsletter_auction', isset( $personal_data['newsletter_auction'] ) && $personal_data['newsletter_auction'] ? '1' : '0' );
+		if ( isset( $personal_data['newsletter_new_items'] ) || isset( $personal_data['newsletter_sales'] ) || isset( $personal_data['newsletter_auction'] ) ) {
+			update_user_meta( $user_id, 'newsletter_subscriptions_updated_at', current_time( 'mysql' ) );
+		}
+
 		// Auto-login user
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id );
@@ -259,6 +398,20 @@ class Order_Service {
 			if ( empty( $current ) ) {
 				update_user_meta( $user_id, $config['meta_key'], $value );
 			}
+		}
+
+		// Update newsletter subscriptions (always update, not just if empty)
+		if ( isset( $personal_data['newsletter_new_items'] ) ) {
+			update_user_meta( $user_id, 'newsletter_new_items', $personal_data['newsletter_new_items'] ? '1' : '0' );
+		}
+		if ( isset( $personal_data['newsletter_sales'] ) ) {
+			update_user_meta( $user_id, 'newsletter_sales', $personal_data['newsletter_sales'] ? '1' : '0' );
+		}
+		if ( isset( $personal_data['newsletter_auction'] ) ) {
+			update_user_meta( $user_id, 'newsletter_auction', $personal_data['newsletter_auction'] ? '1' : '0' );
+		}
+		if ( isset( $personal_data['newsletter_new_items'] ) || isset( $personal_data['newsletter_sales'] ) || isset( $personal_data['newsletter_auction'] ) ) {
+			update_user_meta( $user_id, 'newsletter_subscriptions_updated_at', current_time( 'mysql' ) );
 		}
 	}
 
@@ -389,6 +542,10 @@ class Order_Service {
 			$delivery_address = implode( ', ', $parts );
 		}
 
+		// Format delivery_data as ordered text string (not JSON)
+		// All fields are concatenated in the correct order for admin readability
+		$delivery_data_string = $this->format_delivery_data_string( $delivery );
+
 		return array(
 			'order_number'             => $order_number,
 			'user'                     => $user_id,
@@ -401,6 +558,7 @@ class Order_Service {
 			'delivery_method'          => sanitize_text_field( $delivery['delivery_method'] ?? '' ),
 			'delivery_address'         => $delivery_address,
 			'delivery_address_fields'  => $delivery_address_fields,
+			'delivery_data'            => $delivery_data_string, // Full delivery data as ordered text string
 			'payment_method'           => sanitize_text_field( $payment['payment_method'] ?? '' ),
 			'payment_details'          => isset( $payment['payment_details'] ) ? sanitize_textarea_field( $payment['payment_details'] ) : '',
 			'created_at'               => current_time( 'mysql' ),
@@ -442,6 +600,15 @@ class Order_Service {
 		update_post_meta( $order_id, 'fee_amount', $fields['fee_amount'] );
 		update_post_meta( $order_id, 'delivery_method', $fields['delivery_method'] );
 		update_post_meta( $order_id, 'delivery_address', $fields['delivery_address'] );
+		
+		// Save delivery_data as ordered text string (contains all form fields: name, phone, address, etc.)
+		if ( ! empty( $fields['delivery_data'] ) ) {
+			update_post_meta( $order_id, 'delivery_data', $fields['delivery_data'] );
+			if ( $pods && $pods->valid() ) {
+				$pods->save( 'delivery_data', $fields['delivery_data'] );
+			}
+		}
+		
 		update_post_meta( $order_id, 'payment_method', $fields['payment_method'] );
 		update_post_meta( $order_id, 'payment_details', $fields['payment_details'] );
 		update_post_meta( $order_id, 'created_at', $fields['created_at'] );
@@ -521,55 +688,192 @@ class Order_Service {
 			);
 		}
 
+		// Check if anonymous order
+		$is_anonymous = get_post_meta( $order_id, 'is_anonymous', true );
+
 		return array(
-			'id'              => $order_id,
-			'order_number'    => get_post_meta( $order_id, 'order_number', true ),
-			'user_id'         => (int) get_post_meta( $order_id, 'user', true ),
-			'items'           => $items,
-			'total_amount'    => floatval( get_post_meta( $order_id, 'total_amount', true ) ),
-			'subtotal'        => floatval( get_post_meta( $order_id, 'subtotal', true ) ),
-			'discount_amount' => floatval( get_post_meta( $order_id, 'discount_amount', true ) ),
-			'fee_amount'      => floatval( get_post_meta( $order_id, 'fee_amount', true ) ),
-			'delivery_method' => get_post_meta( $order_id, 'delivery_method', true ),
-			'delivery_address' => get_post_meta( $order_id, 'delivery_address', true ),
-			'payment_method'  => get_post_meta( $order_id, 'payment_method', true ),
-			'payment_details' => get_post_meta( $order_id, 'payment_details', true ),
-			'status'          => $order->post_status,
-			'created_at'      => get_post_meta( $order_id, 'created_at', true ) ?: $order->post_date,
-			'notes'           => get_post_meta( $order_id, 'notes', true ),
+			'id'                    => $order_id,
+			'order_number'          => get_post_meta( $order_id, 'order_number', true ),
+			'user_id'               => (int) get_post_meta( $order_id, 'user', true ),
+			'items'                 => $items,
+			'total_amount'          => floatval( get_post_meta( $order_id, 'total_amount', true ) ),
+			'subtotal'              => floatval( get_post_meta( $order_id, 'subtotal', true ) ),
+			'discount_amount'       => floatval( get_post_meta( $order_id, 'discount_amount', true ) ),
+			'fee_amount'            => floatval( get_post_meta( $order_id, 'fee_amount', true ) ),
+			'delivery_method'       => get_post_meta( $order_id, 'delivery_method', true ),
+			'delivery_address'      => get_post_meta( $order_id, 'delivery_address', true ),
+			'payment_method'        => get_post_meta( $order_id, 'payment_method', true ),
+			'payment_details'       => get_post_meta( $order_id, 'payment_details', true ),
+			'post_status'           => $order->post_status, // Системный статус WordPress (publish, completed, rejected)
+			'order_status'          => $this->get_order_status( $order_id ), // Детальный статус заказа (pending_confirmation, awaiting_payment, etc.)
+			'status'                => $this->get_order_status( $order_id ), // Для обратной совместимости
+			'created_at'            => get_post_meta( $order_id, 'created_at', true ) ?: $order->post_date,
+			'notes'                 => get_post_meta( $order_id, 'notes', true ),
+			'preferred_communication' => get_post_meta( $order_id, 'preferred_communication', true ),
+			'is_anonymous'          => (bool) $is_anonymous,
+			'anonymous_email'       => $is_anonymous ? get_post_meta( $order_id, 'anonymous_email', true ) : null,
 		);
 	}
 
 	/**
 	 * Get user orders.
 	 *
-	 * @param int $user_id User ID.
+	 * @param int    $user_id User ID.
+	 * @param string $user_email User email (optional, for PODS search).
+	 * @param string $user_login User login (optional, for PODS search).
 	 * @return array|WP_Error Orders list or error.
 	 */
-	public function get_user_orders( $user_id ) {
-		$orders = get_posts(
-			array(
-				'post_type'      => self::POST_TYPE,
-				'posts_per_page' => -1,
-				'orderby'        => 'date',
-				'order'          => 'DESC',
-				'meta_query'     => array(
-					array(
-						'key'   => 'user',
-						'value' => $user_id,
+	public function get_user_orders( $user_id, $user_email = '', $user_login = '' ) {
+		if ( ! $user_id || $user_id <= 0 ) {
+			error_log( '[OrderService] get_user_orders: Invalid user_id: ' . $user_id );
+			return array();
+		}
+
+		// Ensure user_id is an integer for comparison
+		$user_id = (int) $user_id;
+		
+		// Get user email/login if not provided
+		if ( empty( $user_email ) || empty( $user_login ) ) {
+			$user = get_userdata( $user_id );
+			if ( $user ) {
+				if ( empty( $user_email ) ) {
+					$user_email = $user->user_email;
+				}
+				if ( empty( $user_login ) ) {
+					$user_login = $user->user_login;
+				}
+			}
+		}
+		
+		error_log( '[OrderService] get_user_orders: Looking for orders for user_id=' . $user_id . ', email=' . $user_email . ', login=' . $user_login );
+
+		// PODS saves user as email/login, so we need to search by email/login first
+		$orders = array();
+		
+		// All order statuses we need to search
+		$order_statuses = array( 'awaiting_payment', 'collecting', 'shipped', 'closed', 'clarification', 'cancelled' );
+		
+		// Strategy 1: Search by user email/login (PODS stores email/login)
+		if ( ! empty( $user_email ) ) {
+			$orders = get_posts(
+				array(
+					'post_type'      => self::POST_TYPE,
+					'post_status'    => $order_statuses, // Search all order statuses, not just 'publish'
+					'posts_per_page' => -1,
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+					'meta_query'     => array(
+						'relation' => 'OR',
+						array(
+							'key'     => 'user',
+							'value'   => $user_email,
+							'compare' => '=',
+						),
+						array(
+							'key'     => 'user',
+							'value'   => $user_login,
+							'compare' => '=',
+						),
 					),
-				),
-			)
-		);
+				)
+			);
+			error_log( '[OrderService] Found ' . count( $orders ) . ' orders by email/login search (statuses: ' . implode( ', ', $order_statuses ) . ')' );
+		}
+		
+		// Strategy 2: If no orders found, try by user_id (for backward compatibility)
+		if ( empty( $orders ) ) {
+			$orders = get_posts(
+				array(
+					'post_type'      => self::POST_TYPE,
+					'post_status'    => $order_statuses, // Search all order statuses
+					'posts_per_page' => -1,
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+					'meta_query'     => array(
+						'relation' => 'OR',
+						array(
+							'key'     => 'user',
+							'value'   => (string) $user_id,
+							'compare' => '=',
+						),
+						array(
+							'key'     => 'user',
+							'value'   => $user_id,
+							'compare' => '=',
+							'type'    => 'NUMERIC',
+						),
+					),
+				)
+			);
+			error_log( '[OrderService] Found ' . count( $orders ) . ' orders by user_id search (statuses: ' . implode( ', ', $order_statuses ) . ')' );
+		}
+
+		// Strategy 3: Fallback to post_author (if order was created with post_author)
+		if ( empty( $orders ) ) {
+			$orders = get_posts(
+				array(
+					'post_type'      => self::POST_TYPE,
+					'post_status'    => $order_statuses, // Search all order statuses
+					'posts_per_page' => -1,
+					'orderby'        => 'date',
+					'order'          => 'DESC',
+					'author'         => $user_id,
+				)
+			);
+			error_log( '[OrderService] Found ' . count( $orders ) . ' orders by post_author (statuses: ' . implode( ', ', $order_statuses ) . ')' );
+		}
+
+		error_log( '[OrderService] get_user_orders: Found ' . count( $orders ) . ' orders before filtering' );
 
 		$result = array();
 		foreach ( $orders as $order ) {
-			$order_data = $this->get_order( $order->ID );
-			if ( ! is_wp_error( $order_data ) ) {
-				$result[] = $order_data;
+			// Get order user value from meta (may be email/login or ID)
+			$order_user_meta = get_post_meta( $order->ID, 'user', true );
+			$order_author_id = (int) $order->post_author;
+			
+			error_log( sprintf(
+				'[OrderService] Order #%d: meta user="%s" (type: %s), author=%d, looking for user_id=%d, email=%s, login=%s',
+				$order->ID,
+				$order_user_meta,
+				gettype( $order_user_meta ),
+				$order_author_id,
+				$user_id,
+				$user_email,
+				$user_login
+			) );
+			
+			// Check if order belongs to this user
+			// PODS stores email/login, so we compare by email/login or ID or author
+			$belongs_to_user = false;
+			
+			// Check by email/login (PODS stores this way)
+			if ( ! empty( $user_email ) && $order_user_meta === $user_email ) {
+				$belongs_to_user = true;
+			} elseif ( ! empty( $user_login ) && $order_user_meta === $user_login ) {
+				$belongs_to_user = true;
+			}
+			// Check by user_id (backward compatibility)
+			elseif ( is_numeric( $order_user_meta ) && (int) $order_user_meta === $user_id ) {
+				$belongs_to_user = true;
+			}
+			// Check by post_author
+			elseif ( $order_author_id === $user_id ) {
+				$belongs_to_user = true;
+			}
+			
+			if ( $belongs_to_user ) {
+				$order_data = $this->get_order( $order->ID );
+				if ( ! is_wp_error( $order_data ) ) {
+					$result[] = $order_data;
+				} else {
+					error_log( '[OrderService] Failed to get order data for order #' . $order->ID . ': ' . $order_data->get_error_message() );
+				}
+			} else {
+				error_log( '[OrderService] Order #' . $order->ID . ' does not belong to user, skipping' );
 			}
 		}
 
+		error_log( '[OrderService] get_user_orders: Returning ' . count( $result ) . ' orders' );
 		return $result;
 	}
 
@@ -775,11 +1079,25 @@ class Order_Service {
 
 		// Send to customer
 		$user_id = $order_data['user_id'];
-		$user    = get_user_by( 'ID', $user_id );
+		$customer_email = null;
 		$customer_sent = false;
 		
-		if ( $user ) {
-			$customer_sent = $email_templates->send_order_created_to_customer( $order_id, $order_data, $user->user_email );
+		// For authenticated users, get email from user account
+		if ( $user_id > 0 ) {
+			$user = get_user_by( 'ID', $user_id );
+			if ( $user ) {
+				$customer_email = $user->user_email;
+			}
+		} else {
+			// For anonymous orders, get email from order meta
+			$is_anonymous = get_post_meta( $order_id, 'is_anonymous', true );
+			if ( $is_anonymous ) {
+				$customer_email = get_post_meta( $order_id, 'anonymous_email', true );
+			}
+		}
+		
+		if ( $customer_email && is_email( $customer_email ) ) {
+			$customer_sent = $email_templates->send_order_created_to_customer( $order_id, $order_data, $customer_email );
 			
 			// Save email status to order meta
 			update_post_meta( $order_id, '_email_customer_sent', $customer_sent ? '1' : '0' );
@@ -829,11 +1147,25 @@ class Order_Service {
 		$email_templates = new Order_Email_Templates();
 
 		$user_id = $order_data['user_id'];
-		$user    = get_user_by( 'ID', $user_id );
+		$customer_email = null;
 		$closed_sent = false;
 		
-		if ( $user ) {
-			$closed_sent = $email_templates->send_order_closed_to_customer( $order_id, $order_data, $user->user_email );
+		// For authenticated users, get email from user account
+		if ( $user_id > 0 ) {
+			$user = get_user_by( 'ID', $user_id );
+			if ( $user ) {
+				$customer_email = $user->user_email;
+			}
+		} else {
+			// For anonymous orders, get email from order meta
+			$is_anonymous = get_post_meta( $order_id, 'is_anonymous', true );
+			if ( $is_anonymous ) {
+				$customer_email = get_post_meta( $order_id, 'anonymous_email', true );
+			}
+		}
+		
+		if ( $customer_email && is_email( $customer_email ) ) {
+			$closed_sent = $email_templates->send_order_closed_to_customer( $order_id, $order_data, $customer_email );
 			
 			// Save email status to order meta
 			update_post_meta( $order_id, '_email_closed_sent', $closed_sent ? '1' : '0' );
@@ -1276,6 +1608,227 @@ class Order_Service {
 			'price_changed' => $price_changed,
 			'actual_totals' => $actual_totals,
 		);
+	}
+
+	/**
+	 * Get order status from meta field.
+	 *
+	 * @param int $order_id Order ID.
+	 * @return string Order status, defaults to 'pending_confirmation'.
+	 */
+	public function get_order_status( $order_id ) {
+		$status = get_post_meta( $order_id, 'order_status', true );
+		if ( empty( $status ) ) {
+			return 'pending_confirmation';
+		}
+		return $status;
+	}
+
+	/**
+	 * Set order status and save to history.
+	 *
+	 * @param int    $order_id Order ID.
+	 * @param string $status   New order status.
+	 * @param string $changed_by Who changed the status (default: 'system').
+	 * @return bool|WP_Error True on success, WP_Error on failure.
+	 */
+	public function set_order_status( $order_id, $status, $changed_by = 'system' ) {
+		// Validate status
+		$valid_statuses = array(
+			'pending_confirmation',
+			'awaiting_payment',
+			'awaiting_shippment',
+			'shipped',
+			'awaiting_pickup',
+			'clarification',
+			'completed',
+			'rejected',
+			'cancelled',
+		);
+
+		if ( ! in_array( $status, $valid_statuses, true ) ) {
+			return new WP_Error(
+				'invalid_order_status',
+				__( 'Invalid order status.', 'elkaretro' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		// Get current status
+		$old_status = $this->get_order_status( $order_id );
+
+		// If status hasn't changed, do nothing
+		if ( $old_status === $status ) {
+			return true;
+		}
+
+		// Update order status
+		update_post_meta( $order_id, 'order_status', $status );
+
+		// Save to history
+		$this->add_order_status_history( $order_id, $status, $old_status, $changed_by );
+
+		// Save to PODS
+		$this->save_order_status_to_pods( $order_id );
+
+		return true;
+	}
+
+	/**
+	 * Add entry to order status history.
+	 *
+	 * @param int    $order_id   Order ID.
+	 * @param string $new_status New status.
+	 * @param string $old_status Old status.
+	 * @param string $changed_by Who changed the status.
+	 * @return void
+	 */
+	protected function add_order_status_history( $order_id, $new_status, $old_status, $changed_by = 'system' ) {
+		$history = get_post_meta( $order_id, 'order_status_history', true );
+		if ( ! is_array( $history ) ) {
+			$history = array();
+		}
+
+		$history[] = array(
+			'status'     => $new_status,
+			'old_status' => $old_status,
+			'changed_by' => $changed_by,
+			'date'       => current_time( 'mysql' ),
+			'timestamp'  => time(),
+		);
+
+		update_post_meta( $order_id, 'order_status_history', $history );
+	}
+
+	/**
+	 * Save order status to PODS.
+	 * Note: order_status_history is not saved to PODS as it's a technical field not used by admins.
+	 *
+	 * @param int $order_id Order post ID.
+	 * @return void
+	 */
+	protected function save_order_status_to_pods( $order_id ) {
+		$pods = pods( self::POST_TYPE, $order_id );
+		
+		if ( ! $pods || ! $pods->valid() ) {
+			return;
+		}
+
+		// Save order_status (only field that admins use)
+		$order_status = $this->get_order_status( $order_id );
+		if ( $order_status ) {
+			update_post_meta( $order_id, 'order_status', $order_status );
+			$pods->save( 'order_status', $order_status );
+		}
+
+		// Note: order_status_history is saved only to post_meta, not to PODS
+		// (it's a technical field, admins don't need it in the interface)
+	}
+
+	/**
+	 * Format delivery data as ordered text string.
+	 * All fields are concatenated in the correct order for admin readability.
+	 *
+	 * @param array $delivery Delivery data from request.
+	 * @return string Formatted delivery data string.
+	 */
+	protected function format_delivery_data_string( $delivery ) {
+		$delivery_method = sanitize_text_field( $delivery['delivery_method'] ?? '' );
+		$delivery_data   = isset( $delivery['delivery_data'] ) && is_array( $delivery['delivery_data'] ) 
+			? $delivery['delivery_data'] 
+			: array();
+
+		if ( empty( $delivery_method ) || empty( $delivery_data ) ) {
+			return '';
+		}
+
+		$parts = array();
+
+		// Format based on delivery method
+		switch ( $delivery_method ) {
+			case 'pickup_udelnaya':
+				// Fields: name, desiredDate
+				if ( ! empty( $delivery_data['name'] ) ) {
+					$parts[] = 'Имя: ' . sanitize_text_field( $delivery_data['name'] );
+				}
+				if ( ! empty( $delivery_data['desiredDate'] ) ) {
+					$parts[] = 'Желаемая дата получения: ' . sanitize_text_field( $delivery_data['desiredDate'] );
+				}
+				break;
+
+			case 'pickup_ozon':
+				// Fields: city, pickupAddress, phone
+				if ( ! empty( $delivery_data['city'] ) ) {
+					$parts[] = 'Город: ' . sanitize_text_field( $delivery_data['city'] );
+				}
+				if ( ! empty( $delivery_data['pickupAddress'] ) ) {
+					$parts[] = 'Адрес пункта выдачи ОЗОН: ' . sanitize_text_field( $delivery_data['pickupAddress'] );
+				}
+				if ( ! empty( $delivery_data['phone'] ) ) {
+					$parts[] = 'Телефон получателя: ' . sanitize_text_field( $delivery_data['phone'] );
+				}
+				break;
+
+			case 'pickup_cdek':
+				// Fields: lastName, firstName, phone, pickupAddress
+				if ( ! empty( $delivery_data['lastName'] ) ) {
+					$parts[] = 'Фамилия: ' . sanitize_text_field( $delivery_data['lastName'] );
+				}
+				if ( ! empty( $delivery_data['firstName'] ) ) {
+					$parts[] = 'Имя: ' . sanitize_text_field( $delivery_data['firstName'] );
+				}
+				if ( ! empty( $delivery_data['phone'] ) ) {
+					$parts[] = 'Телефон: ' . sanitize_text_field( $delivery_data['phone'] );
+				}
+				if ( ! empty( $delivery_data['pickupAddress'] ) ) {
+					$parts[] = 'Адрес пункта выдачи СДЭК: ' . sanitize_text_field( $delivery_data['pickupAddress'] );
+				}
+				break;
+
+			case 'courier_cdek':
+				// Fields: address (with optional lastName, firstName, phone if provided)
+				if ( ! empty( $delivery_data['lastName'] ) ) {
+					$parts[] = 'Фамилия: ' . sanitize_text_field( $delivery_data['lastName'] );
+				}
+				if ( ! empty( $delivery_data['firstName'] ) ) {
+					$parts[] = 'Имя: ' . sanitize_text_field( $delivery_data['firstName'] );
+				}
+				if ( ! empty( $delivery_data['phone'] ) ) {
+					$parts[] = 'Телефон: ' . sanitize_text_field( $delivery_data['phone'] );
+				}
+				if ( ! empty( $delivery_data['address'] ) ) {
+					$parts[] = 'Адрес доставки: ' . sanitize_textarea_field( $delivery_data['address'] );
+				}
+				break;
+
+			case 'post_russia':
+				// Fields: country, city, address, postalCode
+				if ( ! empty( $delivery_data['country'] ) ) {
+					$parts[] = 'Страна: ' . sanitize_text_field( $delivery_data['country'] );
+				}
+				if ( ! empty( $delivery_data['city'] ) ) {
+					$parts[] = 'Город: ' . sanitize_text_field( $delivery_data['city'] );
+				}
+				if ( ! empty( $delivery_data['address'] ) ) {
+					$parts[] = 'Адрес: ' . sanitize_textarea_field( $delivery_data['address'] );
+				}
+				if ( ! empty( $delivery_data['postalCode'] ) ) {
+					$parts[] = 'Индекс: ' . sanitize_text_field( $delivery_data['postalCode'] );
+				}
+				break;
+
+			default:
+				// Fallback: just concatenate all fields
+				foreach ( $delivery_data as $key => $value ) {
+					if ( ! empty( $value ) ) {
+						$label = ucfirst( str_replace( array( '_', 'A-Z' ), array( ' ', ' ' ), $key ) );
+						$parts[] = $label . ': ' . sanitize_text_field( $value );
+					}
+				}
+				break;
+		}
+
+		return implode( "\n", $parts );
 	}
 }
 

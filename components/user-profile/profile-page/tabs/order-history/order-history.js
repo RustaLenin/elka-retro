@@ -1,4 +1,5 @@
 import { BaseElement } from '../../../../base-element.js';
+import './order-card/order-card.js';
 
 if (window.app?.toolkit?.loadCSSOnce) {
   window.app.toolkit.loadCSSOnce(new URL('./order-history-styles.css', import.meta.url));
@@ -44,31 +45,51 @@ export class OrderHistoryTab extends BaseElement {
   connectedCallback() {
     super.connectedCallback();
     
-    // Ждем загрузки компонента order-card
-    customElements.whenDefined('order-card').then(() => {
-      this._loadOrders();
-    });
+    // Загружаем заказы сразу, order-card загрузится позже при рендеринге
+    this._loadOrders();
+    
+    // order-card уже загружен статически через components.js
+    // Компонент будет доступен при рендеринге, дополнительное ожидание не требуется
   }
 
   async _loadOrders() {
+    console.log('[OrderHistoryTab] Starting to load orders...');
     this.setState({ loading: true, error: null });
 
     try {
       const apiUrl = window.wpApiSettings?.root || '/wp-json/';
       const nonce = window.wpApiSettings?.nonce || '';
 
+      console.log('[OrderHistoryTab] API URL:', `${apiUrl}elkaretro/v1/orders`);
+      console.log('[OrderHistoryTab] Nonce available:', !!nonce);
+
       const response = await fetch(`${apiUrl}elkaretro/v1/orders`, {
+        method: 'GET',
         headers: {
-          'X-WP-Nonce': nonce
+          'X-WP-Nonce': nonce,
+          'Content-Type': 'application/json'
         },
         credentials: 'same-origin'
       });
 
+      console.log('[OrderHistoryTab] Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Не удалось загрузить заказы');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[OrderHistoryTab] Response error:', errorData);
+        throw new Error(errorData.message || 'Не удалось загрузить заказы');
       }
 
-      const orders = await response.json();
+      const data = await response.json();
+      console.log('[OrderHistoryTab] Response data:', data);
+      
+      // Handle response with debug info or plain array
+      const orders = data?.orders || data;
+      console.log('[OrderHistoryTab] Orders received:', orders?.length || 0);
+      if (data?.debug) {
+        console.log('[OrderHistoryTab] Debug info:', data.debug);
+      }
+      
       this._orders = Array.isArray(orders) ? orders : [];
       
       // Сортируем заказы
@@ -163,11 +184,18 @@ export class OrderHistoryTab extends BaseElement {
       return;
     }
 
+    // Сначала убеждаемся, что order-card загружен
     // Рендерим список заказов
+    // Передаем данные заказа через JSON в data-атрибут
+    // Используем одинарные кавычки для атрибута и экранируем специальные символы
     const ordersHtml = orders.map((order, index) => {
       // Передаем данные заказа через JSON в data-атрибут
-      const orderData = JSON.stringify(order).replace(/"/g, '&quot;');
-      return `<order-card data-order='${orderData}'></order-card>`;
+      // JSON.stringify создаёт валидный JSON, но для использования в HTML атрибуте
+      // нужно экранировать специальные символы
+      const orderJson = JSON.stringify(order);
+      // Используем двойные кавычки для атрибута, экранируем двойные кавычки в JSON
+      const orderData = orderJson.replace(/"/g, '&quot;');
+      return `<order-card data-order="${orderData}"></order-card>`;
     }).join('');
 
     this.innerHTML = `
@@ -194,34 +222,47 @@ export class OrderHistoryTab extends BaseElement {
     `;
 
       // Инициализируем карточки заказов
-      requestAnimationFrame(() => {
-        const orderCards = this.querySelectorAll('order-card');
-        orderCards.forEach((card, index) => {
-          if (orders[index]) {
-            // Используем метод setOrder для установки данных
-            if (typeof card.setOrder === 'function') {
-              card.setOrder(orders[index]);
-            }
-          }
-          
-          // Подписываемся на событие отмены заказа
-          card.addEventListener('order-card:cancelled', (e) => {
-            // Обновляем список заказов после отмены
-            this._loadOrders();
-          });
-        });
+      // order-card уже загружен статически через components.js
+      customElements.whenDefined('order-card')
+        .then(() => {
+          requestAnimationFrame(() => {
+            const orderCards = this.querySelectorAll('order-card');
+            console.log('[OrderHistoryTab] Found', orderCards.length, 'order cards');
+            
+            orderCards.forEach((card, index) => {
+              // Данные уже должны быть в data-order атрибуте и обработаны в connectedCallback
+              // Но дополнительно устанавливаем через setOrder для надёжности
+              if (orders[index]) {
+                // Используем метод setOrder для установки данных
+                if (typeof card.setOrder === 'function') {
+                  card.setOrder(orders[index]);
+                } else {
+                  console.warn('[OrderHistoryTab] order-card does not have setOrder method');
+                }
+              }
+              
+              // Подписываемся на событие отмены заказа
+              card.addEventListener('order-card:cancelled', (e) => {
+                // Обновляем список заказов после отмены
+                this._loadOrders();
+              });
+            });
 
-        // Привязываем обработчик для сортировки
-        const sortBtn = this.querySelector('[data-app-action="order-history:toggle-sort"]');
-        if (sortBtn) {
-          sortBtn.addEventListener('click', () => {
-            const newSortOrder = this.state.sortOrder === 'desc' ? 'asc' : 'desc';
-            this.setState({ sortOrder: newSortOrder });
-            this._sortOrders();
-            this.setState({ orders: this._orders });
+            // Привязываем обработчик для сортировки
+            const sortBtn = this.querySelector('[data-app-action="order-history:toggle-sort"]');
+            if (sortBtn) {
+              sortBtn.addEventListener('click', () => {
+                const newSortOrder = this.state.sortOrder === 'desc' ? 'asc' : 'desc';
+                this.setState({ sortOrder: newSortOrder });
+                this._sortOrders();
+                this.setState({ orders: this._orders });
+              });
+            }
           });
-        }
-      });
+        })
+        .catch(err => {
+          console.error('[OrderHistoryTab] Failed to initialize order cards:', err);
+        });
   }
 
   onStateChanged(key) {

@@ -1,16 +1,26 @@
 <IfModule mod_headers.c>
-  Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
-  Header set Pragma "no-cache"
-  Header set Expires "0"
+  # Запрещаем кеширование для JS и CSS файлов
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+    Header unset ETag
+    Header unset Last-Modified
+  </FilesMatch>
 </IfModule>
 
 <IfModule mod_expires.c>
-  ExpiresActive Off
+  ExpiresActive On
+  # Запрещаем кеширование для JS и CSS файлов
+  ExpiresByType application/javascript "access plus 0 seconds"
+  ExpiresByType text/javascript "access plus 0 seconds"
+  ExpiresByType text/css "access plus 0 seconds"
 </IfModule>
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteCond %{REQUEST_FILENAME} -f
+  # Отключаем кеширование для JS и CSS
+  RewriteCond %{REQUEST_URI} \.(js|css)$ [NC]
   RewriteRule ^ - [E=DISABLE_CACHE:1]
 </IfModule>
 

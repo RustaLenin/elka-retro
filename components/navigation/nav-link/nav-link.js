@@ -10,7 +10,9 @@ export class NavLink extends BaseElement {
   };
 
   connectedCallback() {
-    window.app.toolkit.loadCSSOnce(new URL('./nav-link-styles.css', import.meta.url));
+    if (window.app?.toolkit?.loadCSSOnce) {
+      window.app.toolkit.loadCSSOnce(new URL('./nav-link-styles.css', import.meta.url));
+    }
     super.connectedCallback();
     this.render();
   }

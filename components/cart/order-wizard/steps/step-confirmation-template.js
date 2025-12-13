@@ -14,16 +14,16 @@ function formatPrice(price) {
 }
 
 export function step_confirmation_template(state) {
-  const { orderData, isSubmitting, orderId, error, success } = state;
+  const { orderData, isSubmitting, orderId, orderNumber, error, success } = state;
 
-  if (success && orderId) {
+  if (success && orderNumber) {
     return `
       <div class="step-confirmation">
         <div class="step-confirmation_success">
           <ui-icon name="check_circle" size="large" class="step-confirmation_success-icon"></ui-icon>
           <h3 class="step-confirmation_success-title">Заказ успешно создан!</h3>
           <p class="step-confirmation_success-text">
-            Номер вашего заказа: <strong>#${orderId}</strong>
+            Номер вашего заказа: <strong>${orderNumber}</strong>
           </p>
           <p class="step-confirmation_success-description">
             Подробности заказа отправлены на ваш email.

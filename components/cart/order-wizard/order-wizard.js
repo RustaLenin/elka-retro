@@ -2,6 +2,13 @@ import { BaseElement } from '../../base-element.js';
 import { order_wizard_template } from './order-wizard-template.js';
 import { getCartStore } from '../cart-store.js';
 
+// Статические импорты всех шагов wizard
+import './steps/step-auth.js';
+import './steps/step-personal.js';
+import './steps/step-logistics.js';
+import './steps/step-payment.js';
+import './steps/step-confirmation.js';
+
 // Загружаем стили на верхнем уровне модуля
 if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
   window.app.toolkit.loadCSSOnce(new URL('./order-wizard-styles.css', import.meta.url));
@@ -24,6 +31,9 @@ export class OrderWizard extends BaseElement {
     isAuthorized: { type: 'boolean', default: false, attribute: null, internal: true },
     orderData: { type: 'json', default: null, attribute: null, internal: true },
     isSubmitting: { type: 'boolean', default: false, attribute: null, internal: true },
+    error: { type: 'string', default: null, attribute: null, internal: true },
+    success: { type: 'boolean', default: false, attribute: null, internal: true },
+    orderNumber: { type: 'string', default: null, attribute: null, internal: true },
   };
 
   constructor() {
@@ -282,13 +292,19 @@ export class OrderWizard extends BaseElement {
     // Проверяем, не загружен ли уже этот шаг
     const existingStep = container.querySelector(step.component);
     if (existingStep && existingStep.getAttribute('step-number') === String(this.state.currentStep)) {
+      // Дополнительная проверка: если это шаг подтверждения и заказ уже создан, не пересоздаем элемент
+      if (step.id === 'confirmation' && existingStep.state?.success) {
+        console.log('[OrderWizard] Step confirmation already shows success, skipping reload');
+        return;
+      }
       console.log('[OrderWizard] Step already loaded, skipping');
       return;
     }
 
-    // Динамически импортируем компонент шага
+    // Все шаги уже загружены статически
     try {
-      await import(`./steps/${step.component}.js`);
+      // Ждём, пока компонент шага будет определён в customElements
+      await customElements.whenDefined(step.component);
 
       // Создаем элемент шага
       const stepElement = document.createElement(step.component);
@@ -307,6 +323,12 @@ export class OrderWizard extends BaseElement {
    * Перейти к следующему шагу
    */
   async nextStep() {
+    // Если заказ уже успешно создан, не переходим к следующему шагу
+    if (this.state.success && this.state.isSubmitting) {
+      console.log('[OrderWizard] Order already successful, skipping nextStep');
+      return false;
+    }
+    
     const currentStep = this.state.currentStep;
     const step = this.steps[currentStep - 1];
 
@@ -318,6 +340,12 @@ export class OrderWizard extends BaseElement {
 
     // Сохраняем данные шага
     await this.saveStepData(step);
+
+    // Если после сохранения заказ успешно создан, не переходим к следующему шагу
+    if (this.state.success && this.state.isSubmitting) {
+      console.log('[OrderWizard] Order successful after saveStepData, staying on current step');
+      return false;
+    }
 
     // Переходим к следующему шагу (пропускаем шаги, которые нужно пропустить)
     let nextStepNumber = currentStep + 1;
@@ -432,6 +460,12 @@ export class OrderWizard extends BaseElement {
    * Сохранить данные шага
    */
   async saveStepData(step) {
+    // Если заказ уже успешно создан, не сохраняем данные, чтобы не вызвать перерендер overlay
+    if (this.state.success && this.state.isSubmitting) {
+      console.log(`[OrderWizard] Order already successful, skipping saveStepData for ${step.id}`);
+      return;
+    }
+    
     const stepElement = this.querySelector(step.component);
     if (!stepElement || typeof stepElement.getData !== 'function') {
       console.log(`[OrderWizard] Step ${step.id} has no getData() method`);
@@ -480,31 +514,92 @@ export class OrderWizard extends BaseElement {
    * Обработка изменений состояния
    */
   onStateChanged(key) {
-    if (key === 'isSubmitting') {
-      // Обновляем disabled состояние кнопки "Завершить заказ"
-      const nextBtn = this.querySelector('.order-wizard_next-btn');
-      if (nextBtn && nextBtn.setDisabled) {
-        nextBtn.setDisabled(this.state.isSubmitting);
+    // Если уже есть success и overlay открыт, не перерисовываем wizard при изменении других полей
+    const hasSuccessOverlay = this.state.success && this.state.isSubmitting;
+    
+    if (key === 'isSubmitting' || key === 'error' || key === 'success' || key === 'orderNumber') {
+      // Если успех, обновляем overlay напрямую через DOM, не перерисовывая весь wizard
+      if (key === 'success' || key === 'orderNumber') {
+        this._updateOverlayContent();
+        return;
       }
       
-      // Блокируем/разблокируем прокрутку страницы
-      if (this.state.isSubmitting) {
-        // Сохраняем текущее значение overflow
-        this._originalOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
+      // Перерисовываем для обновления overlay только если нет success overlay
+      if (!hasSuccessOverlay) {
+        this.render();
       } else {
-        // Восстанавливаем прокрутку
-        if (this._originalOverflow !== undefined) {
-          document.body.style.overflow = this._originalOverflow;
+        // Если есть success overlay, обновляем только его содержимое
+        this._updateOverlayContent();
+      }
+      
+      if (key === 'isSubmitting') {
+        // Обновляем disabled состояние кнопки "Завершить заказ"
+        const nextBtn = this.querySelector('.order-wizard_next-btn');
+        if (nextBtn && nextBtn.setDisabled) {
+          nextBtn.setDisabled(this.state.isSubmitting);
+        }
+        
+        // Блокируем/разблокируем прокрутку страницы
+        if (this.state.isSubmitting) {
+          // Сохраняем текущее значение overflow
+          this._originalOverflow = document.body.style.overflow;
+          document.body.style.overflow = 'hidden';
         } else {
-          document.body.style.overflow = '';
+          // Восстанавливаем прокрутку
+          if (this._originalOverflow !== undefined) {
+            document.body.style.overflow = this._originalOverflow;
+          } else {
+            document.body.style.overflow = '';
+          }
         }
       }
+    } else if (hasSuccessOverlay && key === 'orderData') {
+      // Если есть success overlay и обновляется orderData, не перерисовываем
+      console.log('[OrderWizard] Ignoring orderData update while success overlay is active');
+      return;
+    }
+  }
+
+  /**
+   * Обновить содержимое overlay напрямую через DOM
+   * @private
+   */
+  _updateOverlayContent() {
+    const overlay = this.querySelector('.order-wizard_overlay');
+    if (!overlay) return;
+    
+    const { success, orderNumber, error, isSubmitting } = this.state;
+    
+    // Обновляем содержимое overlay напрямую
+    if (success && orderNumber && isSubmitting) {
+      // Показываем сообщение об успехе
+      overlay.innerHTML = `
+        <div class="order-wizard_success">
+          <ui-icon name="check_circle" size="large" class="order-wizard_success-icon"></ui-icon>
+          <h3 class="order-wizard_success-title">Заказ успешно создан!</h3>
+          <p class="order-wizard_success-text">
+            Номер вашего заказа: <strong>${orderNumber}</strong>
+          </p>
+          <p class="order-wizard_success-description">
+            Подробности заказа отправлены на ваш email.
+          </p>
+          <ui-button
+            type="primary"
+            label="Закрыть"
+            event="order-wizard:close-success"
+            class="order-wizard_success-close-btn"
+          ></ui-button>
+        </div>
+      `;
+      
+      // ui-button сам инициализируется при добавлении в DOM и диспатчит событие,
+      // которое всплывает до order-wizard, где мы уже слушаем order-wizard:close-success
+      // Ничего дополнительного делать не нужно
     }
   }
 
   render() {
-    const { currentStep, isAuthorized, isSubmitting } = this.state;
+    const { currentStep, isAuthorized, isSubmitting, error, success, orderNumber } = this.state;
     const currentStepInfo = this.steps[currentStep - 1];
 
     this.innerHTML = order_wizard_template({
@@ -513,6 +608,9 @@ export class OrderWizard extends BaseElement {
       currentStepInfo,
       isAuthorized,
       isSubmitting: this.state.isSubmitting,
+      error: this.state.error,
+      success: this.state.success,
+      orderNumber: this.state.orderNumber,
     });
 
     // Прикрепляем обработчики событий перед загрузкой шага
@@ -576,6 +674,39 @@ export class OrderWizard extends BaseElement {
       }
     };
     this.addEventListener('wizard:step:goto', this._handleStepGoto);
+
+    // Обработчик закрытия ошибки
+    if (this._handleCloseError) {
+      this.removeEventListener('order-wizard:close-error', this._handleCloseError);
+    }
+    this._handleCloseError = () => {
+      const overlay = this.querySelector('.order-wizard_overlay');
+      if (overlay) {
+        overlay.remove();
+      }
+      this.setState({ 
+        isSubmitting: false, 
+        error: null 
+      });
+    };
+    this.addEventListener('order-wizard:close-error', this._handleCloseError);
+    
+    // Обработчик закрытия успеха
+    if (this._handleCloseSuccess) {
+      this.removeEventListener('order-wizard:close-success', this._handleCloseSuccess);
+    }
+    this._handleCloseSuccess = () => {
+      const overlay = this.querySelector('.order-wizard_overlay');
+      if (overlay) {
+        overlay.remove();
+      }
+      this.setState({ 
+        isSubmitting: false,
+        success: false,
+        orderNumber: null 
+      });
+    };
+    this.addEventListener('order-wizard:close-success', this._handleCloseSuccess);
   }
 }
 

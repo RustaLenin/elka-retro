@@ -362,6 +362,9 @@ require_once( THEME_COR . 'setup.php' );
 // Theme Settings (управление настройками темы)
 require_once( THEME_COR . 'theme-settings.php' );
 
+// Asset Versioning (система версионирования статических ресурсов для cache busting)
+require_once( THEME_COR . 'asset-versioning.php' );
+
 // Taxonomy Sync (синхронизация таксономий с продакшена)
 require_once( THEME_COR . 'taxonomy-sync.php' );
 
@@ -531,6 +534,27 @@ add_action('wp_head', function () {
     echo '</style>' . "\n";
 }, 1);
 
+/**
+ * Добавляет код счётчика Яндекс.Метрики на все страницы
+ * Приоритет 10 - выполняется после основных скриптов, но до закрытия </head>
+ */
+add_action('wp_head', function () {
+    ?>
+    <!-- Yandex.Metrika counter -->
+    <script type="text/javascript">
+        (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105476039', 'ym');
+        ym(105476039, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/105476039" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+    <!-- /Yandex.Metrika counter -->
+    <?php
+}, 10);
+
 \Elkaretro\Core\Catalog\Catalog_Loader::init();
 
 \Elkaretro\Core\Cart\Cart_Loader::init();
@@ -556,6 +580,10 @@ add_action('wp_head', function () {
     echo 'window.wpApiSettings.root = ' . wp_json_encode(esc_url_raw(rest_url())) . ';';
     echo 'window.wpApiSettings.nonce = ' . wp_json_encode(wp_create_nonce('wp_rest')) . ';';
     
+    // Передаём версию проекта для cache busting
+    require_once( THEME_COR . 'asset-versioning.php' );
+    $asset_version = \Elkaretro\Core\Asset_Versioning::get_version();
+    echo 'window.APP_VERSION = ' . wp_json_encode($asset_version) . ';';
     // Передаём данные текущего пользователя (если авторизован)
     $current_user = wp_get_current_user();
     if ($current_user && $current_user->ID > 0) {
@@ -582,8 +610,30 @@ add_action('wp_head', function () {
     } else {
         echo 'window.wpApiSettings.currentUser = null;';
     }
-    echo '</script>';
+    ?>
+    </script>
+    <?php
 });
+
+/**
+ * Disable caching for JavaScript and CSS files
+ * Устанавливает заголовки для запрета кеширования JS и CSS файлов
+ */
+add_action('send_headers', function() {
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
+    
+    // Проверяем, является ли запрос файлом JS или CSS
+    if (preg_match('/\.(js|css)(\?|$)/i', $request_uri)) {
+        // Запрещаем кеширование
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        // Удаляем ETag и Last-Modified, чтобы браузер не использовал условные запросы
+        header_remove('ETag');
+        header_remove('Last-Modified');
+    }
+}, 999);
 
 /**
  * Add required components based on page type

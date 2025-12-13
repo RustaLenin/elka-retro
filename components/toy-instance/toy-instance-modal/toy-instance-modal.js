@@ -2,10 +2,19 @@ import { BaseElement } from '../../base-element.js';
 import { UIModal } from '../../ui-kit/modal/modal.js';
 import { toy_instance_modal_template } from './toy-instance-modal-template.js';
 
-// Загружаем стили при импорте модуля (top-level)
-// Это гарантирует, что стили всегда доступны, даже если компонент еще не подключен к DOM
-if (window.app && window.app.toolkit && window.app.toolkit.loadCSSOnce) {
-  window.app.toolkit.loadCSSOnce(new URL('./toy-instance-modal-styles.css', import.meta.url));
+// Загружаем стили - отложенно, так как window.app может быть ещё не создан при импорте
+let toyInstanceModalStylesLoaded = false;
+function loadToyInstanceModalStyles() {
+  if (toyInstanceModalStylesLoaded) return;
+  
+  if (window.app?.toolkit?.loadCSSOnce) {
+    try {
+      window.app.toolkit.loadCSSOnce(new URL('./toy-instance-modal-styles.css', import.meta.url));
+      toyInstanceModalStylesLoaded = true;
+    } catch (err) {
+      console.error('[toy-instance-modal] Failed to load CSS:', err);
+    }
+  }
 }
 
 /**
@@ -31,12 +40,24 @@ export class ToyInstanceModal extends UIModal {
   }
 
   connectedCallback() {
+    // Загружаем стили при подключении компонента к DOM (когда window.app уже точно существует)
+    loadToyInstanceModalStyles();
+    
     this.setState({ loading: true });
-    // Стили уже загружены при импорте модуля
-    // window.app.toolkit.loadCSSOnce(new URL('./toy-instance-modal-styles.css', import.meta.url));
     super.connectedCallback();
     if (this.state.instanceId) {
       this.loadInstanceData();
+    }
+    // Подписываемся на обновления корзины для обновления кнопки
+    this._boundHandleCartUpdated = this._handleCartUpdated.bind(this);
+    window.addEventListener('elkaretro:cart:updated', this._boundHandleCartUpdated);
+  }
+  
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // Отписываемся от событий
+    if (this._boundHandleCartUpdated) {
+      window.removeEventListener('elkaretro:cart:updated', this._boundHandleCartUpdated);
     }
   }
 
@@ -46,6 +67,7 @@ export class ToyInstanceModal extends UIModal {
     if (overlay) {
       overlay.classList.add('toy-instance-modal_overlay');
     }
+    
     const container = this._getContainerElement();
     if (container) {
       container.classList.add('toy-instance-modal_container');
@@ -162,6 +184,7 @@ export class ToyInstanceModal extends UIModal {
       requestAnimationFrame(() => {
         this.renderInstanceContent(json);
         this.setupBuyButton();
+        this._updateBuyButtonText();
       });
     } catch (e) {
       this.setState({ error: e.message || 'Ошибка загрузки', loading: false });
@@ -205,19 +228,75 @@ export class ToyInstanceModal extends UIModal {
     // Подключаем обработчик кнопки "Купить" после рендера
     setTimeout(() => {
       const buyBtn = this.querySelector('.toy-instance-modal_buy-btn');
-      if (buyBtn) {
+      if (buyBtn && this._instanceData) {
         // Удаляем старый обработчик если есть
         buyBtn.replaceWith(buyBtn.cloneNode(true));
         const newBuyBtn = this.querySelector('.toy-instance-modal_buy-btn');
+        
         newBuyBtn.addEventListener('click', () => {
-          // TODO: Раскомментировать когда будет готова функция добавления в корзину
-          // const instanceId = newBuyBtn.getAttribute('data-instance-id');
-          // if (window.app && window.app.cart && window.app.cart.add) {
-          //   window.app.cart.add(instanceId);
-          // }
+          const instanceId = this._instanceData.id;
+          const price = this._instanceData.cost ? parseFloat(this._instanceData.cost) : (this._instanceData.meta?.cost ? parseFloat(this._instanceData.meta.cost) : null);
+          const status = this._instanceData.status || 'publish';
+          
+          // Проверяем доступность товара
+          if (status !== 'publish' || !instanceId || !price || price <= 0) {
+            if (window.app?.ui?.showNotification) {
+              window.app.ui.showNotification('Товар недоступен для добавления в корзину', 'error');
+            }
+            return;
+          }
+          
+          // Проверяем, находится ли товар уже в корзине
+          if (window.app?.cart) {
+            const items = window.app.cart.getItems();
+            const isInCart = items.some(item => Number(item.id) === Number(instanceId) && item.type === 'toy_instance');
+            
+            if (isInCart) {
+              // Удаляем из корзины
+              window.dispatchEvent(
+                new CustomEvent('elkaretro:cart:remove-item', {
+                  detail: { itemId: instanceId, itemType: 'toy_instance' },
+                })
+              );
+            } else {
+              // Добавляем в корзину
+              window.dispatchEvent(
+                new CustomEvent('elkaretro:cart:add-item', {
+                  detail: { itemId: instanceId, itemType: 'toy_instance', price: price },
+                })
+              );
+            }
+          }
         });
       }
     }, 100);
+  }
+
+  /**
+   * Обработчик обновления корзины - обновляет текст кнопки
+   */
+  _handleCartUpdated() {
+    if (this._instanceData) {
+      this._updateBuyButtonText();
+    }
+  }
+  
+  /**
+   * Обновить текст кнопки "Купить" в зависимости от состояния корзины
+   */
+  _updateBuyButtonText() {
+    if (!this._instanceData || !window.app?.cart) {
+      return;
+    }
+    
+    const instanceId = this._instanceData.id;
+    const items = window.app.cart.getItems();
+    const isInCart = items.some(item => Number(item.id) === Number(instanceId) && item.type === 'toy_instance');
+    
+    const buyBtn = this.querySelector('.toy-instance-modal_buy-btn');
+    if (buyBtn) {
+      buyBtn.textContent = isInCart ? 'Убрать из корзины' : 'Добавить в корзину';
+    }
   }
 
   onStateChanged(key) {

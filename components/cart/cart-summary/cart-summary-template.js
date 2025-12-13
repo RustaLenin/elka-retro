@@ -4,7 +4,7 @@
  */
 
 export function cart_summary_template(state) {
-  const { subtotal, discount, fee, total, itemsCount } = state;
+  const { subtotal, discount, fee, deliveryCost, total, itemsCount } = state;
 
   return `
     <div class="cart-summary">
@@ -29,8 +29,23 @@ export function cart_summary_template(state) {
 
         ${fee ? `
           <div class="cart-summary_row cart-summary_row--fee">
-            <span class="cart-summary_label">Сбор на комплектацию:</span>
+            <span 
+              class="cart-summary_label cart-summary_label--clickable"
+              data-hint="При единовременной покупке на сумму менее 3500 руб. к стоимости покупки автоматически добавляется сбор на комплектацию в размере 350 руб."
+              data-hint-trigger="click"
+              data-hint-placement="top"
+            >
+              <span class="cart-summary_label-text">Сбор на комплектацию:</span>
+              <ui-icon name="info" size="small" class="cart-summary_label-icon"></ui-icon>
+            </span>
             <span class="cart-summary_value">${fee}</span>
+          </div>
+        ` : ''}
+
+        ${deliveryCost ? `
+          <div class="cart-summary_row cart-summary_row--delivery">
+            <span class="cart-summary_label">Доставка:</span>
+            <span class="cart-summary_value">${deliveryCost}</span>
           </div>
         ` : ''}
 

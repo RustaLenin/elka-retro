@@ -8,16 +8,25 @@
  * - Синхронизация с сервером
  */
 
-import { getCartStore } from './cart-store.js';
 import { calculateAssemblyFee, calculateWholesaleDiscount } from './commission-rules.js';
+
+/**
+ * Получить store корзины
+ * @returns {Object} store корзины
+ */
+function getStore() {
+  if (!window.app?.cart) {
+    throw new Error('[cart-service] cart not initialized. Make sure app.js loaded cart-store.');
+  }
+  return window.app.cart;
+}
 
 /**
  * Получить корзину
  * @returns {Object} состояние корзины
  */
 export function getCart() {
-  const store = getCartStore();
-  return store.getCart();
+  return getStore().getCart();
 }
 
 /**
@@ -25,8 +34,7 @@ export function getCart() {
  * @returns {Array} массив товаров
  */
 export function getItems() {
-  const store = getCartStore();
-  return store.getItems();
+  return getStore().getItems();
 }
 
 /**
@@ -34,8 +42,7 @@ export function getItems() {
  * @returns {number}
  */
 export function getCount() {
-  const store = getCartStore();
-  return store.getCount();
+  return getStore().getCount();
 }
 
 /**
@@ -46,8 +53,7 @@ export function getCount() {
  * @param {number} itemData.price - цена товара
  */
 export function addItem(itemData) {
-  const store = getCartStore();
-  store.addItem(itemData);
+  getStore().addItem(itemData);
 }
 
 /**
@@ -56,16 +62,14 @@ export function addItem(itemData) {
  * @param {string} itemType - тип товара
  */
 export function removeItem(itemId, itemType) {
-  const store = getCartStore();
-  store.removeItem(itemId, itemType);
+  getStore().removeItem(itemId, itemType);
 }
 
 /**
  * Очистить корзину
  */
 export function clearCart() {
-  const store = getCartStore();
-  store.clearCart();
+  getStore().clearCart();
 }
 
 /**
@@ -77,8 +81,7 @@ export function clearCart() {
  */
 export function calculateTotal(options = {}) {
   const { includeFee = true, includeDiscount = true } = options;
-  const store = getCartStore();
-  const cart = store.getCart();
+  const cart = getCart();
   const items = cart.items;
 
   // Подсчет суммы товаров
@@ -169,7 +172,6 @@ export async function checkItemAvailability(itemId, itemType) {
  * @returns {Promise<void>}
  */
 export async function syncWithServer() {
-  const store = getCartStore();
-  await store.syncOnAuth();
+  await getStore().syncOnAuth();
 }
 

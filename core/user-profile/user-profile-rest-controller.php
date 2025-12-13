@@ -72,7 +72,68 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 			array(
 				'methods'             => WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'logout' ),
-				'permission_callback' => array( $this, 'check_permission' ),
+				'permission_callback' => array( $this, 'check_logout_permission' ),
+			)
+		);
+
+		// POST /wp-json/elkaretro/v1/auth/request-code - Request authentication code
+		register_rest_route(
+			$this->namespace,
+			'/auth/request-code',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'request_code' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'email' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_email',
+						'validate_callback' => function( $param ) {
+							return is_email( $param );
+						},
+					),
+				),
+			)
+		);
+
+		// POST /wp-json/elkaretro/v1/auth/verify-code - Verify authentication code
+		register_rest_route(
+			$this->namespace,
+			'/auth/verify-code',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'verify_code' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'email' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_email',
+						'validate_callback' => function( $param ) {
+							return is_email( $param );
+						},
+					),
+					'code'  => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => function( $param ) {
+							return preg_match( '/^\d{6}$/', $param );
+						},
+					),
+				),
+			)
+		);
+
+		// GET /wp-json/elkaretro/v1/auth/nonce - Get nonce for authenticated user
+		register_rest_route(
+			$this->namespace,
+			'/auth/nonce',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_nonce' ),
+				'permission_callback' => array( $this, 'check_auth_cookie_permission' ),
 			)
 		);
 
@@ -300,6 +361,138 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 	}
 
 	/**
+	 * Request authentication code.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function request_code( WP_REST_Request $request ) {
+		$email = $request->get_param( 'email' );
+
+		require_once __DIR__ . '/user-auth-service.php';
+		$auth_service = new User_Auth_Service();
+
+		$result = $auth_service->request_code( $email );
+
+		if ( is_wp_error( $result ) ) {
+			$status = $result->get_error_data();
+			$status_code = isset( $status['status'] ) ? $status['status'] : 400;
+			return new WP_Error(
+				$result->get_error_code(),
+				$result->get_error_message(),
+				array( 'status' => $status_code )
+			);
+		}
+
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Verify authentication code.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function verify_code( WP_REST_Request $request ) {
+		$email = $request->get_param( 'email' );
+		$code = $request->get_param( 'code' );
+
+		require_once __DIR__ . '/user-auth-service.php';
+		$auth_service = new User_Auth_Service();
+
+		$result = $auth_service->verify_code( $email, $code );
+
+		if ( is_wp_error( $result ) ) {
+			$status = $result->get_error_data();
+			$status_code = isset( $status['status'] ) ? $status['status'] : 400;
+			$error_data = array( 'status' => $status_code );
+
+			// Add additional error data if present
+			if ( isset( $status['retry_after'] ) ) {
+				$error_data['retry_after'] = $status['retry_after'];
+			}
+			if ( isset( $status['blocked_until'] ) ) {
+				$error_data['blocked_until'] = $status['blocked_until'];
+			}
+			if ( isset( $status['new_code_sent'] ) ) {
+				$error_data['new_code_sent'] = $status['new_code_sent'];
+			}
+
+			return new WP_Error(
+				$result->get_error_code(),
+				$result->get_error_message(),
+				$error_data
+			);
+		}
+
+		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Get nonce for authenticated user.
+	 * This endpoint is called after authentication to get a valid nonce
+	 * when cookies are already set in the browser.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function get_nonce( WP_REST_Request $request ) {
+		// User should be authenticated via cookie at this point
+		if ( ! is_user_logged_in() ) {
+			return new WP_Error(
+				'rest_not_authenticated',
+				'Пользователь не авторизован.',
+				array( 'status' => 401 )
+			);
+		}
+
+		// Generate new nonce for authenticated user
+		$nonce = wp_create_nonce( 'wp_rest' );
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'nonce'   => $nonce,
+			)
+		);
+	}
+
+	/**
+	 * Check permission for nonce endpoint.
+	 * Uses cookie-based authentication without requiring nonce.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return bool|WP_Error
+	 */
+	public function check_auth_cookie_permission( $request = null ) {
+		// Устанавливаем текущего пользователя из cookies для REST API
+		$user_id = wp_validate_auth_cookie( '', 'logged_in' );
+		if ( $user_id ) {
+			wp_set_current_user( $user_id );
+			return true;
+		}
+
+		// Если нет валидной сессии через logged_in cookie, проверяем auth cookie
+		$user_id = wp_validate_auth_cookie( '', 'auth' );
+		if ( $user_id ) {
+			wp_set_current_user( $user_id );
+			return true;
+		}
+
+		// Если пользователь уже установлен (из предыдущих запросов), разрешаем
+		if ( is_user_logged_in() ) {
+			return true;
+		}
+
+		// Не авторизован
+		return new WP_Error(
+			'rest_not_authenticated',
+			'Пользователь не авторизован.',
+			array( 'status' => 401 )
+		);
+	}
+
+	/**
 	 * Register new user via REST.
 	 *
 	 * @param WP_REST_Request $request
@@ -314,6 +507,9 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 		$offer_consent   = filter_var( $request->get_param( 'offer_consent' ), FILTER_VALIDATE_BOOLEAN );
 		$first_name      = $request->get_param( 'first_name' );
 		$last_name       = $request->get_param( 'last_name' );
+		$newsletter_new_items = filter_var( $request->get_param( 'newsletter_new_items' ), FILTER_VALIDATE_BOOLEAN );
+		$newsletter_sales    = filter_var( $request->get_param( 'newsletter_sales' ), FILTER_VALIDATE_BOOLEAN );
+		$newsletter_auction  = filter_var( $request->get_param( 'newsletter_auction' ), FILTER_VALIDATE_BOOLEAN );
 
 		// Validate consent checkboxes
 		if ( ! $privacy_consent ) {
@@ -378,6 +574,11 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 		update_user_meta( $user_id, '_privacy_consent_date', current_time( 'mysql' ) );
 		update_user_meta( $user_id, '_offer_consent_date', current_time( 'mysql' ) );
 
+		// Store newsletter preferences
+		update_user_meta( $user_id, 'newsletter_new_items', $newsletter_new_items ? '1' : '0' );
+		update_user_meta( $user_id, 'newsletter_sales', $newsletter_sales ? '1' : '0' );
+		update_user_meta( $user_id, 'newsletter_auction', $newsletter_auction ? '1' : '0' );
+
 		// Get created user
 		$user = get_userdata( $user_id );
 
@@ -416,9 +617,16 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 	/**
 	 * Check if user has permission to access endpoints.
 	 *
+	 * @param WP_REST_Request $request
 	 * @return bool|WP_Error
 	 */
-	public function check_permission() {
+	public function check_permission( $request = null ) {
+		// Устанавливаем текущего пользователя из cookies для REST API
+		$user_id = wp_validate_auth_cookie( '', 'logged_in' );
+		if ( $user_id ) {
+			wp_set_current_user( $user_id );
+		}
+
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error(
 				'rest_forbidden',
@@ -427,6 +635,38 @@ class User_Profile_REST_Controller extends WP_REST_Controller {
 			);
 		}
 
+		return true;
+	}
+
+	/**
+	 * Check permission for logout endpoint.
+	 * Более мягкая проверка - устанавливаем пользователя из cookies, если они есть.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return bool|WP_Error
+	 */
+	public function check_logout_permission( $request = null ) {
+		// Устанавливаем текущего пользователя из cookies для REST API
+		$user_id = wp_validate_auth_cookie( '', 'logged_in' );
+		if ( $user_id ) {
+			wp_set_current_user( $user_id );
+			return true;
+		}
+
+		// Если нет валидной сессии через logged_in cookie, проверяем auth cookie
+		$user_id = wp_validate_auth_cookie( '', 'auth' );
+		if ( $user_id ) {
+			wp_set_current_user( $user_id );
+			return true;
+		}
+
+		// Если пользователь уже установлен (из предыдущих запросов), разрешаем
+		if ( is_user_logged_in() ) {
+			return true;
+		}
+
+		// Разрешаем выход даже без активной сессии - wp_logout() безопасно обработает это
+		// Это важно для случаев, когда cookies уже частично истекли
 		return true;
 	}
 

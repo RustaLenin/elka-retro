@@ -119,6 +119,34 @@ class Order_Email_Templates {
 			? __( 'Спасибо за ваш заказ!', 'elkaretro' )
 			: __( 'Поступил новый заказ', 'elkaretro' );
 
+		// Get customer email (for anonymous orders or authenticated users)
+		$customer_email = null;
+		$user_id = $order_data['user_id'] ?? 0;
+		if ( $user_id > 0 ) {
+			$user = get_user_by( 'ID', $user_id );
+			if ( $user ) {
+				$customer_email = $user->user_email;
+			}
+		} else {
+			// For anonymous orders, get email from order meta
+			$is_anonymous = get_post_meta( $order_id, 'is_anonymous', true );
+			if ( $is_anonymous ) {
+				$customer_email = get_post_meta( $order_id, 'anonymous_email', true );
+			}
+		}
+
+		// Get delivery data (formatted text string)
+		$delivery_data = get_post_meta( $order_id, 'delivery_data', true );
+		
+		// Get preferred communication method
+		$preferred_communication = get_post_meta( $order_id, 'preferred_communication', true );
+		
+		// Get promo code
+		$promo_code = get_post_meta( $order_id, 'promo_code', true );
+		
+		// Calculate delivery cost from delivery method
+		$delivery_cost = $this->get_delivery_cost( $order_data['delivery_method'] ?? '' );
+
 		ob_start();
 		?>
 		<!DOCTYPE html>
@@ -139,6 +167,32 @@ class Order_Email_Templates {
 				</p>
 			</div>
 
+			<?php if ( ! empty( $customer_email ) ) : ?>
+			<div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px;">
+				<h2 style="color: #2c3e50; margin-top: 0; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+					<?php echo esc_html( __( 'Информация о заказчике', 'elkaretro' ) ); ?>
+				</h2>
+				<p style="margin: 8px 0;">
+					<strong><?php echo esc_html( __( 'Email:', 'elkaretro' ) ); ?></strong>
+					<a href="mailto:<?php echo esc_attr( $customer_email ); ?>" style="color: #3498db; text-decoration: none;">
+						<?php echo esc_html( $customer_email ); ?>
+					</a>
+				</p>
+				<?php if ( ! empty( $preferred_communication ) ) : ?>
+					<p style="margin: 8px 0;">
+						<strong><?php echo esc_html( __( 'Предпочитаемый способ связи:', 'elkaretro' ) ); ?></strong>
+						<?php echo esc_html( $preferred_communication ); ?>
+					</p>
+				<?php endif; ?>
+				<?php if ( ! empty( $promo_code ) ) : ?>
+					<p style="margin: 8px 0;">
+						<strong><?php echo esc_html( __( 'Промокод:', 'elkaretro' ) ); ?></strong>
+						<?php echo esc_html( $promo_code ); ?>
+					</p>
+				<?php endif; ?>
+			</div>
+			<?php endif; ?>
+
 			<div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px;">
 				<h2 style="color: #2c3e50; margin-top: 0; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
 					<?php echo esc_html( __( 'Состав заказа', 'elkaretro' ) ); ?>
@@ -146,25 +200,37 @@ class Order_Email_Templates {
 				<?php echo $items_html; ?>
 			</div>
 
+			<?php if ( ! empty( $delivery_data ) || ! empty( $order_data['delivery_method'] ) ) : ?>
 			<div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px;">
 				<h2 style="color: #2c3e50; margin-top: 0; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
-					<?php echo esc_html( __( 'Адрес доставки', 'elkaretro' ) ); ?>
+					<?php echo esc_html( __( 'Доставка', 'elkaretro' ) ); ?>
 				</h2>
-				<p style="margin: 0;">
-					<?php echo esc_html( $order_data['delivery_address'] ?: __( 'Не указан', 'elkaretro' ) ); ?>
-				</p>
-				<?php if ( ! empty( $order_data['delivery_method'] ) ) : ?>
-					<p style="margin: 10px 0 0 0; color: #666;">
-						<strong><?php echo esc_html( __( 'Способ доставки:', 'elkaretro' ) ); ?></strong>
-						<?php echo esc_html( $order_data['delivery_method'] ); ?>
+				<?php if ( ! empty( $delivery_data ) ) : ?>
+					<div style="white-space: pre-line; margin: 0; line-height: 1.8;">
+						<?php echo esc_html( $delivery_data ); ?>
+					</div>
+				<?php else : ?>
+					<p style="margin: 0; color: #666;">
+						<?php echo esc_html( __( 'Не указана', 'elkaretro' ) ); ?>
 					</p>
 				<?php endif; ?>
 			</div>
+			<?php endif; ?>
 
 			<div style="background-color: #fff; padding: 20px; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 20px;">
 				<h2 style="color: #2c3e50; margin-top: 0; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
-					<?php echo esc_html( __( 'Итоговая стоимость', 'elkaretro' ) ); ?>
+					<?php echo esc_html( __( 'Предварительная стоимость', 'elkaretro' ) ); ?>
 				</h2>
+				<p style="margin: 0 0 15px 0; font-size: 0.875rem; color: #666; line-height: 1.5;">
+					<?php echo esc_html( __( 'Итоговая стоимость будет посчитана администратором сайта и сообщена вам отдельно при подтверждении заказа.', 'elkaretro' ) ); ?>
+				</p>
+				<?php
+				// Пересчитываем предварительную сумму: subtotal - discount + fee + delivery
+				$subtotal = floatval( $order_data['subtotal'] ?? 0 );
+				$discount = floatval( $order_data['discount_amount'] ?? 0 );
+				$fee = floatval( $order_data['fee_amount'] ?? 0 );
+				$preliminary_total = $subtotal - $discount + $fee + $delivery_cost;
+				?>
 				<table style="width: 100%; border-collapse: collapse;">
 					<tr>
 						<td style="padding: 8px 0; color: #666;"><?php echo esc_html( __( 'Стоимость товаров:', 'elkaretro' ) ); ?></td>
@@ -182,18 +248,26 @@ class Order_Email_Templates {
 					<?php endif; ?>
 					<?php if ( $order_data['fee_amount'] > 0 ) : ?>
 						<tr>
-							<td style="padding: 8px 0; color: #666;"><?php echo esc_html( __( 'Комиссия:', 'elkaretro' ) ); ?></td>
+							<td style="padding: 8px 0; color: #666;"><?php echo esc_html( __( 'Сбор на комплектацию:', 'elkaretro' ) ); ?></td>
 							<td style="text-align: right; padding: 8px 0; font-weight: bold;">
 								<?php echo esc_html( number_format( $order_data['fee_amount'], 0, ',', ' ' ) ); ?> ₽
 							</td>
 						</tr>
 					<?php endif; ?>
+					<?php if ( $delivery_cost > 0 ) : ?>
+						<tr>
+							<td style="padding: 8px 0; color: #666;"><?php echo esc_html( __( 'Доставка:', 'elkaretro' ) ); ?></td>
+							<td style="text-align: right; padding: 8px 0; font-weight: bold;">
+								<?php echo esc_html( number_format( $delivery_cost, 0, ',', ' ' ) ); ?> ₽
+							</td>
+						</tr>
+					<?php endif; ?>
 					<tr style="border-top: 2px solid #3498db;">
 						<td style="padding: 12px 0; font-size: 18px; font-weight: bold; color: #2c3e50;">
-							<?php echo esc_html( __( 'Итого:', 'elkaretro' ) ); ?>
+							<?php echo esc_html( __( 'Предварительно:', 'elkaretro' ) ); ?>
 						</td>
 						<td style="text-align: right; padding: 12px 0; font-size: 18px; font-weight: bold; color: #2c3e50;">
-							<?php echo esc_html( number_format( $order_data['total_amount'], 0, ',', ' ' ) ); ?> ₽
+							<?php echo esc_html( number_format( $preliminary_total, 0, ',', ' ' ) ); ?> ₽
 						</td>
 					</tr>
 				</table>
@@ -329,6 +403,31 @@ class Order_Email_Templates {
 		</table>
 		<?php
 		return ob_get_clean();
+	}
+
+	/**
+	 * Get customer information for email template.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array Customer information (name, email, phone).
+	 */
+	/**
+	 * Get delivery cost based on delivery method.
+	 *
+	 * @param string $delivery_method Delivery method code.
+	 * @return float Delivery cost.
+	 */
+	protected function get_delivery_cost( $delivery_method ) {
+		// Delivery method prices (same as in delivery-step.js)
+		$method_prices = array(
+			'pickup_udelnaya' => 0,
+			'pickup_ozon'     => 150,
+			'pickup_cdek'     => 350,
+			'courier_cdek'    => 400, // Минимальная стоимость
+			'post_russia'     => 300, // Минимальная стоимость
+		);
+
+		return isset( $method_prices[ $delivery_method ] ) ? (float) $method_prices[ $delivery_method ] : 0.0;
 	}
 
 }

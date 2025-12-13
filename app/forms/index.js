@@ -5,6 +5,7 @@
 import { signInFormConfig } from './sign-in.js';
 import { registerFormConfig } from './register.js';
 import { passwordResetFormConfig } from './password-reset.js';
+import { authCodeFormConfig } from './auth-code.js';
 import { profileEditFormConfig } from './profile-edit.js';
 import { profileChangePasswordFormConfig } from './profile-change-password.js';
 import { contactFormConfig } from './contact.js';
@@ -27,6 +28,7 @@ if (!window.app.forms) {
 window.app.forms.signIn = signInFormConfig;
 window.app.forms.register = registerFormConfig;
 window.app.forms.passwordReset = passwordResetFormConfig;
+window.app.forms.authCode = authCodeFormConfig;
 window.app.forms.profileEdit = profileEditFormConfig;
 window.app.forms.profileChangePassword = profileChangePasswordFormConfig;
 window.app.forms.contact = contactFormConfig;

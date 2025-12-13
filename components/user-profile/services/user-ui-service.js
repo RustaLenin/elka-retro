@@ -5,9 +5,10 @@ if (window.app?.toolkit?.loadCSSOnce) {
 }
 
 const USER_MODAL_IDS = {
-  signIn: 'auth:signIn',
-  register: 'auth:register',
-  passwordReset: 'auth:passwordReset',
+  code: 'auth:code',
+  signIn: 'auth:signIn', // Старое, будет удалено
+  register: 'auth:register', // Старое, будет удалено
+  passwordReset: 'auth:passwordReset', // Старое, будет удалено
 };
 
 function ensureModalManager() {
@@ -21,9 +22,10 @@ function ensureModalManager() {
 function registerAuthModals() {
   if (!ensureModalManager()) return;
 
+  // Новое единое модальное окно авторизации/регистрации через код
   window.app.modal.register({
-    id: USER_MODAL_IDS.signIn,
-    title: 'Вход в аккаунт',
+    id: USER_MODAL_IDS.code,
+    title: 'Вход / Регистрация',
     size: 'medium',
     closable: true,
     footer: false,
@@ -31,53 +33,15 @@ function registerAuthModals() {
     body: () => `
       <div class="auth-modal__content">
         <ui-form-controller 
-          config-path="app.forms.signIn"
+          config-path="app.forms.authCode"
           mode="modal"
         ></ui-form-controller>
-        <div class="auth-modal__links">
-          <a href="#" data-app-action="user.showRegisterModal" class="auth-modal__link">Нет аккаунта? Зарегистрируйтесь</a>
-          <a href="#" data-app-action="user.showPasswordResetModal" class="auth-modal__link">Забыли пароль?</a>
-        </div>
       </div>
     `,
   });
 
-  window.app.modal.register({
-    id: USER_MODAL_IDS.register,
-    title: 'Регистрация',
-    size: 'medium',
-    closable: true,
-    footer: false,
-    bodyPadding: 'compact',
-    body: () => `
-      <div class="register-modal__content">
-        <ui-form-controller 
-          config-path="app.forms.register"
-          mode="modal"
-        ></ui-form-controller>
-        <div class="register-modal__links">
-          <a href="#" data-app-action="user.showSignInModal" class="register-modal__link">Уже есть аккаунт? Войдите</a>
-        </div>
-      </div>
-    `,
-  });
-
-  window.app.modal.register({
-    id: USER_MODAL_IDS.passwordReset,
-    title: 'Восстановление пароля',
-    size: 'medium',
-    closable: true,
-    footer: false,
-    bodyPadding: 'compact',
-    body: () => `
-      <div class="password-reset-modal__content">
-        <ui-form-controller 
-          config-path="app.forms.passwordReset"
-          mode="modal"
-        ></ui-form-controller>
-      </div>
-    `,
-  });
+  // Старые модальные окна удалены - используем новое единое модальное окно auth:code
+  // Оставлены только для обратной совместимости (перенаправляют на новое окно)
 }
 
 function registerUserActions(service) {
@@ -88,9 +52,15 @@ function registerUserActions(service) {
   }
   events.unregister('user');
   events.register('user', {
-    showSignInModal: () => service.showSignInModal(),
-    showRegisterModal: () => service.showRegisterModal(),
-    showPasswordResetModal: () => service.showPasswordResetModal(),
+    showAuthModal: () => service.showAuthModal(),
+    // Старые действия для обратной совместимости - перенаправляют на новое модальное окно
+    showSignInModal: () => service.showAuthModal(), // Deprecated: используйте showAuthModal
+    showRegisterModal: () => service.showAuthModal(), // Deprecated: используйте showAuthModal
+    showPasswordResetModal: () => {
+      // Восстановление пароля не поддерживается в новой системе
+      console.warn('[user-ui-service] Password reset is not supported in the new auth system');
+      service.showAuthModal(); // Перенаправляем на авторизацию
+    },
     toggleMenu: () => {
       // Находим компонент user-menu и вызываем его метод toggle
       const userMenu = document.querySelector('user-menu');
@@ -165,7 +135,7 @@ function registerUserActions(service) {
   });
 }
 
-export const userUiService = {
+const userUiService = {
   init() {
     if (!ensureModalManager()) return;
     registerAuthModals();
@@ -194,22 +164,29 @@ export const userUiService = {
     });
   },
 
-  showSignInModal() {
+  showAuthModal() {
     if (!ensureModalManager()) return;
-    window.app.modal.open(USER_MODAL_IDS.signIn);
+    window.app.modal.open(USER_MODAL_IDS.code);
+  },
+
+  // Старые методы для обратной совместимости - перенаправляют на новое модальное окно
+  showSignInModal() {
+    console.warn('[user-ui-service] showSignInModal is deprecated, use showAuthModal instead');
+    this.showAuthModal();
   },
 
   showRegisterModal() {
-    if (!ensureModalManager()) return;
-    window.app.modal.open(USER_MODAL_IDS.register);
+    console.warn('[user-ui-service] showRegisterModal is deprecated, use showAuthModal instead');
+    this.showAuthModal();
   },
 
   showPasswordResetModal() {
-    if (!ensureModalManager()) return;
-    window.app.modal.open(USER_MODAL_IDS.passwordReset);
+    console.warn('[user-ui-service] showPasswordResetModal is deprecated, password reset is not supported in the new auth system');
+    this.showAuthModal();
   },
 };
 
-userUiService.init();
+// Экспортируем для явной инициализации в app.js
+export { userUiService };
 
 

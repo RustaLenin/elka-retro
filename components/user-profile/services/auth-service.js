@@ -230,7 +230,7 @@ class AuthService {
   /**
    * Регистрация нового пользователя
    */
-  async register(email, username, password, phone, privacyConsent, offerConsent, firstName, lastName) {
+  async register(email, username, password, phone, privacyConsent, offerConsent, firstName, lastName, newsletterNewItems, newsletterSales, newsletterAuction) {
     try {
       const nonce = this.getNonce();
       const headers = {
@@ -256,6 +256,17 @@ class AuthService {
       }
       if (lastName) {
         userData.last_name = lastName;
+      }
+      
+      // Добавляем чекбоксы рассылок
+      if (newsletterNewItems !== undefined) {
+        userData.newsletter_new_items = Boolean(newsletterNewItems);
+      }
+      if (newsletterSales !== undefined) {
+        userData.newsletter_sales = Boolean(newsletterSales);
+      }
+      if (newsletterAuction !== undefined) {
+        userData.newsletter_auction = Boolean(newsletterAuction);
       }
 
       const response = await fetch('/wp-json/elkaretro/v1/auth/register', {
@@ -337,6 +348,161 @@ class AuthService {
     } catch (error) {
       console.error('[AuthService] Password reset error:', error);
       return { success: false, error: error.message || 'Ошибка запроса восстановления пароля' };
+    }
+  }
+
+  /**
+   * Запрос кода авторизации/регистрации
+   */
+  async requestCode(email) {
+    try {
+      const nonce = this.getNonce();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (nonce) {
+        headers['X-WP-Nonce'] = nonce;
+      }
+
+      const response = await fetch('/wp-json/elkaretro/v1/auth/request-code', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers,
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data?.success) {
+        return {
+          success: true,
+          message: data.message || 'Код отправлен на почту',
+          canResendAfter: data.can_resend_after || 180
+        };
+      }
+
+      // Handle errors
+      const errorCode = data?.code || 'unknown_error';
+      const errorMessage = data?.message || 'Ошибка запроса кода';
+      const errorData = data?.data || {};
+
+      return {
+        success: false,
+        error: errorCode,
+        message: errorMessage,
+        retryAfter: errorData.retry_after,
+        blockedUntil: errorData.blocked_until
+      };
+
+    } catch (error) {
+      console.error('[AuthService] Request code error:', error);
+      return {
+        success: false,
+        error: 'network_error',
+        message: error.message || 'Ошибка запроса кода'
+      };
+    }
+  }
+
+  /**
+   * Проверка кода и авторизация
+   */
+  async verifyCode(email, code) {
+    try {
+      const nonce = this.getNonce();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (nonce) {
+        headers['X-WP-Nonce'] = nonce;
+      }
+
+      const response = await fetch('/wp-json/elkaretro/v1/auth/verify-code', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers,
+        body: JSON.stringify({ email, code })
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data?.success) {
+        const user = data.user;
+        this.currentUser = user;
+        
+        // Request new nonce after successful authentication
+        // This is done via separate request because nonce validation requires
+        // cookies to be set in the browser, which happens after this response
+        try {
+          await this.refreshNonce();
+        } catch (nonceError) {
+          console.warn('[AuthService] Failed to refresh nonce after authentication:', nonceError);
+          // Continue anyway - nonce will be requested later when needed
+        }
+        
+        // Dispatch login event for integration with order flow
+        this.dispatchAuthEvent('login', { user });
+        
+        return {
+          success: true,
+          user
+        };
+      }
+
+      // Handle errors
+      const errorCode = data?.code || 'unknown_error';
+      const errorMessage = data?.message || 'Ошибка проверки кода';
+      const errorData = data?.data || {};
+
+      return {
+        success: false,
+        error: errorCode,
+        message: errorMessage,
+        retryAfter: errorData.retry_after,
+        blockedUntil: errorData.blocked_until,
+        newCodeSent: errorData.new_code_sent || false
+      };
+
+    } catch (error) {
+      console.error('[AuthService] Verify code error:', error);
+      return {
+        success: false,
+        error: 'network_error',
+        message: error.message || 'Ошибка проверки кода'
+      };
+    }
+  }
+
+  /**
+   * Обновить nonce после авторизации
+   * Запрашивает новый nonce у сервера, когда cookies уже установлены
+   */
+  async refreshNonce() {
+    try {
+      // Request nonce without requiring nonce (uses cookie auth)
+      const response = await fetch('/wp-json/elkaretro/v1/auth/nonce', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data?.success && data?.nonce) {
+        if (!window.wpApiSettings) {
+          window.wpApiSettings = {};
+        }
+        window.wpApiSettings.nonce = data.nonce;
+        console.log('[AuthService] Refreshed nonce after authentication');
+        return data.nonce;
+      } else {
+        throw new Error(data?.message || 'Failed to refresh nonce');
+      }
+    } catch (error) {
+      console.error('[AuthService] Error refreshing nonce:', error);
+      throw error;
     }
   }
 

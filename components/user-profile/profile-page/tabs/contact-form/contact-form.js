@@ -35,10 +35,7 @@ export class ContactFormTab extends BaseElement {
   async connectedCallback() {
     super.connectedCallback();
     
-    // Загружаем конфигурацию формы при первом подключении (ленивая загрузка)
-    if (!window.app?.forms?.contact) {
-      await import(new URL('../../../../../app/forms/index.js', import.meta.url).href);
-    }
+    // Forms уже загружены статически через app.js
     
     this.render();
     

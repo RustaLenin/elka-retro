@@ -2,6 +2,11 @@ import { BaseElement } from '../../base-element.js';
 import { authService } from '../services/auth-service.js';
 import { renderProfilePageTemplate } from './profile-page-template.js';
 
+// Статические импорты всех табов профиля
+import './tabs/profile-settings/profile-settings.js';
+import './tabs/order-history/order-history.js';
+import './tabs/contact-form/contact-form.js';
+
 if (window.app?.toolkit?.loadCSSOnce) {
   window.app.toolkit.loadCSSOnce(new URL('./profile-page-styles.css', import.meta.url));
 }
@@ -146,23 +151,8 @@ export class ProfilePage extends BaseElement {
     }
 
     try {
-      // Ленивая загрузка JavaScript-компонента вкладки
-      switch (tabId) {
-        case 'settings':
-          await import('./tabs/profile-settings/profile-settings.js');
-          break;
-        case 'orders':
-          await import('./tabs/order-history/order-history.js');
-          break;
-        case 'contact':
-          await import('./tabs/contact-form/contact-form.js');
-          break;
-        default:
-          console.warn('[ProfilePage] Unknown tab:', tabId);
-          return;
-      }
-
-      // Ждём, пока компонент зарегистрируется и инициализируется
+      // Табы уже загружены статически через components.js
+      // Просто ждём, пока компонент зарегистрируется и инициализируется
       await customElements.whenDefined(tabElementName);
       
       this._tabsLoaded.add(tabId);

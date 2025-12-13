@@ -80,14 +80,17 @@ export class StepAuth extends BaseElement {
    */
   async handleLogin() {
     try {
+      // user-ui-service уже загружен статически через app.js
       if (!window.app?.services?.userUi) {
-        await import('../../../user-profile/services/user-ui-service.js');
+        console.warn('[StepAuth] user-ui-service not available');
+        this.showNotification('Не удалось открыть окно авторизации', 'error');
+        return;
       }
 
       if (window.app?.events) {
-        window.app.events.emit('user.showSignInModal', { source: 'order-wizard' });
+        window.app.events.emit('user.showAuthModal', { source: 'order-wizard' });
       } else {
-        window.app?.services?.userUi?.showSignInModal();
+        window.app?.services?.userUi?.showAuthModal();
       }
 
       // Wizard сам обработает переход через событие elkaretro:auth:login

@@ -54,7 +54,7 @@ class Order_REST_Controller extends WP_REST_Controller {
 	 * @return void
 	 */
 	public function register_routes() {
-		// POST /wp-json/elkaretro/v1/orders - Create order
+		// POST /wp-json/elkaretro/v1/orders - Create order (authenticated users only)
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base,
@@ -62,8 +62,22 @@ class Order_REST_Controller extends WP_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'create_order' ),
-					'permission_callback' => '__return_true', // Allow both authenticated and unauthenticated
+					'permission_callback' => array( $this, 'check_user_permission' ), // Require authentication
 					'args'                => $this->get_order_create_args(),
+				),
+			)
+		);
+
+		// POST /wp-json/elkaretro/v1/orders/create-anonymous - Create anonymous order
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/create-anonymous',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_anonymous_order' ),
+					'permission_callback' => '__return_true', // Allow unauthenticated
+					'args'                => $this->get_anonymous_order_create_args(),
 				),
 			)
 		);
@@ -306,6 +320,29 @@ class Order_REST_Controller extends WP_REST_Controller {
 	}
 
 	/**
+	 * Create anonymous order.
+	 *
+	 * @param WP_REST_Request $request
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function create_anonymous_order( WP_REST_Request $request ) {
+		$order_data = $request->get_json_params();
+
+		$result = $this->order_service->create_anonymous_order( $order_data );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response(
+			array(
+				'success' => true,
+				'order'   => $result,
+			)
+		);
+	}
+
+	/**
 	 * Get user orders.
 	 *
 	 * @param WP_REST_Request $request
@@ -313,13 +350,38 @@ class Order_REST_Controller extends WP_REST_Controller {
 	 */
 	public function get_orders( WP_REST_Request $request ) {
 		$user_id = get_current_user_id();
-		$orders  = $this->order_service->get_user_orders( $user_id );
+		
+		if ( ! $user_id || $user_id <= 0 ) {
+			return new WP_Error(
+				'rest_not_logged_in',
+				__( 'You must be logged in to access orders.', 'elkaretro' ),
+				array( 'status' => 401 )
+			);
+		}
+
+		// Get user data for debug and search
+		$user = get_userdata( $user_id );
+		$user_email = $user ? $user->user_email : '';
+		$user_login = $user ? $user->user_login : '';
+
+		$orders = $this->order_service->get_user_orders( $user_id, $user_email, $user_login );
 
 		if ( is_wp_error( $orders ) ) {
 			return $orders;
 		}
 
-		return rest_ensure_response( $orders );
+		// Add debug information to response
+		$response_data = array(
+			'orders' => $orders,
+			'debug' => array(
+				'user_id' => $user_id,
+				'user_email' => $user_email,
+				'user_login' => $user_login,
+				'orders_count' => count( $orders ),
+			),
+		);
+
+		return rest_ensure_response( $response_data );
 	}
 
 	/**
@@ -394,28 +456,71 @@ class Order_REST_Controller extends WP_REST_Controller {
 	 */
 	protected function get_order_create_args() {
 		return array(
-			'cart'     => array(
+			'cart'                   => array(
 				'required'          => true,
 				'type'              => 'object',
 				'validate_callback' => array( $this, 'validate_cart' ),
 			),
-			'user'     => array(
+			'delivery'               => array(
 				'required' => false,
 				'type'     => 'object',
 			),
-			'personal' => array(
+			'comment'                => array(
+				'required' => false,
+				'type'     => 'string',
+			),
+			'preferred_communication' => array(
+				'required' => false,
+				'type'     => 'string',
+			),
+			'promo_code' => array(
+				'required' => false,
+				'type'     => 'string',
+			),
+			'totals'                 => array(
 				'required' => false,
 				'type'     => 'object',
 			),
-			'delivery' => array(
+		);
+	}
+
+	/**
+	 * Get arguments for anonymous order creation endpoint.
+	 *
+	 * @return array
+	 */
+	protected function get_anonymous_order_create_args() {
+		return array(
+			'cart'                   => array(
+				'required'          => true,
+				'type'              => 'object',
+				'validate_callback' => array( $this, 'validate_cart' ),
+			),
+			'email'                  => array(
+				'required'          => true,
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_email',
+				'validate_callback' => function( $value ) {
+					return is_email( $value );
+				},
+			),
+			'delivery'               => array(
 				'required' => false,
 				'type'     => 'object',
 			),
-			'payment'  => array(
+			'comment'                => array(
 				'required' => false,
-				'type'     => 'object',
+				'type'     => 'string',
 			),
-			'totals'   => array(
+			'preferred_communication' => array(
+				'required' => false,
+				'type'     => 'string',
+			),
+			'promo_code' => array(
+				'required' => false,
+				'type'     => 'string',
+			),
+			'totals'                 => array(
 				'required' => false,
 				'type'     => 'object',
 			),

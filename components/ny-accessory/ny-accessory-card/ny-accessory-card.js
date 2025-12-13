@@ -57,14 +57,12 @@ export class NyAccessoryCard extends BaseElement {
     this.removeEventListener('ny-accessory-card:cart-click', this._handleCartClick);
     this.addEventListener('ny-accessory-card:cart-click', this._handleCartClick);
 
-    // Подписываемся на обновления корзины для перерисовки кнопки
-    if (window.app && window.app.cartStore) {
-      const handleCartUpdate = () => {
+    // Подписываемся на обновления корзины - просто перерисовываем карточку
+    if (!this._cartUpdateHandler) {
+      this._cartUpdateHandler = () => {
         this.render();
       };
-      window.addEventListener('elkaretro:cart:updated', handleCartUpdate);
-      // Сохраняем обработчик для последующего удаления
-      this._cartUpdateHandler = handleCartUpdate;
+      window.addEventListener('elkaretro:cart:updated', this._cartUpdateHandler);
     }
   }
 
@@ -72,6 +70,7 @@ export class NyAccessoryCard extends BaseElement {
     // Удаляем обработчик при отключении компонента
     if (this._cartUpdateHandler) {
       window.removeEventListener('elkaretro:cart:updated', this._cartUpdateHandler);
+      this._cartUpdateHandler = null;
     }
     super.disconnectedCallback();
   }
@@ -84,42 +83,33 @@ export class NyAccessoryCard extends BaseElement {
 
     // Проверяем доступность товара
     if (!id || !price || price <= 0) {
-      this.showNotification('Товар недоступен для добавления в корзину', 'error');
+      if (window.app?.ui?.showNotification) {
+        window.app.ui.showNotification('Товар недоступен для добавления в корзину', 'error');
+      }
       return;
     }
 
     // Если товар уже в корзине, удаляем его
     if (this.isInCart()) {
-      this.removeFromCart();
+      await this.removeFromCart();
       return;
     }
 
     try {
-      // Используем публичный API корзины
-      if (window.app && window.app.cart && window.app.cart.add) {
-        window.app.cart.add(id, 'ny_accessory', price);
-        this.showNotification('Товар добавлен в корзину', 'success');
-        // Перерисовка произойдет автоматически через событие elkaretro:cart:updated
+      if (window.app?.cart) {
+        window.app.cart.addItem({ id, type: 'ny_accessory', price });
+        // Карточка обновится через событие elkaretro:cart:updated
       } else {
-        console.warn('[NyAccessoryCard] Cart API not available');
-        this.showNotification('Не удалось добавить товар в корзину', 'error');
+        console.warn('[NyAccessoryCard] Cart not available');
+        if (window.app?.ui?.showNotification) {
+          window.app.ui.showNotification('Не удалось добавить товар в корзину', 'error');
+        }
       }
     } catch (error) {
       console.error('[NyAccessoryCard] Add to cart error:', error);
-      this.showNotification('Ошибка при добавлении товара в корзину', 'error');
-    }
-  }
-
-  /**
-   * Показать уведомление
-   */
-  showNotification(message, type = 'info') {
-    // Используем ui-notification через window.app.ui
-    if (window.app && window.app.ui && window.app.ui.showNotification) {
-      window.app.ui.showNotification(message, type);
-    } else {
-      // Fallback: просто в консоль
-      console.log(`[NyAccessoryCard] ${type}: ${message}`);
+      if (window.app?.ui?.showNotification) {
+        window.app.ui.showNotification('Ошибка при добавлении товара в корзину', 'error');
+      }
     }
   }
 
@@ -127,32 +117,31 @@ export class NyAccessoryCard extends BaseElement {
    * Проверить, находится ли товар в корзине
    */
   isInCart() {
-    if (!window.app || !window.app.cartStore) {
+    if (!window.app?.cart) {
       return false;
     }
-    const cartStore = window.app.cartStore;
-    const items = cartStore.getItems();
+    const items = window.app.cart.getItems();
     return items.some(item => item.id === this.state.id && item.type === 'ny_accessory');
   }
 
   /**
    * Убрать товар из корзины
    */
-  removeFromCart() {
+  async removeFromCart() {
     const { id } = this.state;
 
     try {
-      // Используем публичный API корзины
-      if (window.app && window.app.cart && window.app.cart.remove) {
-        window.app.cart.remove(id, 'ny_accessory');
-        this.showNotification('Товар удален из корзины', 'info');
-        // Перерисовка произойдет автоматически через событие elkaretro:cart:updated
+      if (window.app?.cart) {
+        window.app.cart.removeItem(id, 'ny_accessory');
+        // Карточка обновится через событие elkaretro:cart:updated
       } else {
-        console.warn('[NyAccessoryCard] Cart API not available');
+        console.warn('[NyAccessoryCard] Cart not available');
       }
     } catch (error) {
       console.error('[NyAccessoryCard] Remove from cart error:', error);
-      this.showNotification('Ошибка при удалении товара из корзины', 'error');
+      if (window.app?.ui?.showNotification) {
+        window.app.ui.showNotification('Ошибка при удалении товара из корзины', 'error');
+      }
     }
   }
 

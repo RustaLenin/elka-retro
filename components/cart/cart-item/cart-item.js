@@ -91,29 +91,25 @@ export class CartItem extends BaseElement {
       return;
     }
 
-    // Импортируем компонент динамически
-    import('../../toy-instance/toy-instance-modal/toy-instance-modal.js').then(() => {
-      const instanceModal = document.createElement('toy-instance-modal');
-      instanceModal.setAttribute('instance-id', String(this.state.id));
-      instanceModal.setAttribute('size', 'large');
-      instanceModal.setAttribute('closable', '');
-      
-      // Убеждаемся что область существует
-      if (!document.querySelector('.UIModalArea')) {
-        const area = document.createElement('div');
-        area.className = 'UIModalArea';
-        document.body.appendChild(area);
-      }
-      
-      const area = document.querySelector('.UIModalArea');
-      area.appendChild(instanceModal);
-      
-      // Показываем после небольшой задержки для инициализации
-      requestAnimationFrame(() => {
-        instanceModal.show();
-      });
-    }).catch(err => {
-      console.error('[CartItem] Failed to load modal:', err);
+    // toy-instance-modal уже загружен статически через components.js
+    const instanceModal = document.createElement('toy-instance-modal');
+    instanceModal.setAttribute('instance-id', String(this.state.id));
+    instanceModal.setAttribute('size', 'large');
+    instanceModal.setAttribute('closable', '');
+    
+    // Убеждаемся что область существует
+    if (!document.querySelector('.UIModalArea')) {
+      const area = document.createElement('div');
+      area.className = 'UIModalArea';
+      document.body.appendChild(area);
+    }
+    
+    const area = document.querySelector('.UIModalArea');
+    area.appendChild(instanceModal);
+    
+    // Показываем после небольшой задержки для инициализации
+    requestAnimationFrame(() => {
+      instanceModal.show();
     });
   }
 
@@ -135,20 +131,30 @@ export class CartItem extends BaseElement {
 
   /**
    * Удалить товар из корзины
-   * Вызывает публичный API корзины, который сам обновит состояние и отправит события
+   * Использует событийную модель: диспатчит событие, которое обрабатывается cart-store
    */
   removeFromCart() {
     const { id, type } = this.state;
-    if (id && type && window.app && window.app.cart) {
-      this.dispatchEvent(
-        new CustomEvent('cart-item:removal-start', {
-          bubbles: true,
-          composed: true,
-          detail: { id, type },
-        })
-      );
-      window.app.cart.remove(id, type);
+    if (!id || !type) {
+      return;
     }
+
+    // Диспатчим событие о начале удаления (для UI feedback)
+    this.dispatchEvent(
+      new CustomEvent('cart-item:removal-start', {
+        bubbles: true,
+        composed: true,
+        detail: { id, type },
+      })
+    );
+
+    // Диспатчим событие для удаления товара из корзины
+    // cart-store слушает это событие и обрабатывает удаление
+    window.dispatchEvent(
+      new CustomEvent('elkaretro:cart:remove-item', {
+        detail: { itemId: id, itemType: type },
+      })
+    );
   }
 
   /**
@@ -162,5 +168,10 @@ export class CartItem extends BaseElement {
   }
 }
 
-customElements.define('cart-item', CartItem);
+// Проверяем, не зарегистрирован ли элемент уже
+if (!customElements.get('cart-item')) {
+  customElements.define('cart-item', CartItem);
+} else {
+  console.warn('[cart-item] cart-item already registered, skipping re-registration');
+}
 

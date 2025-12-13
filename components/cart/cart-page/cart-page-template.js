@@ -4,9 +4,17 @@
  */
 
 export function cart_page_template(state) {
-  const { items, isLoading, isEmpty, showBlockingOverlay, blockingMessage } = state;
+  const { items = [], isLoading, isEmpty, showBlockingOverlay, blockingMessage, successOrder, orderId } = state;
 
-  if (isLoading) {
+  // Нормализуем items
+  const itemsArray = Array.isArray(items) ? items : [];
+  
+  // КРИТИЧНО: Показываем loader ВСЕГДА, если isLoading не равен явно false
+  // Это гарантирует, что пустое состояние не покажется до завершения загрузки
+  // Даже если isLoading === undefined или null, показываем loader
+  const isDefinitivelyLoaded = isLoading === false;
+  
+  if (!isDefinitivelyLoaded) {
     return `
       <div class="cart-page">
         <div class="cart-page_loading">
@@ -17,7 +25,44 @@ export function cart_page_template(state) {
     `;
   }
 
-  if (isEmpty) {
+  // ВАЖНО: Проверяем successOrder ПЕРЕД проверкой isEmpty
+  // Если заказ успешно создан, показываем overlay с сообщением об успехе
+  // Это должно иметь приоритет над empty state
+  if (successOrder && orderId) {
+    return `
+      <div class="cart-page">
+        <div class="cart-page_success-overlay">
+          <div class="cart-page_success-content">
+            <ui-icon name="check_circle" size="large" class="cart-page_success-icon"></ui-icon>
+            <h2 class="cart-page_success-title">Заказ успешно создан!</h2>
+            <p class="cart-page_success-text">
+              Ваш заказ <strong>№${orderId}</strong> успешно оформлен.
+            </p>
+            <p class="cart-page_success-description">
+              Мы отправили вам письмо с информацией о заказе. После подтверждения заказа администратором вы получите ссылку для оплаты.
+            </p>
+            <div class="cart-page_success-actions">
+              <ui-button
+                type="primary"
+                label="Перейти в каталог"
+                icon="chevron_right"
+                icon-position="right"
+                action="link"
+                href="/catalog"
+                class="cart-page_success-btn"
+              ></ui-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Показываем пустое состояние ТОЛЬКО если:
+  // 1. Загрузка явно завершена (isLoading === false)
+  // 2. И корзина действительно пуста
+  // 3. И заказ НЕ был успешно создан (successOrder !== true)
+  if (isDefinitivelyLoaded && isEmpty === true && itemsArray.length === 0 && !successOrder) {
     return `
       <div class="cart-page">
         <div class="cart-page_empty">
@@ -45,7 +90,21 @@ export function cart_page_template(state) {
   return `
     <div class="cart-page">
       <header class="cart-page_header">
-        <h1 class="cart-page_title">Корзина</h1>
+        <h1 class="cart-page_title">Оформление заказа</h1>
+        <div class="cart-page_steps">
+          <div class="cart-page_step cart-page_step--active">
+            <div class="cart-page_step_number">1</div>
+            <div class="cart-page_step_label">Состав заказа</div>
+          </div>
+          <div class="cart-page_step">
+            <div class="cart-page_step_number">2</div>
+            <div class="cart-page_step_label">Доставка</div>
+          </div>
+          <div class="cart-page_step">
+            <div class="cart-page_step_number">3</div>
+            <div class="cart-page_step_label">Проверка данных</div>
+          </div>
+        </div>
       </header>
 
       <div class="cart-page_content">
@@ -64,18 +123,19 @@ export function cart_page_template(state) {
 
         <aside class="cart-page_sidebar">
           <cart-summary></cart-summary>
-          
-          <div class="cart-page_actions">
-            <ui-button 
-              type="primary"
-              width="full_width"
-              label="Оформить заказ"
-              event="cart-page:checkout-click"
-              class="cart-page_checkout-btn"
-            ></ui-button>
-          </div>
         </aside>
       </div>
+
+      <footer class="cart-page_footer">
+        <ui-button 
+          type="primary"
+          label="Далее"
+          icon="chevron_right"
+          icon-position="right"
+          event="cart-page:checkout-click"
+          class="cart-page_next-btn"
+        ></ui-button>
+      </footer>
     </div>
   `;
 }

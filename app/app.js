@@ -2,15 +2,44 @@ import { createModalManager } from './modal-manager.js';
 import { createEventBus } from './events/index.js';
 import { registerLegalModals } from './modals/legal-modals.js';
 
+// Статические импорты stores, services и analytics
+import { getCatalogStore } from '../components/catalog/catalog-store.js';
+import { getAccessoryCatalogStore } from '../components/accessory-catalog/accessory-catalog-store.js';
+import { getCartStore } from '../components/cart/cart-store.js';
+import { authService } from '../components/user-profile/services/auth-service.js';
+import { userService } from '../components/user-profile/services/user-service.js';
+import { userUiService } from '../components/user-profile/services/user-ui-service.js';
+import { showModal } from '../components/ui-kit/modal/modal.js';
+import { notify } from '../components/ui-kit/notification/notification.js';
+import './forms/index.js';
+import { initAnalytics } from './analytics/yandex-metrika.js';
+
 // Global App State and Utilities
+// Сохраняем существующий window.app.forms, если он был создан при импорте forms/index.js
+const existingForms = window.app?.forms;
+
 window.app = {
   // Services registry
   services: {},
+  // Forms registry (восстанавливаем, если был создан при импорте)
+  forms: existingForms || {},
   // Toolkit utilities
   toolkit: {
     // Ensure a stylesheet is added to <head> only once
     loadCSSOnce(cssHref) {
-      const href = String(cssHref);
+      let href = String(cssHref);
+      
+      // Добавляем версионирование к CSS файлам для cache busting
+      // Используем window.APP_VERSION, если он доступен
+      if (typeof window.APP_VERSION !== 'undefined' && window.APP_VERSION) {
+        const url = new URL(href, window.location.href);
+        // Добавляем версию, только если её ещё нет в URL
+        if (!url.searchParams.has('v')) {
+          url.searchParams.set('v', window.APP_VERSION);
+          href = url.toString();
+        }
+      }
+      
       if (!document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
         const link = document.createElement('link');
         link.rel = 'stylesheet';
@@ -307,95 +336,7 @@ window.app = {
     },
   },
 
-  // Cart Management - Публичный API для работы с корзиной
-  // Все операции с корзиной выполняются через этот API
-  // Компоненты слушают события elkaretro:cart:updated для обновления
-  cart: {
-    items: [], // Для обратной совместимости, будет удалено позже
-    
-    /**
-     * Добавить товар в корзину
-     * @param {number} itemId - ID товара
-     * @param {string} itemType - тип товара ('toy_instance' | 'ny_accessory')
-     * @param {number} price - цена товара
-     */
-    add: function(itemId, itemType, price) {
-      if (!window.app.cartStore) {
-        console.warn('[app.cart] cartStore not initialized yet');
-        return;
-      }
-      window.app.cartStore.addItem({ id: itemId, type: itemType, price });
-    },
-    
-    /**
-     * Удалить товар из корзины
-     * @param {number} itemId - ID товара
-     * @param {string} itemType - тип товара ('toy_instance' | 'ny_accessory')
-     */
-    remove: function(itemId, itemType) {
-      if (!window.app.cartStore) {
-        console.warn('[app.cart] cartStore not initialized yet');
-        return;
-      }
-      window.app.cartStore.removeItem(itemId, itemType);
-    },
-    
-    /**
-     * Получить количество товаров в корзине
-     * @returns {number}
-     */
-    getCount: function() {
-      if (!window.app.cartStore) {
-        return 0;
-      }
-      return window.app.cartStore.getCount();
-    },
-    
-    /**
-     * Получить все товары из корзины
-     * @returns {Array}
-     */
-    getItems: function() {
-      if (!window.app.cartStore) {
-        return [];
-      }
-      return window.app.cartStore.getItems();
-    },
-    
-    /**
-     * Очистить корзину
-     */
-    clear: function() {
-      if (!window.app.cartStore) {
-        console.warn('[app.cart] cartStore not initialized yet');
-        return;
-      }
-      window.app.cartStore.clearCart();
-    },
-    
-    /**
-     * Обновить счетчик (для обратной совместимости)
-     * @deprecated Используйте события elkaretro:cart:updated
-     */
-    updateCount: function() {
-      const event = new CustomEvent('cart-updated', { 
-        detail: { count: this.getCount() } 
-      });
-      window.dispatchEvent(event);
-    },
-    
-    /**
-     * Показать уведомление (для обратной совместимости)
-     * @deprecated Используйте window.app.ui.showNotification
-     */
-    showNotification: function(message) {
-      if (window.app.ui && window.app.ui.showNotification) {
-        window.app.ui.showNotification(message, 'info');
-      } else {
-        console.log('Notification:', message);
-      }
-    }
-  },
+  cart: null, // Будет инициализирован при загрузке cart-store
   
   // Navigation Utilities
   nav: {
@@ -426,23 +367,25 @@ window.app = {
     
     
     showModal: function(options = {}) {
-      // Динамически импортируем функцию показа модалки
-      return import('../components/ui-kit/modal/modal.js').then(module => {
-        return module.showModal(options);
-      }).catch(err => {
-        console.error('[app.ui] Failed to load modal:', err);
-      });
+      // showModal уже загружен статически
+      try {
+        return showModal(options);
+      } catch (err) {
+        console.error('[app.ui] Failed to show modal:', err);
+        return null;
+      }
     },
     
     showNotification: function(message, type = 'info', duration = 5000) {
-      // Динамически импортируем функцию показа уведомления
-      return import('../components/ui-kit/notification/notification.js').then(module => {
-        return module.notify(type, message, duration);
-      }).catch(err => {
-        console.error('[app.ui] Failed to load notification:', err);
+      // notify уже загружен статически
+      try {
+        return notify(type, message, duration);
+      } catch (err) {
+        console.error('[app.ui] Failed to show notification:', err);
         // Fallback: просто в консоль
         console.log(`[Notification] ${type}: ${message}`);
-      });
+        return null;
+      }
     }
   },
   
@@ -524,6 +467,14 @@ window.app = {
 window.app.modal = createModalManager();
 window.app.events = createEventBus();
 
+// Инициализируем user-ui-service после создания app.modal
+// user-ui-service импортирован статически, но его init() вызывается здесь
+try {
+  userUiService.init();
+} catch (err) {
+  console.error('[app] Failed to initialize user-ui-service:', err);
+}
+
 // Регистрируем модальные окна для юридических документов (внутри регистрируются действия через Event Bus)
 registerLegalModals();
 
@@ -540,17 +491,8 @@ document.addEventListener('click', handleAppActionClick);
 let authFormsPreloadPromise = null;
 
 function preloadAuthFormsIfNeeded() {
-  if (window.app?.forms?.signIn) {
-    return Promise.resolve();
-  }
-  if (!authFormsPreloadPromise) {
-    authFormsPreloadPromise = import('./forms/index.js')
-      .catch((error) => {
-        authFormsPreloadPromise = null;
-        console.error('[app] Failed to preload auth forms:', error);
-      });
-  }
-  return authFormsPreloadPromise;
+  // Forms уже загружены статически, просто возвращаем resolved promise
+  return Promise.resolve();
 }
 
 // Инициализация данных авторизации из PHP (выполняется синхронно до DOMContentLoaded)
@@ -566,67 +508,180 @@ if (window.wpApiSettings?.currentUser) {
   preloadAuthFormsIfNeeded();
 }
 
+// Инициализируем catalog-store синхронно, если элемент уже в DOM
+// Это нужно, чтобы компоненты каталога могли использовать store сразу
+// Скрипты загружаются в конце body, поэтому DOM уже готов
+(function initCatalogStoreIfNeeded() {
+  try {
+    // Проверяем, есть ли элемент catalog-page в DOM (он может быть уже там)
+    if (document.querySelector('catalog-page') && !window.app.catalogStore) {
+      const catalogStore = getCatalogStore();
+      window.app.catalogStore = catalogStore;
+      
+      // Отправляем событие о готовности catalogStore
+      window.dispatchEvent(new CustomEvent('elkaretro:catalog-store:ready', {
+        detail: { store: catalogStore }
+      }));
+    }
+  } catch (err) {
+    console.error('[app] Failed to initialize catalog-store synchronously:', err);
+  }
+})();
+
 // Initialize cart store (async)
 document.addEventListener('DOMContentLoaded', function() {
-  // Загружаем catalog-store только там, где есть каталог
-  if (document.querySelector('catalog-page')) {
-    import('../components/catalog/catalog-store.js').then(module => {
-      const { getCatalogStore } = module;
+  // Stores уже загружены статически, используем их напрямую
+  // catalog-store уже инициализирован синхронно выше, если элемент был в DOM
+  // Проверяем снова на случай, если элемент появился только после DOMContentLoaded
+  if ((document.querySelector('catalog-page') || document.querySelector('[data-catalog-root]')) && !window.app.catalogStore) {
+    try {
       const catalogStore = getCatalogStore();
-      
-      // Делаем catalogStore доступным глобально
       window.app.catalogStore = catalogStore;
-    }).catch(err => {
-      console.error('[app] Failed to load catalog-store:', err);
-    });
+      
+      // Отправляем событие о готовности catalogStore
+      window.dispatchEvent(new CustomEvent('elkaretro:catalog-store:ready', {
+        detail: { store: catalogStore }
+      }));
+    } catch (err) {
+      console.error('[app] Failed to initialize catalog-store:', err);
+    }
   }
 
   // Инициализируем AccessoryCatalogStore только на страницах с accessory-catalog-page
   if (document.querySelector('accessory-catalog-page')) {
-    import('../components/accessory-catalog/accessory-catalog-store.js').then(module => {
-      const { getAccessoryCatalogStore } = module;
+    try {
       const accessoryCatalogStore = getAccessoryCatalogStore();
-      // Делаем accessoryCatalogStore доступным глобально
       window.app.accessoryCatalogStore = accessoryCatalogStore;
-    }).catch(err => {
-      console.error('[app] Failed to load accessory-catalog-store:', err);
-    });
+    } catch (err) {
+      console.error('[app] Failed to initialize accessory-catalog-store:', err);
+    }
   }
 
-  // Загружаем новый cart-store асинхронно
-  import('../components/cart/cart-store.js').then(module => {
-    const { getCartStore } = module;
+  // Инициализируем cart-store и присваиваем window.app.cart
+  try {
     const cartStore = getCartStore();
     
-    // Делаем cartStore доступным глобально
-    window.app.cartStore = cartStore;
-    
-    // Обновляем счетчик корзины при изменениях
-    cartStore.subscribe((nextState) => {
-      const count = cartStore.getCount();
-      app.cart.items = nextState.cart.items;
-      app.cart.updateCount();
+    // Создаем публичный API для обратной совместимости
+    window.app.cart = {
+      // Прямой доступ к store для новых компонентов
+      ...cartStore,
       
-      // Отправляем событие для обновления счетчика в header
-      const event = new CustomEvent('elkaretro:cart:updated', {
-        detail: { count }
-      });
-      window.dispatchEvent(event);
-    });
+      // Публичные методы для обратной совместимости
+      /**
+       * Добавить товар в корзину (обратная совместимость - старый API)
+       * @param {number} itemId - ID товара
+       * @param {string} itemType - тип товара ('toy_instance' | 'ny_accessory')
+       * @param {number} price - цена товара
+       */
+      add: function(itemId, itemType, price) {
+        cartStore.addItem({ id: itemId, type: itemType, price: price });
+      },
+      
+      /**
+       * Добавить товар в корзину (обратная совместимость - новый API)
+       * @param {Object} itemData - данные товара
+       * @param {number} itemData.id - ID товара
+       * @param {string} itemData.type - тип товара ('toy_instance' | 'ny_accessory')
+       * @param {number} itemData.price - цена товара
+       */
+      addItem: function(itemData) {
+        cartStore.addItem(itemData);
+      },
+      
+      /**
+       * Удалить товар из корзины (обратная совместимость - старый API)
+       * @param {number} itemId - ID товара
+       * @param {string} itemType - тип товара ('toy_instance' | 'ny_accessory')
+       */
+      remove: function(itemId, itemType) {
+        cartStore.removeItem(itemId, itemType);
+      },
+      
+      /**
+       * Удалить товар из корзины (обратная совместимость - новый API)
+       * @param {number} itemId - ID товара
+       * @param {string} itemType - тип товара ('toy_instance' | 'ny_accessory')
+       */
+      removeItem: function(itemId, itemType) {
+        cartStore.removeItem(itemId, itemType);
+      },
+      
+      /**
+       * Очистить корзину (обратная совместимость - старый API)
+       */
+      clear: function() {
+        cartStore.clearCart();
+      },
+      
+      /**
+       * Очистить корзину (обратная совместимость - новый API)
+       */
+      clearCart: function() {
+        cartStore.clearCart();
+      },
+      
+      /**
+       * Получить корзину (обратная совместимость)
+       * @returns {Object} состояние корзины
+       */
+      getCart: function() {
+        return cartStore.getCart();
+      },
+      
+      /**
+       * Получить товары корзины (обратная совместимость)
+       * @returns {Array} массив товаров
+       */
+      getItems: function() {
+        return cartStore.getItems();
+      },
+      
+      /**
+       * Получить количество товаров в корзине (обратная совместимость)
+       * @returns {number}
+       */
+      getCount: function() {
+        return cartStore.getCount();
+      },
+      
+      /**
+       * Получить полное состояние стора (для новых компонентов)
+       * @returns {Object} полное состояние стора
+       */
+      getState: function() {
+        return cartStore.getState();
+      },
+      
+      /**
+       * Подписаться на изменения состояния корзины
+       * @param {Function} callback - функция обратного вызова (nextState, prevState) => void
+       * @returns {Function} функция отписки
+       */
+      subscribe: function(callback) {
+        return cartStore.subscribe(callback);
+      },
+    };
     
-    // Инициализируем счетчик из текущего состояния
-    const count = cartStore.getCount();
-    app.cart.items = cartStore.getItems();
-    app.cart.updateCount();
+    // Обновляем window.app.cart.items при событиях обновления корзины
+    const updateCartItems = () => {
+      window.app.cart.items = window.app.cart.getItems();
+    };
+    updateCartItems(); // Инициализация
     
-    // Отправляем событие для инициализации счетчика в header
-    const event = new CustomEvent('elkaretro:cart:updated', {
-      detail: { count }
-    });
-    window.dispatchEvent(event);
-  }).catch(err => {
-    console.error('[app] Failed to load cart-store:', err);
-  });
+    // Отправляем событие об инициализации cart, чтобы все компоненты обновили счетчик
+    window.dispatchEvent(
+      new CustomEvent('elkaretro:cart:updated', {
+        detail: { 
+          cart: window.app.cart.getCart(), 
+          count: window.app.cart.getCount() 
+        },
+      })
+    );
+    
+    window.addEventListener('elkaretro:cart:updated', updateCartItems);
+  } catch (err) {
+    console.error('[app] Failed to initialize cart-store:', err);
+  }
 
   // Миграция старой корзины (если есть) в новый формат
   // Старый ключ 'cart' может содержать полные объекты товаров, что приводит к переполнению localStorage
@@ -649,9 +704,8 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Инициализация авторизации
-  // Загружаем только auth-service, менеджер модальных окон будет инициализирован лениво при первом использовании
-  import('../components/user-profile/services/auth-service.js').then((authModule) => {
-    const { authService } = authModule;
+  // Auth-service уже загружен статически, менеджер модальных окон будет инициализирован лениво при первом использовании
+  try {
     
     // Регистрируем сервисы глобально для использования в формах
     window.app.services = window.app.services || {};
@@ -692,18 +746,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Менеджер модальных окон инициализируется лениво при первом вызове showAuth() через site-header
     // Не загружаем его здесь, чтобы не создавать модальные окна на всех страницах
-  }).catch(err => {
-    console.error('[app] Failed to load auth service:', err);
-  });
+  } catch (err) {
+    console.error('[app] Failed to initialize auth service:', err);
+  }
   
-  // Загружаем user-service для использования в формах профиля
-  import('../components/user-profile/services/user-service.js').then((userModule) => {
-    const { userService } = userModule;
+  // User-service уже загружен статически
+  try {
     window.app.services = window.app.services || {};
     window.app.services.userService = userService;
-  }).catch(err => {
-    console.error('[app] Failed to load user service:', err);
-  });
+  } catch (err) {
+    console.error('[app] Failed to initialize user service:', err);
+  }
+
+  // Аналитика Яндекс.Метрики уже загружена статически
+  try {
+    initAnalytics();
+  } catch (err) {
+    console.error('[app] Failed to initialize analytics:', err);
+  }
+  
+  // Forms уже загружены статически - forms/index.js сам инициализирует window.app.forms при импорте
+  // Формы должны быть уже в window.app.forms, так как мы сохранили их при создании window.app
+  if (window.app.forms && Object.keys(window.app.forms).length > 0) {
+    console.log('[app] Forms available:', Object.keys(window.app.forms));
+  } else {
+    console.warn('[app] No forms registered!');
+  }
 });
 
 // Удалено: сохранение корзины теперь происходит через cart-store.js
